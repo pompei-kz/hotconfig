@@ -10,6 +10,7 @@ import kz.pompei.conf.core.model.ConfParam;
 import kz.pompei.conf.jdbc.tst_utils.JdbcTestDbUtils;
 import lombok.NonNull;
 import org.testng.annotations.Test;
+import utils.RND;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,12 +37,15 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
   @Test(dataProvider = "databaseType")
   public void read_existsInDbTable(@NonNull DatabaseType databaseType) {
 
-    ConnectionGet connectionGet = createConnectionGet(databaseType, "read_existsInDbTable");
+    String nameOfThisMethod = "read_existsInDbTable";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
 
     ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
-    def.tableName = "read_existsInDbTable";// this is name of this method
+    def.tableName = nameOfThisMethod + "_" + RND.str(8);
 
-    createsTable(connectionGet, def);
+    createTable(connectionGet, def);
+    clearTable(connectionGet, def.tableName);
 
     insertRow(connectionGet, def, "some/folder", "test-config.hotconf", "", "", "This is comment for conf\nline 2\nline 3");
     insertRow(connectionGet, def, "some/folder", "test-config.hotconf", "param0", "value0", "This is test0\nsecond line\nanother line");

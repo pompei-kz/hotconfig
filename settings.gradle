@@ -2,3 +2,4 @@ rootProject.name = 'kz-pompei-conf'
 
 include "kz-pompei-conf-core"
 include "kz-pompei-conf-jdbc"
+include "utils"

@@ -39,26 +39,27 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
     createTableIfNotExists();
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
-      try (PreparedStatement ps = connection.prepareStatement("""
-        SELECT %s, %s, %s
-        FROM %s
-        WHERE %s = ? AND %s = ?
-        ORDER BY %s
-        """.formatted(
-        params.colParamName,
-        params.colParamValueStr,
-        params.colComment,
-        params.tableName,
-        params.colFolder,
-        params.colConfigName,
-        params.colParamName
-      ))) {
+      try (PreparedStatement ps = connection.prepareStatement(
+        """
+          SELECT %s, %s, %s
+          FROM %s
+          WHERE %s = ? AND %s = ?
+          ORDER BY %s
+          """.formatted(
+          params.colParamName,
+          params.colParamValueStr,
+          params.colComment,
+          params.tableName,
+          params.colFolder,
+          params.colConfigName,
+          params.colParamName
+        ))) {
         ps.setString(1, folder);
         ps.setString(2, configName);
 
         try (ResultSet rs = ps.executeQuery()) {
-          Conf conf  = new Conf();
-          boolean ok = false;
+          Conf    conf = new Conf();
+          boolean ok   = false;
           while (rs.next()) {
             ok = true;
             String paramName = rs.getString(params.colParamName);
@@ -88,14 +89,15 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
     createTableIfNotExists();
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
-      try (PreparedStatement ps = connection.prepareStatement("""
-        DELETE FROM %s
-        WHERE %s = ? AND %s = ?
-        """.formatted(
-        params.tableName,
-        params.colFolder,
-        params.colConfigName
-      ))) {
+      try (PreparedStatement ps = connection.prepareStatement(
+        """
+          DELETE FROM %s
+          WHERE %s = ? AND %s = ?
+          """.formatted(
+          params.tableName,
+          params.colFolder,
+          params.colConfigName
+        ))) {
         ps.setString(1, folder);
         ps.setString(2, configName);
         ps.executeUpdate();
@@ -117,16 +119,17 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
     createTableIfNotExists();
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
-      try (PreparedStatement ps = connection.prepareStatement("""
-        SELECT MAX(%s)
-        FROM %s
-        WHERE %s = ? AND %s = ?
-        """.formatted(
-        params.colLastModified,
-        params.tableName,
-        params.colFolder,
-        params.colConfigName
-      ))) {
+      try (PreparedStatement ps = connection.prepareStatement(
+        """
+          SELECT MAX(%s)
+          FROM %s
+          WHERE %s = ? AND %s = ?
+          """.formatted(
+          params.colLastModified,
+          params.tableName,
+          params.colFolder,
+          params.colConfigName
+        ))) {
         ps.setString(1, folder);
         ps.setString(2, configName);
         try (ResultSet rs = ps.executeQuery()) {
@@ -141,41 +144,9 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
     }
   }
 
-  public void createTableIfNotExists() {
-    try (@NonNull Connection connection = connectionGet.getConnection()) {
-      createSchemaIfNotExists(connection);
-      try (PreparedStatement ps = connection.prepareStatement("""
-        CREATE TABLE IF NOT EXISTS %s (
-          %s VARCHAR(1000) NOT NULL,
-          %s VARCHAR(1000) NOT NULL,
-          %s VARCHAR(1000) NOT NULL,
-          %s TEXT,
-          %s TEXT,
-          %s TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          %s TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (%s, %s, %s)
-        )
-        """.formatted(
-        params.tableName,
-        params.colFolder,
-        params.colConfigName,
-        params.colParamName,
-        params.colParamValueStr,
-        params.colComment,
-        params.colCreatedAt,
-        params.colLastModified,
-        params.colFolder,
-        params.colConfigName,
-        params.colParamName
-      ))) {
-        ps.executeUpdate();
-      }
-    } catch (SQLException e) {
-      throw new RuntimeException("W3tY7uI9oP :: Could not create configuration table: " + params.tableName, e);
-    }
-  }
+  public abstract void createTableIfNotExists();
 
-  private void createSchemaIfNotExists(@NonNull Connection connection) throws SQLException {
+  protected void createSchemaIfNotExists(@NonNull Connection connection) throws SQLException {
     int dotIndex = params.tableName.indexOf('.');
     if (dotIndex < 0) return;
 
@@ -185,13 +156,13 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
     }
   }
 
-  private String folder(@NonNull String localPath) {
+  private @NonNull String folder(@NonNull String localPath) {
     int slashIndex = localPath.lastIndexOf('/');
     if (slashIndex < 0) return "";
     return localPath.substring(0, slashIndex);
   }
 
-  private String configName(@NonNull String localPath) {
+  private @NonNull String configName(@NonNull String localPath) {
     int slashIndex = localPath.lastIndexOf('/');
     if (slashIndex < 0) return localPath;
     return localPath.substring(slashIndex + 1);
@@ -208,17 +179,19 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
                          @NonNull String paramName,
                          @Nullable String paramValue,
                          @Nullable String comment) throws SQLException {
-    try (PreparedStatement ps = connection.prepareStatement("""
-      INSERT INTO %s (%s, %s, %s, %s, %s)
-      VALUES (?, ?, ?, ?, ?)
-      """.formatted(
-      params.tableName,
-      params.colFolder,
-      params.colConfigName,
-      params.colParamName,
-      params.colParamValueStr,
-      params.colComment
-    ))) {
+
+    try (PreparedStatement ps = connection.prepareStatement(
+      """
+        INSERT INTO %s (%s, %s, %s, %s, %s)
+        VALUES (?, ?, ?, ?, ?)
+        """.formatted(
+        params.tableName,
+        params.colFolder,
+        params.colConfigName,
+        params.colParamName,
+        params.colParamValueStr,
+        params.colComment
+      ))) {
       ps.setString(1, folder);
       ps.setString(2, configName);
       ps.setString(3, paramName);

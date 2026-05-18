@@ -60,15 +60,18 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
    * @param connectionGet connection source
    * @param def           table config definition
    */
-  @SuppressWarnings("SqlWithoutWhere")
-  protected void createsTable(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef def) {
+  protected void createTable(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef def) {
     ConfTunnelJdbcBuilder.build(connectionGet, def).createTableIfNotExists();
+  }
+
+  @SuppressWarnings("SqlWithoutWhere")
+  protected void clearTable(@NonNull ConnectionGet connectionGet, @NonNull String tableName) {
     try (@NonNull Connection connection = connectionGet.getConnection()) {
-      try (PreparedStatement ps = connection.prepareStatement("DELETE FROM " + def.tableName)) {
+      try (PreparedStatement ps = connection.prepareStatement("DELETE FROM " + tableName)) {
         ps.executeUpdate();
       }
     } catch (SQLException e) {
-      throw new RuntimeException("r5Tg8Yh2Kp :: Could not clear configuration test table: " + def.tableName, e);
+      throw new RuntimeException("r5Tg8Yh2Kp :: Could not clear configuration test table: " + tableName, e);
     }
   }
 }
