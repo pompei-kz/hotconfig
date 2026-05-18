@@ -1,8 +1,10 @@
-package kz.pompei.conf.jdbc;
+package kz.pompei.conf.jdbc.tst_utils;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import kz.pompei.conf.jdbc.ConnectionGet;
+import kz.pompei.conf.jdbc.DatabaseType;
 import lombok.NonNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.DataProvider;
@@ -11,8 +13,8 @@ import static java.util.Objects.requireNonNull;
 
 public abstract class JdbcTestParent {
 
-  @DataProvider
-  Object[][] databaseType() {
+  @DataProvider(name = "databaseType")
+  public Object[][] databaseType() {
     return Arrays.stream(DatabaseType.values()).map(t -> new Object[]{t}).toArray(Object[][]::new);
   }
 

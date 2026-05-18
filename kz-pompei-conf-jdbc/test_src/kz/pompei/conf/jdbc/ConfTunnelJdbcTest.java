@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.List;
 import kz.pompei.conf.core.model.Conf;
 import kz.pompei.conf.core.model.ConfParam;
+import kz.pompei.conf.jdbc.tst_utils.JdbcTestDbUtils;
 import lombok.NonNull;
 import org.testng.annotations.Test;
 

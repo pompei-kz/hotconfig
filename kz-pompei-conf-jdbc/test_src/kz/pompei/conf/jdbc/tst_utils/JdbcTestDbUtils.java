@@ -1,8 +1,11 @@
-package kz.pompei.conf.jdbc;
+package kz.pompei.conf.jdbc.tst_utils;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import kz.pompei.conf.jdbc.ConfTunnelJdbcBuilder;
+import kz.pompei.conf.jdbc.ConfTunnelJdbcDef;
+import kz.pompei.conf.jdbc.ConnectionGet;
 import lombok.NonNull;
 import org.jetbrains.annotations.Nullable;
 

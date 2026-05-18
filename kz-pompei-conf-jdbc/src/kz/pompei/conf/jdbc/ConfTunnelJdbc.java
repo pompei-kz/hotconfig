@@ -141,7 +141,7 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
     }
   }
 
-  protected void createTableIfNotExists() {
+  public void createTableIfNotExists() {
     try (@NonNull Connection connection = connectionGet.getConnection()) {
       createSchemaIfNotExists(connection);
       try (PreparedStatement ps = connection.prepareStatement("""
@@ -152,7 +152,8 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
           %s TEXT,
           %s TEXT,
           %s TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          %s TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+          %s TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (%s, %s, %s)
         )
         """.formatted(
         params.tableName,
@@ -162,7 +163,10 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
         params.colParamValueStr,
         params.colComment,
         params.colCreatedAt,
-        params.colLastModified
+        params.colLastModified,
+        params.colFolder,
+        params.colConfigName,
+        params.colParamName
       ))) {
         ps.executeUpdate();
       }

@@ -1,4 +1,4 @@
-package kz.pompei.conf.jdbc;
+package kz.pompei.conf.jdbc.tst_utils;
 
 import lombok.RequiredArgsConstructor;
 
