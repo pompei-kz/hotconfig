@@ -204,9 +204,9 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
 
     //
     //
-    Conf firstConf = confTunnelJdbc.read("some/folder/first-config.hotconf");
+    Conf firstConf  = confTunnelJdbc.read("some/folder/first-config.hotconf");
     Conf secondConf = confTunnelJdbc.read("some/folder/second-config.hotconf");
-    Conf thirdConf = confTunnelJdbc.read("other/folder/third-config.hotconf");
+    Conf thirdConf  = confTunnelJdbc.read("other/folder/third-config.hotconf");
     //
     //
 
@@ -217,7 +217,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
       "first config comment 3"
     ));
     ConfParam firstAlpha = firstConf.params.get(0);// params sorted by name
-    ConfParam firstBeta = firstConf.params.get(1);
+    ConfParam firstBeta  = firstConf.params.get(1);
     ConfParam firstGamma = firstConf.params.get(2);
     assertThat(firstAlpha.name).isEqualTo("alpha");
     assertThat(firstBeta.name).isEqualTo("beta");
@@ -235,9 +235,9 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
       "second config comment 2",
       "second config comment 3"
     ));
-    ConfParam secondDelta = secondConf.params.get(0);// params sorted by name
+    ConfParam secondDelta   = secondConf.params.get(0);// params sorted by name
     ConfParam secondEpsilon = secondConf.params.get(1);
-    ConfParam secondZeta = secondConf.params.get(2);
+    ConfParam secondZeta    = secondConf.params.get(2);
     assertThat(secondDelta.name).isEqualTo("delta");
     assertThat(secondEpsilon.name).isEqualTo("epsilon");
     assertThat(secondZeta.name).isEqualTo("zeta");
@@ -254,8 +254,8 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
       "third config comment 2",
       "third config comment 3"
     ));
-    ConfParam thirdEta = thirdConf.params.get(0);// params sorted by name
-    ConfParam thirdIota = thirdConf.params.get(1);
+    ConfParam thirdEta   = thirdConf.params.get(0);// params sorted by name
+    ConfParam thirdIota  = thirdConf.params.get(1);
     ConfParam thirdTheta = thirdConf.params.get(2);
     assertThat(thirdEta.name).isEqualTo("eta");
     assertThat(thirdIota.name).isEqualTo("iota");
@@ -311,7 +311,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     param0.comments.add("This is test0");
     param0.comments.add("second line");
     param0.comments.add("another line");
-    param0.name = "param0";
+    param0.name     = "param0";
     param0.valueStr = "value0";
     conf.params.add(param0);
 
@@ -319,7 +319,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     param1.comments.add("This is test1");
     param1.comments.add("second line");
     param1.comments.add("another line");
-    param1.name = "param1";
+    param1.name     = "param1";
     param1.valueStr = "value1";
     conf.params.add(param1);
 
@@ -368,7 +368,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     firstAlpha.comments.add("alpha comment 1");
     firstAlpha.comments.add("alpha comment 2");
     firstAlpha.comments.add("alpha comment 3");
-    firstAlpha.name = "alpha";
+    firstAlpha.name     = "alpha";
     firstAlpha.valueStr = "alpha-value";
     firstConf.params.add(firstAlpha);
 
@@ -376,7 +376,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     firstBeta.comments.add("beta comment 1");
     firstBeta.comments.add("beta comment 2");
     firstBeta.comments.add("beta comment 3");
-    firstBeta.name = "beta";
+    firstBeta.name     = "beta";
     firstBeta.valueStr = "beta-value";
     firstConf.params.add(firstBeta);
 
@@ -384,7 +384,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     firstGamma.comments.add("gamma comment 1");
     firstGamma.comments.add("gamma comment 2");
     firstGamma.comments.add("gamma comment 3");
-    firstGamma.name = "gamma";
+    firstGamma.name     = "gamma";
     firstGamma.valueStr = "gamma-value";
     firstConf.params.add(firstGamma);
 
@@ -397,7 +397,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     secondDelta.comments.add("delta comment 1");
     secondDelta.comments.add("delta comment 2");
     secondDelta.comments.add("delta comment 3");
-    secondDelta.name = "delta";
+    secondDelta.name     = "delta";
     secondDelta.valueStr = "delta-value";
     secondConf.params.add(secondDelta);
 
@@ -405,7 +405,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     secondEpsilon.comments.add("epsilon comment 1");
     secondEpsilon.comments.add("epsilon comment 2");
     secondEpsilon.comments.add("epsilon comment 3");
-    secondEpsilon.name = "epsilon";
+    secondEpsilon.name     = "epsilon";
     secondEpsilon.valueStr = "epsilon-value";
     secondConf.params.add(secondEpsilon);
 
@@ -413,7 +413,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     secondZeta.comments.add("zeta comment 1");
     secondZeta.comments.add("zeta comment 2");
     secondZeta.comments.add("zeta comment 3");
-    secondZeta.name = "zeta";
+    secondZeta.name     = "zeta";
     secondZeta.valueStr = "zeta-value";
     secondConf.params.add(secondZeta);
 
@@ -426,7 +426,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     thirdEta.comments.add("eta comment 1");
     thirdEta.comments.add("eta comment 2");
     thirdEta.comments.add("eta comment 3");
-    thirdEta.name = "eta";
+    thirdEta.name     = "eta";
     thirdEta.valueStr = "eta-value";
     thirdConf.params.add(thirdEta);
 
@@ -434,7 +434,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     thirdTheta.comments.add("theta comment 1");
     thirdTheta.comments.add("theta comment 2");
     thirdTheta.comments.add("theta comment 3");
-    thirdTheta.name = "theta";
+    thirdTheta.name     = "theta";
     thirdTheta.valueStr = "theta-value";
     thirdConf.params.add(thirdTheta);
 
@@ -442,7 +442,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     thirdIota.comments.add("iota comment 1");
     thirdIota.comments.add("iota comment 2");
     thirdIota.comments.add("iota comment 3");
-    thirdIota.name = "iota";
+    thirdIota.name     = "iota";
     thirdIota.valueStr = "iota-value";
     thirdConf.params.add(thirdIota);
 
@@ -456,9 +456,9 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     //
     //
 
-    Conf readFirstConf = confTunnelJdbc.read("some/folder/first-config.hotconf");
+    Conf readFirstConf  = confTunnelJdbc.read("some/folder/first-config.hotconf");
     Conf readSecondConf = confTunnelJdbc.read("some/folder/second-config.hotconf");
-    Conf readThirdConf = confTunnelJdbc.read("other/folder/third-config.hotconf");
+    Conf readThirdConf  = confTunnelJdbc.read("other/folder/third-config.hotconf");
 
     assertThat(readFirstConf).isNotNull();
     assertThat(readFirstConf.confComments).isEqualTo(List.of(
@@ -468,7 +468,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     ));
 
     ConfParam readFirstAlpha = readFirstConf.params.get(0);// params sorted by name
-    ConfParam readFirstBeta = readFirstConf.params.get(1);
+    ConfParam readFirstBeta  = readFirstConf.params.get(1);
     ConfParam readFirstGamma = readFirstConf.params.get(2);
 
     assertThat(readFirstAlpha.name).isEqualTo("alpha");
@@ -490,9 +490,9 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
       "second config comment 3"
     ));
 
-    ConfParam readSecondDelta = readSecondConf.params.get(0);// params sorted by name
+    ConfParam readSecondDelta   = readSecondConf.params.get(0);// params sorted by name
     ConfParam readSecondEpsilon = readSecondConf.params.get(1);
-    ConfParam readSecondZeta = readSecondConf.params.get(2);
+    ConfParam readSecondZeta    = readSecondConf.params.get(2);
 
     assertThat(readSecondDelta.name).isEqualTo("delta");
     assertThat(readSecondEpsilon.name).isEqualTo("epsilon");
@@ -513,8 +513,8 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
       "third config comment 3"
     ));
 
-    ConfParam readThirdEta = readThirdConf.params.get(0);// params sorted by name
-    ConfParam readThirdIota = readThirdConf.params.get(1);
+    ConfParam readThirdEta   = readThirdConf.params.get(0);// params sorted by name
+    ConfParam readThirdIota  = readThirdConf.params.get(1);
     ConfParam readThirdTheta = readThirdConf.params.get(2);
 
     assertThat(readThirdEta.name).isEqualTo("eta");
@@ -553,7 +553,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     //
     //
 
-    Thread.sleep(1200);
+    waitForChange(databaseType);
     updateRow(connectionGet, def, "some/folder", "test-config.hotconf", "", "changed", "This is comment for conf");
 
     //
@@ -603,12 +603,12 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
 
     //
     //
-    Long initialFirstMarker = confTunnelJdbc.modificationMarker("some/folder/first-config.hotconf");
+    Long initialFirstMarker  = confTunnelJdbc.modificationMarker("some/folder/first-config.hotconf");
     Long initialSecondMarker = confTunnelJdbc.modificationMarker("other/folder/second-config.hotconf");
     //
     //
 
-    Thread.sleep(1200);
+    waitForChange(databaseType);
     updateRow(
       connectionGet,
       def,
@@ -630,7 +630,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
 
     //
     //
-    Long updatedFirstMarker = confTunnelJdbc.modificationMarker("some/folder/first-config.hotconf");
+    Long updatedFirstMarker  = confTunnelJdbc.modificationMarker("some/folder/first-config.hotconf");
     Long updatedSecondMarker = confTunnelJdbc.modificationMarker("other/folder/second-config.hotconf");
     //
     //
@@ -643,4 +643,5 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     assertThat(updatedFirstMarker).isGreaterThan(initialFirstMarker);
     assertThat(updatedSecondMarker).isGreaterThan(initialSecondMarker);
   }
+
 }

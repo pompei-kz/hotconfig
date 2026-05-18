@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import kz.pompei.conf.jdbc.ConfTunnelJdbcBuilder;
 import kz.pompei.conf.jdbc.ConfTunnelJdbcDef;
 import kz.pompei.conf.jdbc.ConnectionGet;
+import kz.pompei.conf.jdbc.DatabaseType;
 import lombok.NonNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -136,5 +137,9 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
     } catch (SQLException e) {
       throw new RuntimeException("N2o3P4q5R6 :: Could not clear configuration test table: " + tableName, e);
     }
+  }
+
+  protected static void waitForChange(@NonNull DatabaseType databaseType) throws InterruptedException {
+    Thread.sleep(databaseType == DatabaseType.MariaDB ? 1200 : 100);
   }
 }
