@@ -31,17 +31,18 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
                            @Nullable String comment) {
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
-      try (PreparedStatement ps = connection.prepareStatement("""
-        INSERT INTO %s (%s, %s, %s, %s, %s)
+      String sql = """
+        INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment})
         VALUES (?, ?, ?, ?, ?)
-        """.formatted(
-        def.tableName,
-        def.colFolder,
-        def.colConfigName,
-        def.colParamName,
-        def.colParamValueStr,
-        def.colComment
-      ))) {
+        """
+        .replace("{tableName}", def.tableName)
+        .replace("{colFolder}", def.colFolder)
+        .replace("{colConfigName}", def.colConfigName)
+        .replace("{colParamName}", def.colParamName)
+        .replace("{colParamValueStr}", def.colParamValueStr)
+        .replace("{colComment}", def.colComment);
+
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.setString(1, folder);
         ps.setString(2, configName);
         ps.setString(3, paramName);
@@ -74,18 +75,19 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
                            @Nullable String comment) {
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
-      try (PreparedStatement ps = connection.prepareStatement("""
-        UPDATE %s
-        SET %s = ?, %s = ?
-        WHERE %s = ? AND %s = ? AND %s = ?
-        """.formatted(
-        def.tableName,
-        def.colParamValueStr,
-        def.colComment,
-        def.colFolder,
-        def.colConfigName,
-        def.colParamName
-      ))) {
+      String sql = """
+        UPDATE {tableName}
+        SET {colParamValueStr} = ?, {colComment} = ?
+        WHERE {colFolder} = ? AND {colConfigName} = ? AND {colParamName} = ?
+        """
+        .replace("{tableName}", def.tableName)
+        .replace("{colParamValueStr}", def.colParamValueStr)
+        .replace("{colComment}", def.colComment)
+        .replace("{colFolder}", def.colFolder)
+        .replace("{colConfigName}", def.colConfigName)
+        .replace("{colParamName}", def.colParamName);
+
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.setString(1, paramValue);
         ps.setString(2, comment);
         ps.setString(3, folder);

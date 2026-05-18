@@ -43,22 +43,31 @@ public class ConfTunnelJdbcPg extends ConfTunnelJdbc {
       String triggerName = triggerName();
 
       try (Statement statement = connection.createStatement()) {
-        statement.execute("""
-          CREATE OR REPLACE FUNCTION %s()
+        String functionSql = """
+          CREATE OR REPLACE FUNCTION {functionName}()
           RETURNS trigger AS $$
           BEGIN
-            NEW.%s = CURRENT_TIMESTAMP;
+            NEW.{colLastModified} = CURRENT_TIMESTAMP;
             RETURN NEW;
           END;
           $$ LANGUAGE plpgsql
-          """.formatted(functionName, params.colLastModified));
+          """
+          .replace("{functionName}", functionName)
+          .replace("{colLastModified}", params.colLastModified);
+
+        statement.execute(functionSql);
         statement.execute("DROP TRIGGER IF EXISTS " + triggerName + " ON " + params.tableName);
-        statement.execute("""
-          CREATE TRIGGER %s
-          BEFORE UPDATE ON %s
+        String triggerSql = """
+          CREATE TRIGGER {triggerName}
+          BEFORE UPDATE ON {tableName}
           FOR EACH ROW
-          EXECUTE FUNCTION %s()
-          """.formatted(triggerName, params.tableName, functionName));
+          EXECUTE FUNCTION {functionName}()
+          """
+          .replace("{triggerName}", triggerName)
+          .replace("{functionName}", functionName)
+          .replace("{tableName}", params.tableName);
+
+        statement.execute(triggerSql);
       }
     } catch (SQLException e) {
       throw new RuntimeException("gSuRM3iUKp :: Could not create configuration table: " + params.tableName, e);

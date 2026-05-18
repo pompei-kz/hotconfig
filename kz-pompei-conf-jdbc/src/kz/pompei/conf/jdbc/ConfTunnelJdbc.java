@@ -38,22 +38,21 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
 
     createTableIfNotExists();
 
-    try (@NonNull Connection connection = connectionGet.getConnection()) {
-      try (PreparedStatement ps = connection.prepareStatement(
+      try (@NonNull Connection connection = connectionGet.getConnection()) {
+      String sql = """
+        SELECT {colParamName}, {colParamValueStr}, {colComment}
+        FROM {tableName}
+        WHERE {colFolder} = ? AND {colConfigName} = ?
+        ORDER BY {colParamName}
         """
-          SELECT %s, %s, %s
-          FROM %s
-          WHERE %s = ? AND %s = ?
-          ORDER BY %s
-          """.formatted(
-          params.colParamName,
-          params.colParamValueStr,
-          params.colComment,
-          params.tableName,
-          params.colFolder,
-          params.colConfigName,
-          params.colParamName
-        ))) {
+        .replace("{colParamName}", params.colParamName)
+        .replace("{colParamValueStr}", params.colParamValueStr)
+        .replace("{colComment}", params.colComment)
+        .replace("{tableName}", params.tableName)
+        .replace("{colFolder}", params.colFolder)
+        .replace("{colConfigName}", params.colConfigName);
+
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.setString(1, folder);
         ps.setString(2, configName);
 
@@ -89,15 +88,15 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
     createTableIfNotExists();
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
-      try (PreparedStatement ps = connection.prepareStatement(
+      String sql = """
+        DELETE FROM {tableName}
+        WHERE {colFolder} = ? AND {colConfigName} = ?
         """
-          DELETE FROM %s
-          WHERE %s = ? AND %s = ?
-          """.formatted(
-          params.tableName,
-          params.colFolder,
-          params.colConfigName
-        ))) {
+        .replace("{tableName}", params.tableName)
+        .replace("{colFolder}", params.colFolder)
+        .replace("{colConfigName}", params.colConfigName);
+
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.setString(1, folder);
         ps.setString(2, configName);
         ps.executeUpdate();
@@ -119,17 +118,17 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
     createTableIfNotExists();
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
-      try (PreparedStatement ps = connection.prepareStatement(
+      String sql = """
+        SELECT MAX({colLastModified})
+        FROM {tableName}
+        WHERE {colFolder} = ? AND {colConfigName} = ?
         """
-          SELECT MAX(%s)
-          FROM %s
-          WHERE %s = ? AND %s = ?
-          """.formatted(
-          params.colLastModified,
-          params.tableName,
-          params.colFolder,
-          params.colConfigName
-        ))) {
+        .replace("{colLastModified}", params.colLastModified)
+        .replace("{tableName}", params.tableName)
+        .replace("{colFolder}", params.colFolder)
+        .replace("{colConfigName}", params.colConfigName);
+
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.setString(1, folder);
         ps.setString(2, configName);
         try (ResultSet rs = ps.executeQuery()) {
@@ -180,18 +179,18 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
                          @Nullable String paramValue,
                          @Nullable String comment) throws SQLException {
 
-    try (PreparedStatement ps = connection.prepareStatement(
+    String sql = """
+      INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment})
+      VALUES (?, ?, ?, ?, ?)
       """
-        INSERT INTO %s (%s, %s, %s, %s, %s)
-        VALUES (?, ?, ?, ?, ?)
-        """.formatted(
-        params.tableName,
-        params.colFolder,
-        params.colConfigName,
-        params.colParamName,
-        params.colParamValueStr,
-        params.colComment
-      ))) {
+      .replace("{tableName}", params.tableName)
+      .replace("{colFolder}", params.colFolder)
+      .replace("{colConfigName}", params.colConfigName)
+      .replace("{colParamName}", params.colParamName)
+      .replace("{colParamValueStr}", params.colParamValueStr)
+      .replace("{colComment}", params.colComment);
+
+    try (PreparedStatement ps = connection.prepareStatement(sql)) {
       ps.setString(1, folder);
       ps.setString(2, configName);
       ps.setString(3, paramName);
