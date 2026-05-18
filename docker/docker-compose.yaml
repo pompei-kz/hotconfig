@@ -1,0 +1,35 @@
+networks:
+  kz-pompei-conf:
+    name: kz-pompei-conf
+
+services:
+
+  pg:
+    image: postgres:18.4-alpine3.23
+    container_name: kz-pompei-conf-pg
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: "5XJPUzeyYfTDamLtB24a"
+    ports:
+      - "17401:5432"
+    volumes:
+      - ${APP_DATA_ROOT}/postgres-data:/var/lib/postgresql
+      - ./pg-init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - kz-pompei-conf
+
+  mariadb:
+    image: mariadb:10.6.25
+    container_name: kz-pompei-conf-mariadb
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: "TwIA2B6hHHBQdLwp4wZa"
+      MARIADB_DATABASE: kz-pompei-conf
+      MARIADB_USER: kz-pompei-conf
+      MARIADB_PASSWORD: "19LpOmDjST6rs9DeADTc"
+    ports:
+      - "17402:3306"
+    networks:
+      - kz-pompei-conf
+    volumes:
+      - ${APP_DATA_ROOT}/mariadb-data:/var/lib/mysql:Z
