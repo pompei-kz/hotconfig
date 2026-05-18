@@ -13,30 +13,28 @@ public class ConfTunnelJdbcMariaDb extends ConfTunnelJdbc {
   @Override public void createTableIfNotExists() {
     try (@NonNull Connection connection = connectionGet.getConnection()) {
       createSchemaIfNotExists(connection);
-      try (PreparedStatement ps = connection.prepareStatement("""
-        CREATE TABLE IF NOT EXISTS %s (
-          %s VARCHAR(1000) NOT NULL,
-          %s VARCHAR(500) NOT NULL,
-          %s VARCHAR(100) NOT NULL,
-          %s TEXT,
-          %s TEXT,
-          %s TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          %s TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (%s, %s, %s)
+      String sql = """
+        CREATE TABLE IF NOT EXISTS {tableName} (
+          {colFolder}           VARCHAR(255) NOT NULL,
+          {colConfigName}       VARCHAR(255) NOT NULL,
+          {colParamName}        VARCHAR(255) NOT NULL,
+          {colParamValueStr}    TEXT,
+          {colComment}          TEXT,
+          {colCreatedAt}        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          {colLastModified}     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY ({colFolder}, {colConfigName}, {colParamName})
         )
-        """.formatted(
-        params.tableName,
-        params.colFolder,
-        params.colConfigName,
-        params.colParamName,
-        params.colParamValueStr,
-        params.colComment,
-        params.colCreatedAt,
-        params.colLastModified,
-        params.colFolder,
-        params.colConfigName,
-        params.colParamName
-      ))) {
+        """
+        .replace("{tableName}", params.tableName)
+        .replace("{colFolder}", params.colFolder)
+        .replace("{colConfigName}", params.colConfigName)
+        .replace("{colParamName}", params.colParamName)
+        .replace("{colParamValueStr}", params.colParamValueStr)
+        .replace("{colComment}", params.colComment)
+        .replace("{colCreatedAt}", params.colCreatedAt)
+        .replace("{colLastModified}", params.colLastModified);
+
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.executeUpdate();
       }
     } catch (SQLException e) {

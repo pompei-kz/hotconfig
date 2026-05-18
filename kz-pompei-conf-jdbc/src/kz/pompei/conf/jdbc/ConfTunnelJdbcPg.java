@@ -10,34 +10,31 @@ public class ConfTunnelJdbcPg extends ConfTunnelJdbc {
     super(connectionGet, params);
   }
 
-
- @Override public void createTableIfNotExists() {
+  @Override public void createTableIfNotExists() {
     try (@NonNull Connection connection = connectionGet.getConnection()) {
       createSchemaIfNotExists(connection);
-      try (PreparedStatement ps = connection.prepareStatement("""
-        CREATE TABLE IF NOT EXISTS %s (
-          %s VARCHAR(1000) NOT NULL,
-          %s VARCHAR(1000) NOT NULL,
-          %s VARCHAR(1000) NOT NULL,
-          %s TEXT,
-          %s TEXT,
-          %s TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          %s TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (%s, %s, %s)
+      String sql = """
+        CREATE TABLE IF NOT EXISTS {tableName} (
+          {colFolder}          VARCHAR(1000) NOT NULL,
+          {colConfigName}      VARCHAR(1000) NOT NULL,
+          {colParamName}       VARCHAR(1000) NOT NULL,
+          {colParamValueStr}   TEXT,
+          {colComment}         TEXT,
+          {colCreatedAt}       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          {colLastModified}    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY ({colFolder}, {colConfigName}, {colParamName})
         )
-        """.formatted(
-        params.tableName,
-        params.colFolder,
-        params.colConfigName,
-        params.colParamName,
-        params.colParamValueStr,
-        params.colComment,
-        params.colCreatedAt,
-        params.colLastModified,// todo this field should be now on update of any column
-        params.colFolder,
-        params.colConfigName,
-        params.colParamName
-      ))) {
+        """
+        .replace("{tableName}", params.tableName)
+        .replace("{colFolder}", params.colFolder)
+        .replace("{colConfigName}", params.colConfigName)
+        .replace("{colParamName}", params.colParamName)
+        .replace("{colParamValueStr}", params.colParamValueStr)
+        .replace("{colComment}", params.colComment)
+        .replace("{colCreatedAt}", params.colCreatedAt)
+        .replace("{colLastModified}", params.colLastModified);
+
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.executeUpdate();
       }
     } catch (SQLException e) {
