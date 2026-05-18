@@ -46,7 +46,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     insertRow(connectionGet, def, "some/folder", "test-config.hotconf", "param0", "value0", "This is test0\nsecond line\nanother line");
     insertRow(connectionGet, def, "some/folder", "test-config.hotconf", "param1", "value1", "This is test1\nsecond line\nanother line");
 
-    ConfTunnelJdbc confTunnelJdbc = ConfTunnelJdbcBuilder.detectDbAndCreate(connectionGet, def);
+    ConfTunnelJdbc confTunnelJdbc = ConfTunnelJdbcBuilder.build(connectionGet, def);
 
     //
     //

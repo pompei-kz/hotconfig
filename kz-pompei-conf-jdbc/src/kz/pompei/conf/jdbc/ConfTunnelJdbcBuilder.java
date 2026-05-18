@@ -6,7 +6,7 @@ import lombok.NonNull;
 
 public class ConfTunnelJdbcBuilder {
 
-  public static @NonNull ConfTunnelJdbc detectDbAndCreate(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef params) {
+  public static @NonNull ConfTunnelJdbc build(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef params) {
 
     DatabaseType databaseType = detectDb(connectionGet);
 

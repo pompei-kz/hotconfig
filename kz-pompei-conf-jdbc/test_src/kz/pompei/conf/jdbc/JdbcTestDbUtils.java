@@ -59,7 +59,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
    */
   @SuppressWarnings("SqlWithoutWhere")
   protected void createsTable(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef def) {
-    ConfTunnelJdbcBuilder.detectDbAndCreate(connectionGet, def).createTableIfNotExists();
+    ConfTunnelJdbcBuilder.build(connectionGet, def).createTableIfNotExists();
     try (@NonNull Connection connection = connectionGet.getConnection()) {
       try (PreparedStatement ps = connection.prepareStatement("DELETE FROM " + def.tableName)) {
         ps.executeUpdate();
