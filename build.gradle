@@ -1,0 +1,97 @@
+
+allprojects {
+  apply plugin: 'java'
+  apply plugin: 'eclipse'
+  apply plugin: 'idea'
+
+  version = rootProject.file('versions/version.txt').text.trim()
+
+  java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+  group = "kz.pompei.conf"
+
+  buildscript {
+    repositories {
+      mavenLocal()
+      mavenCentral()
+    }
+  }
+
+  repositories {
+    mavenLocal()
+    mavenCentral()
+  }
+
+  [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+  [compileJava, compileTestJava]*.options*.debugOptions*.debugLevel = "source,lines,vars"
+
+}
+
+subprojects {
+
+  tasks.register('deps', DependencyReportTask) {}
+
+  dependencies {
+
+    ext.postgres_version = "42.7.8"
+    ext.hikari_version = "7.0.2"
+    ext.lombok_version = "1.18.38"
+
+    ext.test_ng_version = "7.11.0"
+    ext.assertj_version = "3.27.3"
+    ext.jakarta_annotation_version = "3.0.0"
+    ext.tools_jackson_version = "3.0.2"
+    ext.jackson_ann_version = "2.20"
+
+    implementation "org.jetbrains:annotations:26.1.0"
+
+    testImplementation "org.testng:testng:$test_ng_version"
+    testImplementation "org.assertj:assertj-core:$assertj_version"
+
+    compileOnly "org.projectlombok:lombok:$lombok_version"
+    annotationProcessor "org.projectlombok:lombok:$lombok_version"
+
+    testCompileOnly "org.projectlombok:lombok:$lombok_version"
+    testAnnotationProcessor "org.projectlombok:lombok:$lombok_version"
+  }
+
+  tasks.withType(Javadoc).configureEach {
+    //noinspection SpellCheckingInspection
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('encoding', 'UTF-8')
+    options.addStringOption('charSet', 'UTF-8')
+  }
+
+  test.useTestNG()
+  test.testLogging.exceptionFormat = "full"
+
+  idea.module.downloadSources = true
+  idea.module.downloadJavadoc = true
+  idea.module.inheritOutputDirs = false
+  idea.module.outputDir = file("$layout.buildDirectory/idea_classes/main/")
+  idea.module.testOutputDir = file("$layout.buildDirectory/idea_classes/test/")
+  idea.module.excludeDirs += file('mybpm/volumes')
+
+  sourceSets.main.java.srcDirs = ["src"]
+  sourceSets.test.java.srcDirs = ["test_src"]
+  sourceSets.main.resources.srcDirs = ["src_resources"]
+  sourceSets.test.resources.srcDirs = ["test_resources"]
+
+  sourceSets.main.resources {
+    srcDirs += sourceSets.main.java.srcDirs
+    exclude '**/*.java'
+  }
+  sourceSets.test.resources {
+    srcDirs += sourceSets.test.java.srcDirs
+    exclude '**/*.java'
+  }
+
+  jar {
+    manifest {
+      attributes 'Specification-Title': project.name
+      attributes 'Specification-Version': archiveVersion
+      attributes 'Specification-Vendor': "pompei"
+    }
+  }
+
+}
