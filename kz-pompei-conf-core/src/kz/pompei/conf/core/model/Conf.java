@@ -4,18 +4,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Model to store in RAM configuration file data
+ * In-memory representation of one configuration file.
  */
 public class Conf {
 
   /**
-   * List of comment lines for the configuration file
+   * Comment lines that describe the whole configuration file.
+   * <p>
+   * Each item stores the comment text without the leading {@code #} marker.
    */
   public List<String> confComments = new ArrayList<>();
 
 
   /**
-   * List of parameters in the configuration file
+   * Parameters contained in the configuration file, in file order.
    */
   public List<ConfParam> params = new ArrayList<>();
 }
