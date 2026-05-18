@@ -35,6 +35,7 @@ subprojects {
 
     ext.postgres_version = "42.7.8"
     ext.mariadb_version = "3.5.8"
+    ext.jetcd_version = "0.8.6"
     ext.hikari_version = "7.0.2"
     ext.lombok_version = "1.18.38"
 

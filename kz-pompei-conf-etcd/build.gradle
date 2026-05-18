@@ -1,0 +1,4 @@
+dependencies {
+  implementation project(":kz-pompei-conf-core")
+  implementation "io.etcd:jetcd-core:$jetcd_version"
+}
