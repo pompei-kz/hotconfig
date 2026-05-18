@@ -36,9 +36,7 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
     String folder     = folder(localPath);
     String configName = configName(localPath);
 
-    createTableIfNotExists();
-
-      try (@NonNull Connection connection = connectionGet.getConnection()) {
+    try (@NonNull Connection connection = connectionGet.getConnection()) {
       String sql = """
         SELECT {colParamName}, {colParamValueStr}, {colComment}
         FROM {tableName}
@@ -77,6 +75,7 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
         }
       }
     } catch (SQLException e) {
+      if (isMissingTable(e)) return null;
       throw new RuntimeException("K6fR8pQ2mN :: Could not read configuration from table: " + params.tableName, e);
     }
   }
@@ -170,6 +169,23 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
   private List<String> commentLines(@Nullable String comment) {
     if (comment == null || comment.isEmpty()) return List.of();
     return Arrays.asList(comment.split("\\R", -1));
+  }
+
+  private boolean isMissingTable(@NonNull SQLException e) {
+    SQLException current = e;
+    while (current != null) {
+      String sqlState = current.getSQLState();
+      int errorCode = current.getErrorCode();
+      String message = current.getMessage();
+      if ("42P01".equals(sqlState) || "42S02".equals(sqlState) || errorCode == 1146) return true;
+      if (message != null && (
+        message.contains("does not exist")
+          || message.contains("Unknown table")
+          || message.contains("Base table or view not found")
+      )) return true;
+      current = current.getNextException();
+    }
+    return false;
   }
 
   private void insertRow(@NonNull Connection connection,

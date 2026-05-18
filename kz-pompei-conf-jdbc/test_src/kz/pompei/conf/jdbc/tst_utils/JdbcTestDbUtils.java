@@ -1,7 +1,9 @@
 package kz.pompei.conf.jdbc.tst_utils;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import kz.pompei.conf.jdbc.ConfTunnelJdbcBuilder;
 import kz.pompei.conf.jdbc.ConfTunnelJdbcDef;
@@ -108,6 +110,21 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
    */
   protected void createTable(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef def) {
     ConfTunnelJdbcBuilder.build(connectionGet, def).createTableIfNotExists();
+  }
+
+  protected boolean tableExists(@NonNull ConnectionGet connectionGet, @NonNull String tableName) {
+    try (@NonNull Connection connection = connectionGet.getConnection()) {
+      DatabaseMetaData metaData = connection.getMetaData();
+      try (ResultSet rs = metaData.getTables(null, null, "%", new String[]{"TABLE"})) {
+        while (rs.next()) {
+          String name = rs.getString("TABLE_NAME");
+          if (name != null && name.equalsIgnoreCase(tableName)) return true;
+        }
+      }
+      return false;
+    } catch (SQLException e) {
+      throw new RuntimeException("9mT8yQ2vLc :: Could not inspect configuration test tables: " + tableName, e);
+    }
   }
 
   @SuppressWarnings("SqlWithoutWhere")

@@ -78,6 +78,30 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
   }
 
   @Test(dataProvider = "databaseType")
+  public void read_tableDoesNotExists(@NonNull DatabaseType databaseType) {
+
+    String nameOfThisMethod = "read_tableDoesNotExists";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
+    def.tableName = nameOfThisMethod + "_" + RND.str(8);
+
+    ConfTunnelJdbc confTunnelJdbc = ConfTunnelJdbcBuilder.build(connectionGet, def);
+
+    assertThat(tableExists(connectionGet, def.tableName)).isFalse();
+
+    //
+    //
+    Conf conf = confTunnelJdbc.read("some/folder/test-config.hotconf");
+    //
+    //
+
+    assertThat(conf).isNull();
+    assertThat(tableExists(connectionGet, def.tableName)).isFalse();
+  }
+
+  @Test(dataProvider = "databaseType")
   public void write_tableDoesNotExists(@NonNull DatabaseType databaseType) {
 
     String nameOfThisMethod = "write_tableDoesNotExists";
