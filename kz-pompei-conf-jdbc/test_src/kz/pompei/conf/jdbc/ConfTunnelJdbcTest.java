@@ -78,6 +78,63 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
   }
 
   @Test(dataProvider = "databaseType")
+  public void write_tableDoesNotExists(@NonNull DatabaseType databaseType) {
+
+    String nameOfThisMethod = "write_tableDoesNotExists";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
+    def.tableName = nameOfThisMethod + "_" + RND.str(8);
+
+    Conf conf = new Conf();
+    conf.confComments.add("This is comment for conf");
+    conf.confComments.add("line 2");
+    conf.confComments.add("line 3");
+
+    ConfParam param0 = new ConfParam();
+    param0.comments.add("This is test0");
+    param0.comments.add("second line");
+    param0.comments.add("another line");
+    param0.name = "param0";
+    param0.valueStr = "value0";
+    conf.params.add(param0);
+
+    ConfParam param1 = new ConfParam();
+    param1.comments.add("This is test1");
+    param1.comments.add("second line");
+    param1.comments.add("another line");
+    param1.name = "param1";
+    param1.valueStr = "value1";
+    conf.params.add(param1);
+
+    ConfTunnelJdbc confTunnelJdbc = ConfTunnelJdbcBuilder.build(connectionGet, def);
+
+    //
+    //
+    confTunnelJdbc.write("some/folder/test-config.hotconf", conf);
+    //
+    //
+
+    Conf readConf = confTunnelJdbc.read("some/folder/test-config.hotconf");
+
+    assertThat(readConf).isNotNull();
+    assertThat(readConf.confComments).isEqualTo(List.of("This is comment for conf", "line 2", "line 3"));
+
+    ConfParam readParam0 = readConf.params.get(0);// params sorted by name
+    ConfParam readParam1 = readConf.params.get(1);
+
+    assertThat(readParam0.name).isEqualTo("param0");
+    assertThat(readParam1.name).isEqualTo("param1");
+
+    assertThat(readParam0.valueStr).isEqualTo("value0");
+    assertThat(readParam1.valueStr).isEqualTo("value1");
+
+    assertThat(readParam0.comments).isEqualTo(List.of("This is test0", "second line", "another line"));
+    assertThat(readParam1.comments).isEqualTo(List.of("This is test1", "second line", "another line"));
+  }
+
+  @Test(dataProvider = "databaseType")
   public void lastModified_updatesOnRowChange(@NonNull DatabaseType databaseType) throws InterruptedException {
 
     String nameOfThisMethod = "lastModified_updatesOnRowChange";
