@@ -7,6 +7,7 @@ import kz.pompei.conf.core.model.Conf;
 import kz.pompei.conf.core.model.ConfParam;
 import kz.pompei.conf.etcd.tst_utils.EtcdTestParent;
 import org.testng.annotations.Test;
+import utils.RND;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -15,7 +16,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
   @Test public void read_keyDoesNotExists() {
     ConfTunnelEtcdDef params = createParams("read_keyDoesNotExists");
 
-    String localPath = "some/folder/read_keyDoesNotExists.hotconf";
+    String localPath = "some/folder/" + RND.str(10) + "/" + RND.str(10) + "/read_keyDoesNotExists.hotconf";
     String fullKey   = key(params, localPath);
 
     try (Client client = createClient();
@@ -36,7 +37,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
   @Test public void write__multiline_comments() throws Exception {
     ConfTunnelEtcdDef params = createParams("write__multiline_comments");
 
-    String localPath = "some/folder/write__multiline_comments.hotconf";
+    String localPath = "some/folder/" + RND.str(10) + "/write__multiline_comments.hotconf";
     String fullKey   = key(params, localPath);
 
     Conf conf = new Conf();
@@ -92,8 +93,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
         "param1=value1"
       );
 
-      assertThat(stored).startsWith("lastModifiedMillis=");
-      assertThat(stored.substring(stored.indexOf('\n') + 1)).isEqualTo(expectedBody);
+      assertThat(stored).isEqualTo(expectedBody);
 
       Conf readConf = confTunnelEtcd.read(localPath);
 
@@ -118,12 +118,11 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
   @Test public void read__multiline_comments() throws Exception {
     ConfTunnelEtcdDef params = createParams("read__multiline_comments");
 
-    String localPath = "some/folder/read__multiline_comments.hotconf";
+    String localPath = "some/folder/" + RND.str(10) + "/read__multiline_comments.hotconf";
     String fullKey   = key(params, localPath);
 
     String stored = String.join(
       "\n",
-      "lastModifiedMillis=1716038400000",
       "#config line 1",
       "#config line 2",
       "#config line 3",
@@ -169,7 +168,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
   @Test public void modificationMarker_updatesOnValueChange() throws InterruptedException {
     ConfTunnelEtcdDef params = createParams("lastModified_updatesOnValueChange");
 
-    String localPath = "some/folder/lastModified_updatesOnValueChange.hotconf";
+    String localPath = "some/folder/" + RND.str(10) + "/lastModified_updatesOnValueChange.hotconf";
     String fullKey   = key(params, localPath);
 
     Conf conf = new Conf();
@@ -213,7 +212,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     ConfTunnelEtcdDef params = createParams("write_usesConfiguredKeyPrefix");
     params.keyPrefix = "/custom-prefix/";
 
-    String localPath  = "some/folder/write_usesConfiguredKeyPrefix.hotconf";
+    String localPath  = "some/folder/" + RND.str(10) + "/write_usesConfiguredKeyPrefix.hotconf";
     String customKey  = key(params, localPath);
     String defaultKey = KEY_PREFIX + localPath;
 

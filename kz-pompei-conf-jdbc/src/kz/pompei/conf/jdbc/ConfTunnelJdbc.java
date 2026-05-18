@@ -75,7 +75,7 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
       }
     } catch (SQLException e) {
       if (isMissingTable(e)) return null;
-      throw new RuntimeException("K6fR8pQ2mN :: Could not read configuration from table: " + params.tableName, e);
+      throw new RuntimeException("Z6a7B8c9D0 :: Could not read configuration from table: " + params.tableName, e);
     }
   }
 
@@ -105,7 +105,7 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
         insertRow(connection, folder, configName, param.name, param.valueStr, String.join("\n", param.comments));
       }
     } catch (SQLException e) {
-      throw new RuntimeException("p2Lk8Mn4Qs :: Could not write configuration to table: " + params.tableName, e);
+      throw new RuntimeException("E1f2G3h4I5 :: Could not write configuration to table: " + params.tableName, e);
     }
   }
 
@@ -137,7 +137,7 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
         }
       }
     } catch (SQLException e) {
-      throw new RuntimeException("Q9rT6vB3nM :: Could not get configuration modification time from table: " + params.tableName, e);
+      throw new RuntimeException("J6k7L8m9N0 :: Could not get configuration modification time from table: " + params.tableName, e);
     }
   }
 

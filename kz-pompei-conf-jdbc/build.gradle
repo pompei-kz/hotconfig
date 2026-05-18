@@ -1,7 +1,7 @@
 dependencies {
   implementation project(":kz-pompei-conf-core")
-  testImplementation project(":utils")
 
+  testImplementation project(":utils")
   testImplementation "org.postgresql:postgresql:$postgres_version"
   testImplementation "org.mariadb.jdbc:mariadb-java-client:$mariadb_version"
 }

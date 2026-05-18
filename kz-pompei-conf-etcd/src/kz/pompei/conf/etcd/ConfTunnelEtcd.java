@@ -7,7 +7,6 @@ import io.etcd.jetcd.KeyValue;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import kz.pompei.conf.core.ConfTunnel;
 import kz.pompei.conf.core.model.Conf;
@@ -23,13 +22,13 @@ import org.jetbrains.annotations.Nullable;
  * in this repository, the endpoint is {@code http://localhost:17403}.
  * <p>
  * One configuration is stored under one etcd key. The value uses a line-oriented format:
- * the first line stores the last modification timestamp in epoch milliseconds, and the
- * remaining lines store the configuration file content in the same format as {@code ConfTunnelFile}.
+ * the value stores the configuration file content in the same format as {@code ConfTunnelFile}.
+ * The modification marker comes from the etcd key {@code modRevision}, so the stored value does
+ * not need to carry a separate timestamp field.
  * <p>
  * Example stored values for two configurations:
  * <pre>{@code
  * /kz-pompei-conf-etcd/some/folder/app.conf
- * lastModifiedMillis=1716038400000
  * #application configuration
  *
  * #database
@@ -40,7 +39,6 @@ import org.jetbrains.annotations.Nullable;
  * cache.enabled=true
  *
  * /kz-pompei-conf-etcd/some/folder/other.conf
- * lastModifiedMillis=1716038500000
  * #other configuration
  *
  * api.url=https://example.org
@@ -58,8 +56,6 @@ import org.jetbrains.annotations.Nullable;
  * }</pre>
  */
 public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
-
-  private static final String LAST_MODIFIED_PREFIX = "lastModifiedMillis=";
 
   @NonNull private final ConfTunnelEtcdDef params;
   @NonNull private final EtcdStorage storage;
@@ -83,18 +79,15 @@ public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
     String stored = storage.get(key(localPath));
     if (stored == null) return null;
 
-    ParsedValue parsedValue = parse(stored);
-    return parsedValue.conf;
+    return parse(stored);
   }
 
   @Override public void write(@NonNull String confPath, @NonNull Conf conf) {
-    storage.put(key(confPath), serialize(System.currentTimeMillis(), conf));
+    storage.put(key(confPath), serialize(conf));
   }
 
   @Override public @Nullable Long modificationMarker(@NonNull String localPath) {
-    String stored = storage.get(key(localPath));
-    if (stored == null) return null;
-    return parse(stored).lastModified;
+    return storage.modificationMarker(key(localPath));
   }
 
   @Override public void close() {
@@ -106,24 +99,12 @@ public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
     return params.keyPrefix + normalized;
   }
 
-  private String serialize(long lastModifiedMillis, @NonNull Conf conf) {
-    StringBuilder builder = new StringBuilder();
-    builder.append(LAST_MODIFIED_PREFIX).append(lastModifiedMillis).append('\n');
-    builder.append(serializeConf(conf));
-    return builder.toString();
+  private String serialize(@NonNull Conf conf) {
+    return serializeConf(conf);
   }
 
-  private ParsedValue parse(@NonNull String stored) {
-    int newline = stored.indexOf('\n');
-    String firstLine = newline < 0 ? stored : stored.substring(0, newline);
-    String body = newline < 0 ? "" : stored.substring(newline + 1);
-
-    if (!firstLine.startsWith(LAST_MODIFIED_PREFIX)) {
-      throw new IllegalArgumentException("Invalid etcd configuration payload: missing last modified prefix");
-    }
-
-    long lastModifiedMillis = Long.parseLong(firstLine.substring(LAST_MODIFIED_PREFIX.length()));
-    return new ParsedValue(lastModifiedMillis, parseConf(body));
+  private Conf parse(@NonNull String stored) {
+    return parseConf(stored);
   }
 
   private String serializeConf(@NonNull Conf conf) {
@@ -216,16 +197,6 @@ public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
     return result.toString();
   }
 
-  private static final class ParsedValue {
-    private final Long lastModified;
-    private final Conf conf;
-
-    private ParsedValue(@NonNull Long lastModified, @NonNull Conf conf) {
-      this.lastModified = Objects.requireNonNull(lastModified);
-      this.conf = Objects.requireNonNull(conf);
-    }
-  }
-
   private static final class JetcdStorage implements EtcdStorage {
 
     @NonNull private final Client client;
@@ -244,10 +215,25 @@ public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
       }
       catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new RuntimeException("R9z5qN2wAa :: Could not read etcd key: " + key, e);
+        throw new RuntimeException("R1s2T3u4V5 :: Could not read etcd key: " + key, e);
       }
       catch (ExecutionException e) {
-        throw new RuntimeException("R9z5qN2wAa :: Could not read etcd key: " + key, e);
+        throw new RuntimeException("W6x7Y8z9A0 :: Could not read etcd key: " + key, e);
+      }
+    }
+
+    @Override public @Nullable Long modificationMarker(@NonNull String key) {
+      try {
+        List<KeyValue> kvs = kvClient.get(ByteSequence.from(key.getBytes(StandardCharsets.UTF_8))).get().getKvs();
+        if (kvs.isEmpty()) return null;
+        return kvs.get(0).getModRevision();
+      }
+      catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException("B1c2D3e4F5 :: Could not read etcd revision: " + key, e);
+      }
+      catch (ExecutionException e) {
+        throw new RuntimeException("G6h7I8j9K0 :: Could not read etcd revision: " + key, e);
       }
     }
 
@@ -260,10 +246,10 @@ public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
       }
       catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new RuntimeException("T7k4Vd8pLm :: Could not write etcd key: " + key, e);
+        throw new RuntimeException("L1m2N3o4P5 :: Could not write etcd key: " + key, e);
       }
       catch (ExecutionException e) {
-        throw new RuntimeException("T7k4Vd8pLm :: Could not write etcd key: " + key, e);
+        throw new RuntimeException("Q6r7S8t9U0 :: Could not write etcd key: " + key, e);
       }
     }
 

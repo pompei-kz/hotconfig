@@ -23,7 +23,7 @@ public class ConfTunnelJdbcBuilder {
       if (productName.contains("MariaDB")) return DatabaseType.MariaDB;
       throw new UnknownDb();
     } catch (SQLException e) {
-      throw new RuntimeException("NfR0em2z3j :: Could not detect database type", e);
+      throw new RuntimeException("U1v2W3x4Y5 :: Could not detect database type", e);
     }
   }
 }

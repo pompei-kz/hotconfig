@@ -29,10 +29,14 @@ public interface ConfTunnel {
   void write(@NonNull String confPath, @NonNull Conf conf);
 
   /**
-   * Returns the last modification time for stored configuration data in epoch milliseconds.
+   * Returns a modification marker for stored configuration data.
+   * <p>
+   * The marker is an implementation detail chosen so callers can quickly detect whether a configuration changed without rereading
+   * the full content. It may be a modification time, a revision number, or some other value that changes when the configuration
+   * changes.
    *
    * @param localPath path of the configuration relative to the storage root
-   * @return last modification time in milliseconds, or {@code null} when there is no configuration at {@code localPath}
+   * @return modification marker, or {@code null} when there is no configuration at {@code localPath}
    */
   @Nullable Long modificationMarker(@NonNull String localPath);
 

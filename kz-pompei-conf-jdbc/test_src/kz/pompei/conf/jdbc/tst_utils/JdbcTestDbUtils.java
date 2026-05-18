@@ -53,7 +53,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
         ps.executeUpdate();
       }
     } catch (SQLException e) {
-      throw new RuntimeException("4DgS0NB9DX :: Could not insert configuration test row into table: " + def.tableName, e);
+      throw new RuntimeException("Y1z2A3b4C5 :: Could not insert configuration test row into table: " + def.tableName, e);
     }
   }
 
@@ -98,7 +98,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
         ps.executeUpdate();
       }
     } catch (SQLException e) {
-      throw new RuntimeException("7bJ5mD8hQ2 :: Could not update configuration test row in table: " + def.tableName, e);
+      throw new RuntimeException("D6e7F8g9H0 :: Could not update configuration test row in table: " + def.tableName, e);
     }
   }
 
@@ -123,7 +123,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
       }
       return false;
     } catch (SQLException e) {
-      throw new RuntimeException("9mT8yQ2vLc :: Could not inspect configuration test tables: " + tableName, e);
+      throw new RuntimeException("I1j2K3l4M5 :: Could not inspect configuration test tables: " + tableName, e);
     }
   }
 
@@ -134,7 +134,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
         ps.executeUpdate();
       }
     } catch (SQLException e) {
-      throw new RuntimeException("r5Tg8Yh2Kp :: Could not clear configuration test table: " + tableName, e);
+      throw new RuntimeException("N2o3P4q5R6 :: Could not clear configuration test table: " + tableName, e);
     }
   }
 }

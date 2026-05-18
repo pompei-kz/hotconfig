@@ -60,7 +60,7 @@ public class ConfTunnelFile implements ConfTunnel {
         String line  = lines.get(index);
         int    split = line.indexOf('=');
         if (split < 0) {
-          throw new IllegalArgumentException("A7kLm2Pq9Z :: Invalid configuration parameter line: " + line);
+          throw new IllegalArgumentException("A1b2C3d4E5 :: Invalid configuration parameter line: " + line);
         }
         param.name     = line.substring(0, split);
         param.valueStr = unescape(line.substring(split + 1));
@@ -71,7 +71,7 @@ public class ConfTunnelFile implements ConfTunnel {
 
       return conf;
     } catch (IOException e) {
-      throw new RuntimeException("b8NQ4xYt1R :: Could not read configuration file: " + path, e);
+      throw new RuntimeException("F6g7H8i9J0 :: Could not read configuration file: " + path, e);
     }
   }
 
@@ -82,7 +82,7 @@ public class ConfTunnelFile implements ConfTunnel {
       if (parent != null) Files.createDirectories(parent);
       Files.write(path, writeLines(conf), StandardCharsets.UTF_8);
     } catch (IOException e) {
-      throw new RuntimeException("C3dE5fG7hJ :: Could not write configuration file: " + path, e);
+      throw new RuntimeException("K1l2M3n4O5 :: Could not write configuration file: " + path, e);
     }
   }
 
@@ -93,7 +93,7 @@ public class ConfTunnelFile implements ConfTunnel {
     try {
       return Files.getLastModifiedTime(path).toMillis();
     } catch (IOException e) {
-      throw new RuntimeException("z9Yx8Wv7Ut :: Could not get configuration file modification time: " + path, e);
+      throw new RuntimeException("P6q7R8s9T0 :: Could not get configuration file modification time: " + path, e);
     }
   }
 

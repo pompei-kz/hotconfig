@@ -26,7 +26,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
         try (ResultSet rs = ps.executeQuery()) {
           rs.next();
           if (rs.getInt(1) != 1) {
-            throw new SQLException("2m79Nm1WPK :: Connection OK");
+            throw new SQLException("S1t2U3v4W5 :: Connection OK");
           }
         }
       }

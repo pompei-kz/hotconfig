@@ -70,7 +70,7 @@ public class ConfTunnelJdbcPg extends ConfTunnelJdbc {
         statement.execute(triggerSql);
       }
     } catch (SQLException e) {
-      throw new RuntimeException("gSuRM3iUKp :: Could not create configuration table: " + params.tableName, e);
+      throw new RuntimeException("T6u7V8w9X0 :: Could not create configuration table: " + params.tableName, e);
     }
   }
 

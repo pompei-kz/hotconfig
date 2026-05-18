@@ -38,7 +38,7 @@ public class ConfTunnelJdbcMariaDb extends ConfTunnelJdbc {
         ps.executeUpdate();
       }
     } catch (SQLException e) {
-      throw new RuntimeException("W3tY7uI9oP :: Could not create configuration table: " + params.tableName, e);
+      throw new RuntimeException("O1p2Q3r4S5 :: Could not create configuration table: " + params.tableName, e);
     }
   }
 }

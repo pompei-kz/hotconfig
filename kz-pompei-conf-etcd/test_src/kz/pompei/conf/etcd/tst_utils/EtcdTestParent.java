@@ -30,10 +30,10 @@ public abstract class EtcdTestParent {
     }
     catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new RuntimeException("vB3xQ7dN2m :: Could not check etcd key existence: " + key, e);
+      throw new RuntimeException("X1y2Z3a4B5 :: Could not check etcd key existence: " + key, e);
     }
     catch (ExecutionException e) {
-      throw new RuntimeException("vB3xQ7dN2m :: Could not check etcd key existence: " + key, e);
+      throw new RuntimeException("C6d7E8f9G0 :: Could not check etcd key existence: " + key, e);
     }
   }
 
@@ -43,10 +43,10 @@ public abstract class EtcdTestParent {
     }
     catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new RuntimeException("fY8uP2wL9a :: Could not delete etcd key: " + key, e);
+      throw new RuntimeException("H1i2J3k4L5 :: Could not delete etcd key: " + key, e);
     }
     catch (ExecutionException e) {
-      throw new RuntimeException("fY8uP2wL9a :: Could not delete etcd key: " + key, e);
+      throw new RuntimeException("M6n7O8p9Q0 :: Could not delete etcd key: " + key, e);
     }
   }
 
