@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.List;
 import kz.pompei.conf.core.model.Conf;
 import kz.pompei.conf.core.model.ConfParam;
@@ -74,5 +75,42 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
 
     assertThat(param0.comments).isEqualTo(List.of("This is test0", "second line", "another line"));
     assertThat(param1.comments).isEqualTo(List.of("This is test1", "second line", "another line"));
+  }
+
+  @Test(dataProvider = "databaseType")
+  public void lastModified_updatesOnRowChange(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "lastModified_updatesOnRowChange";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
+    def.tableName = nameOfThisMethod + "_" + RND.str(8);
+
+    createTable(connectionGet, def);
+    clearTable(connectionGet, def.tableName);
+
+    insertRow(connectionGet, def, "some/folder", "test-config.hotconf", "", "", "This is comment for conf");
+
+    ConfTunnelJdbc confTunnelJdbc = ConfTunnelJdbcBuilder.build(connectionGet, def);
+
+    //
+    //
+    Instant initialLastModified = confTunnelJdbc.lastModified("some/folder/test-config.hotconf");
+    //
+    //
+
+    Thread.sleep(1200);
+    updateRow(connectionGet, def, "some/folder", "test-config.hotconf", "", "changed", "This is comment for conf");
+
+    //
+    //
+    Instant updatedLastModified = confTunnelJdbc.lastModified("some/folder/test-config.hotconf");
+    //
+    //
+
+    assertThat(initialLastModified).isNotNull();
+    assertThat(updatedLastModified).isNotNull();
+    assertThat(updatedLastModified).isAfter(initialLastModified);
   }
 }

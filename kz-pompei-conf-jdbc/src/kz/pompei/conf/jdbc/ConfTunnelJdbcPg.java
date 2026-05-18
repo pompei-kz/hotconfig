@@ -2,6 +2,7 @@ package kz.pompei.conf.jdbc;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.sql.SQLException;
 import lombok.NonNull;
 
@@ -37,8 +38,38 @@ public class ConfTunnelJdbcPg extends ConfTunnelJdbc {
       try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.executeUpdate();
       }
+
+      String functionName = triggerFunctionName();
+      String triggerName = triggerName();
+
+      try (Statement statement = connection.createStatement()) {
+        statement.execute("""
+          CREATE OR REPLACE FUNCTION %s()
+          RETURNS trigger AS $$
+          BEGIN
+            NEW.%s = CURRENT_TIMESTAMP;
+            RETURN NEW;
+          END;
+          $$ LANGUAGE plpgsql
+          """.formatted(functionName, params.colLastModified));
+        statement.execute("DROP TRIGGER IF EXISTS " + triggerName + " ON " + params.tableName);
+        statement.execute("""
+          CREATE TRIGGER %s
+          BEFORE UPDATE ON %s
+          FOR EACH ROW
+          EXECUTE FUNCTION %s()
+          """.formatted(triggerName, params.tableName, functionName));
+      }
     } catch (SQLException e) {
       throw new RuntimeException("gSuRM3iUKp :: Could not create configuration table: " + params.tableName, e);
     }
+  }
+
+  private String triggerFunctionName() {
+    return "fn_" + params.tableName.replaceAll("[^A-Za-z0-9]+", "_") + "_last_modified";
+  }
+
+  private String triggerName() {
+    return "trg_" + params.tableName.replaceAll("[^A-Za-z0-9]+", "_") + "_last_modified";
   }
 }

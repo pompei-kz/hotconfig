@@ -21,7 +21,7 @@ public class ConfTunnelJdbcMariaDb extends ConfTunnelJdbc {
           {colParamValueStr}    TEXT,
           {colComment}          TEXT,
           {colCreatedAt}        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          {colLastModified}     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          {colLastModified}     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           PRIMARY KEY ({colFolder}, {colConfigName}, {colParamName})
         )
         """

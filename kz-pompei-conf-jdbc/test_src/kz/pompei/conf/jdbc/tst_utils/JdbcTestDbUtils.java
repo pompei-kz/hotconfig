@@ -55,6 +55,50 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
   }
 
   /**
+   * Updates a row in the config table.
+   *
+   * @param connectionGet connection source
+   * @param def           table config definition
+   * @param folder        folder of config
+   * @param configName    config name
+   * @param paramName     param name
+   * @param paramValue    param string value
+   * @param comment       comment
+   */
+  protected void updateRow(@NonNull ConnectionGet connectionGet,
+                           @NonNull ConfTunnelJdbcDef def,
+                           @NonNull String folder,
+                           @NonNull String configName,
+                           @NonNull String paramName,
+                           @NonNull String paramValue,
+                           @Nullable String comment) {
+
+    try (@NonNull Connection connection = connectionGet.getConnection()) {
+      try (PreparedStatement ps = connection.prepareStatement("""
+        UPDATE %s
+        SET %s = ?, %s = ?
+        WHERE %s = ? AND %s = ? AND %s = ?
+        """.formatted(
+        def.tableName,
+        def.colParamValueStr,
+        def.colComment,
+        def.colFolder,
+        def.colConfigName,
+        def.colParamName
+      ))) {
+        ps.setString(1, paramValue);
+        ps.setString(2, comment);
+        ps.setString(3, folder);
+        ps.setString(4, configName);
+        ps.setString(5, paramName);
+        ps.executeUpdate();
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException("7bJ5mD8hQ2 :: Could not update configuration test row in table: " + def.tableName, e);
+    }
+  }
+
+  /**
    * Creates table for config
    *
    * @param connectionGet connection source
