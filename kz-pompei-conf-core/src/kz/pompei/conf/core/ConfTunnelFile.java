@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import kz.pompei.conf.core.model.Conf;
@@ -87,12 +86,12 @@ public class ConfTunnelFile implements ConfTunnel {
     }
   }
 
-  @Override public @Nullable Instant lastModified(@NonNull String localPath) {
+  @Override public @Nullable Long modificationMarker(@NonNull String localPath) {
     Path path = path(localPath);
     if (!Files.exists(path)) return null;
 
     try {
-      return Files.getLastModifiedTime(path).toInstant();
+      return Files.getLastModifiedTime(path).toMillis();
     } catch (IOException e) {
       throw new RuntimeException("z9Yx8Wv7Ut :: Could not get configuration file modification time: " + path, e);
     }

@@ -5,7 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import kz.pompei.conf.core.ConfTunnel;
@@ -110,7 +109,7 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
     }
   }
 
-  @Override public @Nullable Instant lastModified(@NonNull String localPath) {
+  @Override public @Nullable Long modificationMarker(@NonNull String localPath) {
     String folder     = folder(localPath);
     String configName = configName(localPath);
 
@@ -134,7 +133,7 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
           if (!rs.next()) return null;
           Timestamp timestamp = rs.getTimestamp(1);
           if (timestamp == null) return null;
-          return timestamp.toInstant();
+          return timestamp.toInstant().toEpochMilli();
         }
       }
     } catch (SQLException e) {

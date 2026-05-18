@@ -2,7 +2,6 @@ package kz.pompei.conf.etcd;
 
 import io.etcd.jetcd.Client;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.List;
 import kz.pompei.conf.core.model.Conf;
 import kz.pompei.conf.core.model.ConfParam;
@@ -17,7 +16,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     ConfTunnelEtcdDef params = createParams("read_keyDoesNotExists");
 
     String localPath = "some/folder/read_keyDoesNotExists.hotconf";
-    String fullKey = key(params, localPath);
+    String fullKey   = key(params, localPath);
 
     try (Client client = createClient();
          ConfTunnelEtcd confTunnelEtcd = new ConfTunnelEtcd(client, params)) {
@@ -38,7 +37,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     ConfTunnelEtcdDef params = createParams("write__multiline_comments");
 
     String localPath = "some/folder/write__multiline_comments.hotconf";
-    String fullKey = key(params, localPath);
+    String fullKey   = key(params, localPath);
 
     Conf conf = new Conf();
     conf.confComments.add("config line 1");
@@ -49,7 +48,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     param0.comments.add("param0 line 1");
     param0.comments.add("param0 line 2");
     param0.comments.add("param0 line 3");
-    param0.name = "param0";
+    param0.name     = "param0";
     param0.valueStr = "value0";
     conf.params.add(param0);
 
@@ -57,7 +56,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     param1.comments.add("param1 line 1");
     param1.comments.add("param1 line 2");
     param1.comments.add("param1 line 3");
-    param1.name = "param1";
+    param1.name     = "param1";
     param1.valueStr = "value1";
     conf.params.add(param1);
 
@@ -120,7 +119,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     ConfTunnelEtcdDef params = createParams("read__multiline_comments");
 
     String localPath = "some/folder/read__multiline_comments.hotconf";
-    String fullKey = key(params, localPath);
+    String fullKey   = key(params, localPath);
 
     String stored = String.join(
       "\n",
@@ -167,17 +166,17 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     }
   }
 
-  @Test public void lastModified_updatesOnValueChange() throws InterruptedException {
+  @Test public void modificationMarker_updatesOnValueChange() throws InterruptedException {
     ConfTunnelEtcdDef params = createParams("lastModified_updatesOnValueChange");
 
     String localPath = "some/folder/lastModified_updatesOnValueChange.hotconf";
-    String fullKey = key(params, localPath);
+    String fullKey   = key(params, localPath);
 
     Conf conf = new Conf();
     conf.confComments.add("This is comment for conf");
 
     ConfParam param0 = new ConfParam();
-    param0.name = "param0";
+    param0.name     = "param0";
     param0.valueStr = "value0";
     conf.params.add(param0);
 
@@ -187,7 +186,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
 
       //
       //
-      Instant initialLastModified = confTunnelEtcd.lastModified(localPath);
+      Long initialLastModified = confTunnelEtcd.modificationMarker(localPath);
       //
       //
 
@@ -198,13 +197,13 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
 
       //
       //
-      Instant updatedLastModified = confTunnelEtcd.lastModified(localPath);
+      Long updatedLastModified = confTunnelEtcd.modificationMarker(localPath);
       //
       //
 
       assertThat(initialLastModified).isNotNull();
       assertThat(updatedLastModified).isNotNull();
-      assertThat(updatedLastModified).isAfter(initialLastModified);
+      assertThat(updatedLastModified).isGreaterThan(initialLastModified);
 
       deleteKey(client, fullKey);
     }
@@ -214,13 +213,13 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     ConfTunnelEtcdDef params = createParams("write_usesConfiguredKeyPrefix");
     params.keyPrefix = "/custom-prefix/";
 
-    String localPath = "some/folder/write_usesConfiguredKeyPrefix.hotconf";
-    String customKey = key(params, localPath);
+    String localPath  = "some/folder/write_usesConfiguredKeyPrefix.hotconf";
+    String customKey  = key(params, localPath);
     String defaultKey = KEY_PREFIX + localPath;
 
     Conf conf = new Conf();
     conf.params.add(new ConfParam());
-    conf.params.get(0).name = "param0";
+    conf.params.get(0).name     = "param0";
     conf.params.get(0).valueStr = "value0";
 
     try (Client client = createClient();

@@ -4,7 +4,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.Instant;
 import java.util.List;
 import kz.pompei.conf.core.model.Conf;
 import kz.pompei.conf.core.model.ConfParam;
@@ -159,7 +158,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
   }
 
   @Test(dataProvider = "databaseType")
-  public void lastModified_updatesOnRowChange(@NonNull DatabaseType databaseType) throws InterruptedException {
+  public void modificationMarker_updatesOnRowChange(@NonNull DatabaseType databaseType) throws InterruptedException {
 
     String nameOfThisMethod = "lastModified_updatesOnRowChange";
 
@@ -177,7 +176,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
 
     //
     //
-    Instant initialLastModified = confTunnelJdbc.lastModified("some/folder/test-config.hotconf");
+    Long initialLastModified = confTunnelJdbc.modificationMarker("some/folder/test-config.hotconf");
     //
     //
 
@@ -186,12 +185,12 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
 
     //
     //
-    Instant updatedLastModified = confTunnelJdbc.lastModified("some/folder/test-config.hotconf");
+    Long updatedLastModified = confTunnelJdbc.modificationMarker("some/folder/test-config.hotconf");
     //
     //
 
     assertThat(initialLastModified).isNotNull();
     assertThat(updatedLastModified).isNotNull();
-    assertThat(updatedLastModified).isAfter(initialLastModified);
+    assertThat(updatedLastModified).isGreaterThan(initialLastModified);
   }
 }

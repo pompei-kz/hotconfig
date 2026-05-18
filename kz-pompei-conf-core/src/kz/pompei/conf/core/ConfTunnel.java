@@ -1,6 +1,5 @@
 package kz.pompei.conf.core;
 
-import java.time.Instant;
 import kz.pompei.conf.core.model.Conf;
 import lombok.NonNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,11 +29,11 @@ public interface ConfTunnel {
   void write(@NonNull String confPath, @NonNull Conf conf);
 
   /**
-   * Returns the last modification timestamp for stored configuration data.
+   * Returns the last modification time for stored configuration data in epoch milliseconds.
    *
    * @param localPath path of the configuration relative to the storage root
-   * @return last modification timestamp, or {@code null} when there is no configuration at {@code localPath}
+   * @return last modification time in milliseconds, or {@code null} when there is no configuration at {@code localPath}
    */
-  @Nullable Instant lastModified(@NonNull String localPath);
+  @Nullable Long modificationMarker(@NonNull String localPath);
 
 }

@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Instant;
 import kz.pompei.conf.core.model.Conf;
 import kz.pompei.conf.core.model.ConfParam;
 import lombok.NonNull;
@@ -182,7 +181,7 @@ public class ConfTunnelFileTest {
     assertThat(readConf.params.get(3).valueStr).isEqualTo("C:\\data\\file");
   }
 
-  @Test public void lastModified() throws IOException {
+  @Test public void modificationMarker() throws IOException {
 
     Path file = dir.resolve("app.conf");
 
@@ -193,21 +192,21 @@ public class ConfTunnelFileTest {
 
     //
     //
-    Instant lastModified = confTunnelFile.lastModified("app.conf");
+    Long lastModified = confTunnelFile.modificationMarker("app.conf");
     //
     //
 
     assertThat(lastModified).isNotNull();
-    assertThat(lastModified).isEqualTo(Files.getLastModifiedTime(file).toInstant());
+    assertThat(lastModified).isEqualTo(Files.getLastModifiedTime(file).toMillis());
   }
 
-  @Test public void lastModifiedMissingFile() {
+  @Test public void modificationMarkerMissingFile() {
 
     ConfTunnelFile confTunnelFile = new ConfTunnelFile(dir);
 
     //
     //
-    Instant lastModified = confTunnelFile.lastModified("missing.conf");
+    Long lastModified = confTunnelFile.modificationMarker("missing.conf");
     //
     //
 

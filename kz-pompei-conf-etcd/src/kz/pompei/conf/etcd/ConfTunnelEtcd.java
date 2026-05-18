@@ -5,7 +5,6 @@ import io.etcd.jetcd.Client;
 import io.etcd.jetcd.KV;
 import io.etcd.jetcd.KeyValue;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -89,10 +88,10 @@ public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
   }
 
   @Override public void write(@NonNull String confPath, @NonNull Conf conf) {
-    storage.put(key(confPath), serialize(Instant.now(), conf));
+    storage.put(key(confPath), serialize(System.currentTimeMillis(), conf));
   }
 
-  @Override public @Nullable Instant lastModified(@NonNull String localPath) {
+  @Override public @Nullable Long modificationMarker(@NonNull String localPath) {
     String stored = storage.get(key(localPath));
     if (stored == null) return null;
     return parse(stored).lastModified;
@@ -107,9 +106,9 @@ public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
     return params.keyPrefix + normalized;
   }
 
-  private String serialize(@NonNull Instant lastModified, @NonNull Conf conf) {
+  private String serialize(long lastModifiedMillis, @NonNull Conf conf) {
     StringBuilder builder = new StringBuilder();
-    builder.append(LAST_MODIFIED_PREFIX).append(lastModified.toEpochMilli()).append('\n');
+    builder.append(LAST_MODIFIED_PREFIX).append(lastModifiedMillis).append('\n');
     builder.append(serializeConf(conf));
     return builder.toString();
   }
@@ -124,7 +123,7 @@ public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
     }
 
     long lastModifiedMillis = Long.parseLong(firstLine.substring(LAST_MODIFIED_PREFIX.length()));
-    return new ParsedValue(Instant.ofEpochMilli(lastModifiedMillis), parseConf(body));
+    return new ParsedValue(lastModifiedMillis, parseConf(body));
   }
 
   private String serializeConf(@NonNull Conf conf) {
@@ -218,10 +217,10 @@ public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
   }
 
   private static final class ParsedValue {
-    private final Instant lastModified;
+    private final Long lastModified;
     private final Conf conf;
 
-    private ParsedValue(@NonNull Instant lastModified, @NonNull Conf conf) {
+    private ParsedValue(@NonNull Long lastModified, @NonNull Conf conf) {
       this.lastModified = Objects.requireNonNull(lastModified);
       this.conf = Objects.requireNonNull(conf);
     }
