@@ -1,6 +1,5 @@
 package kz.pompei.conf.jdbc;
 
-import javax.sql.DataSource;
 import lombok.NonNull;
 
 public class ConfTunnelJdbcPg extends ConfTunnelJdbc {

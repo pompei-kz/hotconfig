@@ -40,7 +40,7 @@ public class ConfTunnelJdbcTest extends JdbcTestDbUtils {
     ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
     def.tableName = "read_existsInDbTable";// this is name of this method
 
-    insertCreatesTable(connectionGet, def);
+    createsTable(connectionGet, def);
 
     insertRow(connectionGet, def, "some/folder", "test-config.hotconf", "", "", "This is comment for conf\nline 2\nline 3");
     insertRow(connectionGet, def, "some/folder", "test-config.hotconf", "param0", "value0", "This is test0\nsecond line\nanother line");
