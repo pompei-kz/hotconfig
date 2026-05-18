@@ -15,11 +15,11 @@ import lombok.NonNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Данный класс позволяет хранить конфигурации в базе данных.
+ * Stores configuration data in a database.
  * <p>
- * Конфигурации хранятся в отдельной таблице с именем params.tableName.
+ * Configurations are stored in a dedicated table named by {@code params.tableName}.
  * <p>
- * Если этой таблицы в БД нет, то она должна создастся автоматически при первом обращении к ней.
+ * If the table does not exist, it is created automatically on first access.
  *
  */
 public abstract class ConfTunnelJdbc implements ConfTunnel {
