@@ -71,7 +71,15 @@ public class ConfTunnelFileTest {
 
   @Test public void readMissingFile() {
 
-    assertThat(new ConfTunnelFile(dir).read("missing.conf")).isNull();
+    ConfTunnelFile confTunnelFile = new ConfTunnelFile(dir);
+
+    //
+    //
+    Conf conf = confTunnelFile.read("missing.conf");
+    //
+    //
+
+    assertThat(conf).isNull();
   }
 
   @Test public void read__multiline_param_comment() throws IOException {
@@ -93,7 +101,13 @@ public class ConfTunnelFileTest {
       StandardCharsets.UTF_8
     );
 
-    Conf conf = new ConfTunnelFile(dir).read("app.conf");
+    ConfTunnelFile confTunnelFile = new ConfTunnelFile(dir);
+
+    //
+    //
+    Conf conf = confTunnelFile.read("app.conf");
+    //
+    //
 
     assertThat(conf).isNotNull();
     assertThat(conf.params).hasSize(1);
@@ -134,7 +148,13 @@ public class ConfTunnelFileTest {
     slash.valueStr = "C:\\data\\file";
     conf.params.add(slash);
 
-    new ConfTunnelFile(dir).write("nested/app.conf", conf);
+    ConfTunnelFile confTunnelFile = new ConfTunnelFile(dir);
+
+    //
+    //
+    confTunnelFile.write("nested/app.conf", conf);
+    //
+    //
 
     //noinspection SpellCheckingInspection
     assertThat(Files.readString(dir.resolve("nested/app.conf"), StandardCharsets.UTF_8)).isEqualTo(
@@ -169,11 +189,29 @@ public class ConfTunnelFileTest {
     file.toFile().getParentFile().mkdirs();
     Files.writeString(file, "");
 
-    Instant lastModified = new ConfTunnelFile(dir).lastModified("app.conf");
+    ConfTunnelFile confTunnelFile = new ConfTunnelFile(dir);
+
+    //
+    //
+    Instant lastModified = confTunnelFile.lastModified("app.conf");
+    //
+    //
 
     assertThat(lastModified).isNotNull();
     assertThat(lastModified).isEqualTo(Files.getLastModifiedTime(file).toInstant());
-    assertThat(new ConfTunnelFile(dir).lastModified("missing.conf")).isNull();
+  }
+
+  @Test public void lastModifiedMissingFile() {
+
+    ConfTunnelFile confTunnelFile = new ConfTunnelFile(dir);
+
+    //
+    //
+    Instant lastModified = confTunnelFile.lastModified("missing.conf");
+    //
+    //
+
+    assertThat(lastModified).isNull();
   }
 
 }
