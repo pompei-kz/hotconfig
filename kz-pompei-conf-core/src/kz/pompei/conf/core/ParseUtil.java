@@ -113,8 +113,13 @@ public class ParseUtil {
 
   private static @NonNull BigDecimal parseInteger(@NonNull String valueStr) {
     String normalized = normalizeNumber(valueStr);
-    if (hasDecimalSyntax(normalized)) return new DecimalExpressionParser(normalized).parse().setScale(0, RoundingMode.HALF_UP);
-    return new BigDecimal(new IntegerExpressionParser(normalized).parse());
+    if (normalized.indexOf('.') >= 0) return new DecimalExpressionParser(normalized).parse().setScale(0, RoundingMode.HALF_UP);
+    try {
+      return new BigDecimal(new IntegerExpressionParser(normalized).parse());
+    } catch (RuntimeException e) {
+      if (hasDecimalExponent(normalized)) return new DecimalExpressionParser(normalized).parse().setScale(0, RoundingMode.HALF_UP);
+      throw e;
+    }
   }
 
   private static @NonNull String normalizeNumber(@NonNull String valueStr) {
@@ -138,16 +143,49 @@ public class ParseUtil {
     String normalized = normalizeNumber(valueStr);
     if (normalized.isEmpty()) return false;
     try {
-      if (hasDecimalSyntax(normalized)) return new DecimalExpressionParser(normalized).parse().abs().compareTo(new BigDecimal("0.001")) >= 0;
-      return new IntegerExpressionParser(normalized).parse().compareTo(BigInteger.ZERO) != 0;
+      if (normalized.indexOf('.') >= 0) return new DecimalExpressionParser(normalized).parse().abs().compareTo(new BigDecimal("0.001")) >= 0;
+      try {
+        return new IntegerExpressionParser(normalized).parse().compareTo(BigInteger.ZERO) != 0;
+      } catch (RuntimeException e) {
+        if (hasDecimalExponent(normalized)) return new DecimalExpressionParser(normalized).parse().abs().compareTo(new BigDecimal("0.001")) >= 0;
+        throw e;
+      }
     } catch (RuntimeException ignored) {
       return false;
     }
   }
 
-  private static boolean hasDecimalSyntax(@NonNull String valueStr) {
+  private static boolean hasDecimalExponent(@NonNull String valueStr) {
     return valueStr.indexOf('.') >= 0 || valueStr.indexOf('e') >= 0 || valueStr.indexOf('E') >= 0;
   }
+
+  private static boolean startsWithBasePrefix(@NonNull String value, int index) {
+    if (index + 1 >= value.length() || value.charAt(index) != '0') return false;
+    char prefix = value.charAt(index + 1);
+    return prefix == 'x' || prefix == 'X' || prefix == 'b' || prefix == 'B' || prefix == 'o' || prefix == 'O';
+  }
+
+  private static @NonNull IntegerLiteral parseIntegerLiteral(@NonNull String value, int start) {
+    int radix       = 10;
+    int digitsStart = start;
+    if (startsWithBasePrefix(value, start)) {
+      char prefix = value.charAt(start + 1);
+      radix = switch (prefix) {
+        case 'x', 'X' -> 16;
+        case 'b', 'B' -> 2;
+        case 'o', 'O' -> 8;
+        default -> throw new IllegalStateException("Dk4Nm8Vs2q :: Unsupported integer literal prefix: " + prefix);
+      };
+      digitsStart = start + 2;
+    }
+
+    int index = digitsStart;
+    while (index < value.length() && Character.digit(value.charAt(index), radix) >= 0) index++;
+    if (index == digitsStart) throw new IllegalArgumentException("Wm6Ze3Tq1c :: Expected integer number in expression: " + value);
+    return new IntegerLiteral(new BigInteger(value.substring(digitsStart, index), radix), index);
+  }
+
+  private record IntegerLiteral(@NonNull BigInteger value, int end) {}
 
   private static final class IntegerExpressionParser {
     private final @NonNull String value;
@@ -210,10 +248,9 @@ public class ParseUtil {
         return result;
       }
 
-      int start = index;
-      while (index < value.length() && Character.isDigit(value.charAt(index))) index++;
-      if (start == index) throw new IllegalArgumentException("Wm6Ze3Tq1c :: Expected integer number in expression: " + value);
-      return new BigInteger(value.substring(start, index));
+      IntegerLiteral literal = parseIntegerLiteral(value, index);
+      index = literal.end;
+      return literal.value;
     }
   }
 
@@ -276,6 +313,12 @@ public class ParseUtil {
         }
         index++;
         return result;
+      }
+
+      if (startsWithBasePrefix(value, index)) {
+        IntegerLiteral literal = parseIntegerLiteral(value, index);
+        index = literal.end;
+        return new BigDecimal(literal.value, FLOATING_POINT_MATH_CONTEXT);
       }
 
       int     start       = index;
