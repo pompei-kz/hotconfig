@@ -1,18 +1,39 @@
 # kz-pompei-conf
 
-`kz-pompei-conf` is a Java 21 hot-configuration library. It creates a typed proxy from a Java interface, stores the backing configuration through a pluggable tunnel, and refreshes values when the storage revision changes.
+> Typed hot configuration for Java services, backed by files, JDBC, or etcd.
 
-The project currently provides storage tunnels for:
+[![Java](https://img.shields.io/badge/Java-21-blue.svg)](#requirements)
+[![Gradle](https://img.shields.io/badge/build-Gradle-green.svg)](#build-and-test)
+[![TestNG](https://img.shields.io/badge/tests-TestNG-orange.svg)](#build-and-test)
+[![Version](https://img.shields.io/badge/version-0.0.1-lightgrey.svg)](versions/version.txt)
 
-- local files
-- JDBC databases: PostgreSQL and MariaDB
-- etcd v3 through jetcd
+`kz-pompei-conf` turns a plain Java interface into a live configuration object. The first read creates a configuration file or storage row from defaults, later reads return typed values, and refresh checks pick up changes from the backing storage.
 
-Current project version: `0.0.1`.
+```java
+AppConf conf = factory.createConf(AppConf.class);
+
+int port = conf.port();
+boolean enabled = conf.enabled();
+```
+
+## Contents
+
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Modules](#modules)
+- [Installation](#installation)
+- [Configuration Interfaces](#configuration-interfaces)
+- [Value Parsing](#value-parsing)
+- [Storage Backends](#storage-backends)
+- [Build And Test](#build-and-test)
+- [Project Layout](#project-layout)
+- [License](#license)
 
 ## Quick Start
 
-Create a configuration interface. This example follows the same pattern used in `HotConfFactoryTest`: the interface has a folder, config-level documentation, parameter documentation, and default values.
+This example mirrors the configuration pattern tested in `HotConfFactoryTest`, but uses `ConfTunnelFile` as the storage tunnel.
+
+### 1. Define A Configuration Interface
 
 ```java
 import kz.pompei.conf.core.ann.ConfDefaultValue;
@@ -33,7 +54,7 @@ public interface TestConf1 {
 }
 ```
 
-Create a `HotConfFactory` with `ConfTunnelFile`:
+### 2. Create A Factory Backed By Files
 
 ```java
 import java.nio.file.Path;
@@ -61,13 +82,15 @@ String param1 = conf.param1(); // "def value 1"
 String param2 = conf.param2(); // "def value 2"
 ```
 
-On the first read, if the file does not exist, the library creates:
+### 3. Inspect The Generated File
+
+On first read, the library creates:
 
 ```text
 ./conf/cool/folder/TestConf1.tst
 ```
 
-With this content:
+With content generated from annotations:
 
 ```text
 #about1
@@ -84,6 +107,8 @@ param1=def value 1
 param2=def value 2
 ```
 
+### 4. Edit And Refresh
+
 Edit the file manually:
 
 ```text
@@ -91,60 +116,69 @@ param1=SKY TREE
 param2=Flight near the star
 ```
 
-And read new values
+Then refresh and read the new values:
 
 ```java
+factory.refresh();
 
 String updatedParam1 = conf.param1(); // "SKY TREE"
 String updatedParam2 = conf.param2(); // "Flight near the star"
 ```
 
+## Features
+
+- Typed configuration access through Java interfaces.
+- Automatic default configuration creation.
+- Automatic supplementation when new interface methods are added.
+- Hot refresh through storage-specific modification markers.
+- File, JDBC, and etcd storage tunnels.
+- Comments generated from annotations.
+- Rich string-to-type conversion for primitives, boxed types, `BigDecimal`, `BigInteger`, `String`, and `char`.
+- Numeric expression evaluation with normal math precedence.
+- `$ENV{NAME}` substitution through `DynamicParams`.
+
 ## Modules
 
-| Module                | Purpose                                                                       |
-|-----------------------|-------------------------------------------------------------------------------|
-| `kz-pompei-conf-core` | Core API, proxy factory, file tunnel, parser, annotations, and model classes. |
-| `kz-pompei-conf-jdbc` | JDBC tunnel for PostgreSQL and MariaDB.                                       |
-| `kz-pompei-conf-etcd` | etcd tunnel backed by jetcd.                                                  |
-| `utils`               | Test utilities used by the repository tests.                                  |
+| Module | Description |
+| --- | --- |
+| `kz-pompei-conf-core` | Core API, proxy factory, file tunnel, annotations, parser, and models. |
+| `kz-pompei-conf-jdbc` | JDBC tunnel for PostgreSQL and MariaDB. |
+| `kz-pompei-conf-etcd` | etcd v3 tunnel implemented with jetcd. |
+| `utils` | Test utilities used inside this repository. |
 
-## Requirements
+## Installation
 
-- JDK 21
-- Gradle wrapper from this repository
-- Docker, only if you want to run PostgreSQL, MariaDB, or etcd integration tests
+This project is built with Gradle and Java 21. It is not currently documented as published to Maven Central, so use it as a source dependency or publish it to your internal Maven repository.
 
-## Build And Test
+For a multi-project Gradle build:
 
-Run the core tests:
+```groovy
+dependencies {
+  implementation project(":kz-pompei-conf-core")
 
-```bash
-./gradlew :kz-pompei-conf-core:test
+  // Optional backends
+  implementation project(":kz-pompei-conf-jdbc")
+  implementation project(":kz-pompei-conf-etcd")
+}
 ```
 
-Run all tests:
+If you package and publish the modules yourself, the Gradle group is:
 
-```bash
-./gradlew test
+```text
+kz.pompei.conf
 ```
 
-Integration tests for JDBC and etcd expect local services. The repository includes a Docker Compose setup in `docker/docker-compose.yaml`; set `APP_DATA_ROOT` before starting it.
+Current version is read from:
 
-```bash
-export APP_DATA_ROOT=/tmp/kz-pompei-conf-data
-docker compose -f docker/docker-compose.yaml up -d
-./gradlew test
+```text
+versions/version.txt
 ```
 
-## Basic Usage
+## Configuration Interfaces
 
-Define a configuration interface:
+A configuration interface is a plain Java interface with no-argument methods. Each method name becomes a parameter name.
 
 ```java
-import kz.pompei.conf.core.ann.ConfDefaultValue;
-import kz.pompei.conf.core.ann.ConfDoc;
-import kz.pompei.conf.core.ann.ConfFolder;
-
 @ConfFolder("app")
 @ConfDoc("Application configuration")
 public interface AppConf {
@@ -160,44 +194,21 @@ public interface AppConf {
 }
 ```
 
-Create a proxy backed by files:
+Annotations:
 
-```java
-import java.nio.file.Path;
-import kz.pompei.conf.core.ConfTunnelFile;
-import kz.pompei.conf.core.HotConfFactory;
+| Annotation | Target | Purpose |
+| --- | --- | --- |
+| `@ConfFolder("folder")` | interface | Places the configuration under a folder. |
+| `@ConfDoc("text")` | interface or method | Writes comments into generated configuration storage. |
+| `@ConfDefaultValue("value")` | method | Defines the value used when the parameter is absent. |
 
-HotConfFactory factory = new HotConfFactory(new ConfTunnelFile(Path.of("./conf")));
-AppConf conf = factory.createConf(AppConf.class);
-
-int port = conf.port();
-boolean enabled = conf.enabled();
-String host = conf.host();
-```
-
-The file path is built from `@ConfFolder`, the interface name, and the configured extension. With defaults, the example above uses:
-
-```text
-./conf/app/AppConf.hotconf
-```
-
-If a configuration is missing, the factory writes a default configuration from the interface methods and annotations.
-
-## Configuration Annotations
-
-| Annotation                   | Target              | Purpose                                                |
-|------------------------------|---------------------|--------------------------------------------------------|
-| `@ConfFolder("folder")`      | interface           | Stores the configuration under a folder.               |
-| `@ConfDoc("text")`           | interface or method | Writes comments for the config or parameter.           |
-| `@ConfDefaultValue("value")` | method              | Provides the initial value if the parameter is absent. |
-
-Only no-argument methods are supported as configuration properties.
+Only zero-argument methods are supported.
 
 ## Value Parsing
 
-Configuration values are stored as strings and converted to the Java return type of each interface method.
+Configuration values are stored as strings. `ParseUtil` converts them to the Java return type of the interface method.
 
-Supported target types include:
+Supported target types:
 
 - `String`
 - `boolean` / `Boolean`
@@ -211,26 +222,24 @@ Supported target types include:
 - `BigInteger`
 - `char` / `Character`
 
-### Dynamic Environment Values
+### Environment Substitution
 
-Values may include environment placeholders:
-
-```text
-$ENV{NAME}
-```
-
-They are resolved through `DynamicParams.env("NAME")` before type conversion.
-
-Example:
+Use `$ENV{NAME}` to resolve dynamic values before type conversion:
 
 ```text
 port=$ENV{APP_PORT}
 workers=$ENV{WORKER_COUNT} * 2
 ```
 
+Resolution is delegated to:
+
+```java
+DynamicParams.env("NAME")
+```
+
 ### String Escapes
 
-Standard substitutions are supported:
+Supported escape sequences:
 
 | Input | Result |
 | --- | --- |
@@ -243,31 +252,43 @@ Standard substitutions are supported:
 | `\"` | double quote |
 | `\'` | single quote |
 
-For numeric values, whitespace, `_`, and these separator/control characters are ignored where applicable.
+For numeric targets, whitespace, `_`, backslash separators, and escaped control characters are ignored where applicable.
 
-### Numeric Formatting
+### Numbers
 
 Numeric parsing accepts:
 
-- spaces as separators: `1 234`
-- underscores as separators: `1_234`
-- comma decimal separator: `12,5`
-- negative values: `-12.5`
-- exponent notation: `1.3e+4`, `0.456e-17`, `-17.45E+61`
-- hexadecimal integers: `0x234`, `0xAfeE76a03`, `0X38`
-- binary integers: `0b100110101`, `0B0011010110`
-- octal integers: `0o16542`, `0O643`
+```text
+1 234
+1_234
+12,5
+-12.5
+1.3e+4
+0.456e-17
+-17.45E+61
+0xAfeE76a03
+0b100110101
+0o16542
+```
 
-Leading-zero numbers without a base prefix remain decimal:
+Base-prefixed integer literals:
+
+| Prefix | Base | Example |
+| --- | --- | --- |
+| `0x` / `0X` | hexadecimal | `0x234`, `0xAfeE76a03` |
+| `0b` / `0B` | binary | `0b100110101`, `0B0011010110` |
+| `0o` / `0O` | octal | `0o16542`, `0O643` |
+
+Leading-zero numbers without a base prefix stay decimal:
 
 ```text
 00034 == 34
 01896 == 1896
 ```
 
-### Numeric Expressions
+### Expressions
 
-Numeric target types may use expressions:
+Numeric target types can evaluate expressions:
 
 ```text
 1 + 2
@@ -281,32 +302,43 @@ $ENV{NAME} * 16
 
 Supported operators:
 
-- addition: `+`
-- subtraction: `-`
-- multiplication: `*`
-- division: `/`
-- parentheses: `(...)`
+- `+`
+- `-`
+- `*`
+- `/`
+- parentheses
 
-Operator priority follows normal arithmetic rules. Signs after `e` or `E` are treated as part of exponent notation; otherwise `+` and `-` are expression operators.
+Precedence follows normal mathematics. A `+` or `-` after `e` or `E` is part of exponent notation; elsewhere it is an operator.
 
-For integer target types:
+Integer targets:
 
 - integer-only expressions use integer arithmetic
-- expressions with decimal syntax or exponent notation use `BigDecimal`, then round to the nearest whole number
+- decimal or exponent expressions use `BigDecimal`, then round to the nearest whole number
 
-For floating-point target types:
+Floating-point targets:
 
-- expressions are evaluated as `BigDecimal` with 50 significant digits, then converted to `float` or `double`
+- expressions use `BigDecimal` with 50 significant digits
+- final value is converted to `float` or `double`
 
-For boolean target types:
+Boolean targets:
 
-- known textual values such as `true`, `yes`, `on`, `false`, `no`, `off` are supported
-- numeric expressions evaluate to `false` when integer result is `0`
-- floating-point expressions evaluate to `false` when `abs(value) < 0.001`
+- text values such as `true`, `yes`, `on`, `false`, `no`, and `off` are supported
+- integer expression result `0` is `false`
+- floating expression result with `abs(value) < 0.001` is `false`
 
-## File Storage
+## Storage Backends
 
-`ConfTunnelFile` stores one configuration as a line-oriented UTF-8 file:
+### Files
+
+`ConfTunnelFile` stores each configuration as a UTF-8 text file.
+
+```java
+HotConfFactory factory = new HotConfFactory(
+  new ConfTunnelFile(Path.of("./conf"))
+);
+```
+
+Example generated file:
 
 ```text
 #Application configuration
@@ -318,11 +350,11 @@ enabled=true
 host=localhost
 ```
 
-The tunnel creates parent directories as needed and uses the file modification time as the modification marker.
+The file tunnel uses file modification time as the modification marker.
 
-## JDBC Storage
+### JDBC
 
-`kz-pompei-conf-jdbc` stores configurations in a database table. The builder detects PostgreSQL or MariaDB from JDBC metadata:
+`kz-pompei-conf-jdbc` stores configurations in a database table. PostgreSQL and MariaDB are detected from JDBC metadata.
 
 ```java
 import kz.pompei.conf.jdbc.ConfTunnelJdbc;
@@ -337,9 +369,9 @@ ConfTunnelJdbc tunnel = ConfTunnelJdbcBuilder.build(connectionGet, def);
 
 The table and schema are created automatically when missing. Column names are configurable through `ConfTunnelJdbcDef`.
 
-## etcd Storage
+### etcd
 
-`kz-pompei-conf-etcd` stores each configuration under one etcd key:
+`kz-pompei-conf-etcd` stores each configuration under one etcd key.
 
 ```java
 import io.etcd.jetcd.Client;
@@ -351,20 +383,73 @@ def.keyPrefix = "/kz-pompei-conf-etcd/";
 
 try (Client client = Client.builder().endpoints("http://localhost:17403").build();
      ConfTunnelEtcd tunnel = new ConfTunnelEtcd(client, def)) {
-  // use tunnel with HotConfFactory
+  HotConfFactory factory = new HotConfFactory(tunnel);
 }
 ```
 
 The etcd tunnel uses the key `modRevision` as the modification marker.
 
-## Development Notes
+## Build And Test
 
-- Source directories are `src` and `test_src`, not Gradle defaults.
+Requirements:
+
+- JDK 21
+- Gradle wrapper included in this repository
+- Docker for JDBC and etcd integration tests
+
+Run core tests:
+
+```bash
+./gradlew :kz-pompei-conf-core:test
+```
+
+Run all tests:
+
+```bash
+./gradlew test
+```
+
+Start local integration services:
+
+```bash
+export APP_DATA_ROOT=/tmp/kz-pompei-conf-data
+docker compose -f docker/docker-compose.yaml up -d
+```
+
+Then run backend tests:
+
+```bash
+./gradlew :kz-pompei-conf-jdbc:test
+./gradlew :kz-pompei-conf-etcd:test
+```
+
+## Project Layout
+
+```text
+kz-pompei-conf
+├── kz-pompei-conf-core
+├── kz-pompei-conf-jdbc
+├── kz-pompei-conf-etcd
+├── utils
+├── docker
+├── versions
+└── build.gradle
+```
+
+Notes for contributors:
+
+- Source directories are `src` and `test_src`.
 - Tests use TestNG and AssertJ.
-- The project uses Lombok and JetBrains annotations.
+- Lombok and JetBrains annotations are used throughout the codebase.
 - Java toolchain is configured for Java 21.
-- Project group is `kz.pompei.conf`.
+
+## Roadmap Ideas
+
+- Publish coordinates and examples for Maven Central or GitHub Packages.
+- Add CI badges once a GitHub Actions workflow exists.
+- Add a license before public reuse is encouraged.
+- Add more backend examples and production deployment recipes.
 
 ## License
 
-No license file is currently included in this repository. Add one before publishing if you want to define reuse terms for GitHub users.
+No license file is currently included. Add one before publishing if you want GitHub users to know the reuse terms.
