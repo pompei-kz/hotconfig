@@ -42,18 +42,17 @@ public class HotConfFactory {
 
   @RequiredArgsConstructor
   private static class Dot {
-    final Conf                conf;
     final long                modificationMarker;
     final Map<String, Object> valueMap;
     final AtomicBoolean       touched = new AtomicBoolean(true);
   }
 
-  private final ConcurrentHashMap<String, Dot> path_to_conf = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, Dot>       localPath_to_dot = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Class<?>, Integer> confClasses      = new ConcurrentHashMap<>();
 
   public @NonNull <I> I createConf(@NonNull Class<I> confClass) {
 
-    ConfFolder annConfFolder = confClass.getAnnotation(ConfFolder.class);
-    String     folder        = annConfFolder == null ? null : annConfFolder.value();
+    confClasses.put(confClass, 1);
 
     for (Method method : confClass.getMethods()) {
       if (method.getParameterCount() > 0) {
@@ -63,7 +62,7 @@ public class HotConfFactory {
     }
 
     //noinspection unchecked
-    return (I) Proxy.newProxyInstance(confClass.getClassLoader(), new Class[]{confClass}, new HotConfProxyHandler(confClass, folder));
+    return (I) Proxy.newProxyInstance(confClass.getClassLoader(), new Class[]{confClass}, new HotConfProxyHandler(confClass));
   }
 
   private <I> @NonNull String formConfName(@NonNull Class<I> confClass) {
@@ -72,12 +71,10 @@ public class HotConfFactory {
 
   private class HotConfProxyHandler implements InvocationHandler {
 
-    private final @NonNull  Class<?> confClass;
-    private final @Nullable String   folder;
+    private final @NonNull Class<?> confClass;
 
-    public <I> HotConfProxyHandler(@NonNull Class<I> confClass, @Nullable String folder) {
+    public <I> HotConfProxyHandler(@NonNull Class<I> confClass) {
       this.confClass = confClass;
-      this.folder    = folder;
     }
 
     @Override public @Nullable Object invoke(Object proxy, @NonNull Method method, Object[] args) {
@@ -92,7 +89,7 @@ public class HotConfFactory {
                                          " with parameters is not supported");
           }
           {
-            Dot    dot   = getDot(folder, confClass);
+            Dot    dot   = getDot(confClass);
             Object value = dot.valueMap.get(method.getName());
 
             yield value;
@@ -102,12 +99,28 @@ public class HotConfFactory {
     }
   }
 
-  private @NonNull Dot getDot(@Nullable String folder, @NonNull Class<?> confClass) {
+  private @Nullable String extractFolder(@NonNull Class<?> confClass) {
+
+    ConfFolder annConfFolder = confClass.getAnnotation(ConfFolder.class);
+    String     folder        = annConfFolder == null ? null : annConfFolder.value();
+
+    return folder;
+  }
+
+  private @NonNull String extractLocalPath(@NonNull Class<?> confClass) {
+
+    String folder    = extractFolder(confClass);
     String confName  = formConfName(confClass);
     String localPath = folder == null ? confName : folder + "/" + confName;
 
+    return localPath;
+  }
+
+  private @NonNull Dot getDot(@NonNull Class<?> confClass) {
+    String localPath = extractLocalPath(confClass);
+
     {
-      Dot dot = path_to_conf.get(localPath);
+      Dot dot = localPath_to_dot.get(localPath);
       if (dot != null) {
 
         if (refreshable.get()) {
@@ -156,12 +169,12 @@ public class HotConfFactory {
         if (modificationMarker != null) {
           // assert conf != null
 
-          if (!path_to_conf.containsKey(localPath)) {
+          if (!localPath_to_dot.containsKey(localPath)) {
             conf = compareOrSupplementAndWriteConf(conf, confClass, localPath);
           }
 
-          Dot dot = new Dot(conf, modificationMarker, convertConfToValueMap(conf, confClass));
-          path_to_conf.put(localPath, dot);
+          Dot dot = new Dot(modificationMarker, convertConfToValueMap(conf, confClass));
+          localPath_to_dot.put(localPath, dot);
           lastReadMs.set(dynamicParams.now());
           return dot;
         }
@@ -181,8 +194,8 @@ public class HotConfFactory {
 
       lastReadMs.set(dynamicParams.now());
 
-      Dot dot = new Dot(conf, modificationMarker, convertConfToValueMap(conf, confClass));
-      path_to_conf.put(localPath, dot);
+      Dot dot = new Dot(modificationMarker, convertConfToValueMap(conf, confClass));
+      localPath_to_dot.put(localPath, dot);
       return dot;
     }
   }
@@ -278,5 +291,49 @@ public class HotConfFactory {
     param.valueStr = annDefaultValue == null ? null : annDefaultValue.value();
 
     return param;
+  }
+
+  public void refresh() {
+    refreshable.set(true);
+
+    for (Class<?> confClass : confClasses.keySet()) {
+      String localPath = extractLocalPath(confClass);
+
+      {
+        Dot dot = localPath_to_dot.get(localPath);
+        if (dot != null) {
+
+          Long modificationMarker = tunnel.modificationMarker(localPath);
+          if (modificationMarker != null) {
+            if (modificationMarker == dot.modificationMarker) {
+              continue;
+            }
+          }
+        }
+      }
+
+      {
+        Conf conf = tunnel.read(localPath);
+        if (conf != null) {
+          Conf conf2              = compareOrSupplementAndWriteConf(conf, confClass, localPath);
+          Long modificationMarker = tunnel.modificationMarker(localPath);
+          if (modificationMarker == null) {
+            continue;
+          }
+          localPath_to_dot.put(localPath, new Dot(modificationMarker, convertConfToValueMap(conf2, confClass)));
+          continue;
+        }
+      }
+
+      {
+        Conf conf = createDefaultConf(confClass);
+        tunnel.write(localPath, conf);
+        Long modificationMarker = tunnel.modificationMarker(localPath);
+        if (modificationMarker == null) {
+          continue;
+        }
+        localPath_to_dot.put(localPath, new Dot(modificationMarker, convertConfToValueMap(conf, confClass)));
+      }
+    }
   }
 }

@@ -37,6 +37,141 @@ public class HotConfFactoryTest {
     @ConfDoc("DESCRIPTION3\nDESCRIPTION4\nDESCRIPTION5")
     @ConfDefaultValue("DEF VALUE 2")
     String status2();
+
+  }
+
+
+  public interface TestConf3 {
+
+    @ConfDefaultValue("rocks")
+    String stone();
+
+    @ConfDefaultValue("reds")
+    String apple();
+  }
+
+  @Test
+  public void refresh() {
+
+    ConfTunnelFake tunnel = new ConfTunnelFake();
+
+    String confPath1 = "cool/folder/TestConf1.tst";
+    String confPath2 = "TestConf2.tst";
+    String confPath3 = "TestConf3.tst";
+
+    {
+      Conf conf1 = new Conf();
+      conf1.params.add(new ConfParam("param1", "SKY TREE"));
+      conf1.params.add(new ConfParam("param2", "Flight near the star"));
+      tunnel.storage.put(confPath1, new ConfTunnelFake.Dot(conf1, 1));
+    }
+
+    {
+      Conf conf3 = new Conf();
+      conf3.params.add(new ConfParam("stone", "STORED VALUE"));
+      conf3.params.add(new ConfParam("left-param", "tmp"));
+      tunnel.storage.put(confPath3, new ConfTunnelFake.Dot(conf3, 1));
+    }
+
+    DynamicParamsFake dynamicParams          = new DynamicParamsFake(13);
+    int               revisionCheckTimeoutMs = 500;
+
+    HotConfFactoryParams params = HotConfFactoryParams.builder()
+                                                      .extension(".tst")
+                                                      .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
+                                                      .build();
+
+    HotConfFactory factory = new HotConfFactory(tunnel, params, dynamicParams);
+
+    tunnel.clearCounts();
+
+    //
+    //
+    TestConf1 conf1 = factory.createConf(TestConf1.class);
+    TestConf2 conf2 = factory.createConf(TestConf2.class);
+    TestConf3 conf3 = factory.createConf(TestConf3.class);
+    //
+    //
+
+    assertThat(tunnel.readCount(confPath1)).isZero();
+    assertThat(tunnel.writeCount(confPath1)).isZero();
+    assertThat(tunnel.modificationMarkerCount(confPath1)).isZero();
+
+    assertThat(tunnel.readCount(confPath2)).isZero();
+    assertThat(tunnel.writeCount(confPath2)).isZero();
+    assertThat(tunnel.modificationMarkerCount(confPath2)).isZero();
+
+    assertThat(tunnel.readCount(confPath3)).isZero();
+    assertThat(tunnel.writeCount(confPath3)).isZero();
+    assertThat(tunnel.modificationMarkerCount(confPath3)).isZero();
+
+    //
+    //
+    factory.refresh();
+    //
+    //
+
+    assertThat(tunnel.readCount(confPath1)).isEqualTo(1);
+    assertThat(tunnel.writeCount(confPath1)).describedAs("PBlH8wtO8b :: Must be zero - this file already exists with all params").isEqualTo(0);
+    assertThat(tunnel.modificationMarkerCount(confPath1)).isGreaterThanOrEqualTo(1);
+
+    assertThat(tunnel.readCount(confPath2)).isEqualTo(1);
+    assertThat(tunnel.writeCount(confPath2)).describedAs("9BW9TA7fJa :: Must be 1 - creating default file with values").isEqualTo(1);
+    assertThat(tunnel.modificationMarkerCount(confPath2)).isGreaterThanOrEqualTo(1);
+
+    assertThat(tunnel.readCount(confPath3)).isEqualTo(1);
+    assertThat(tunnel.writeCount(confPath3)).describedAs("di3MSK6qIL :: Must be 1 - appending new params to file").isEqualTo(1);
+    assertThat(tunnel.modificationMarkerCount(confPath3)).isGreaterThanOrEqualTo(1);
+
+    tunnel.clearCounts();
+
+    assertThat(conf1.param1()).isEqualTo("SKY TREE");
+    assertThat(conf1.param2()).isEqualTo("Flight near the star");
+    assertThat(conf2.status1()).isEqualTo("DEF VALUE 1");
+    assertThat(conf2.status2()).isEqualTo("DEF VALUE 2");
+    assertThat(conf3.stone()).isEqualTo("STORED VALUE");
+    assertThat(conf3.apple()).isEqualTo("reds");
+
+    assertThat(tunnel.readCount(confPath1)).isZero();
+    assertThat(tunnel.writeCount(confPath1)).isZero();
+    assertThat(tunnel.modificationMarkerCount(confPath1)).isZero();
+
+    assertThat(tunnel.readCount(confPath2)).isZero();
+    assertThat(tunnel.writeCount(confPath2)).isZero();
+    assertThat(tunnel.modificationMarkerCount(confPath2)).isZero();
+
+    assertThat(tunnel.readCount(confPath3)).isZero();
+    assertThat(tunnel.writeCount(confPath3)).isZero();
+    assertThat(tunnel.modificationMarkerCount(confPath3)).isZero();
+
+    {
+      Conf conf7 = new Conf();
+      conf7.params.add(new ConfParam("param1", "New Param Value 1"));
+      conf7.params.add(new ConfParam("param2", "NEW PARAM VALUE 2"));
+      tunnel.storage.put(confPath1, new ConfTunnelFake.Dot(conf7, 111));
+    }
+
+    tunnel.clearCounts();
+
+    assertThat(conf1.param1()).describedAs("Dp7MNKsAza :: Must be OLD value").isEqualTo("SKY TREE");
+    assertThat(conf1.param2()).describedAs("jg3cZ7Pt5w :: Must be OLD value").isEqualTo("Flight near the star");
+
+    assertThat(tunnel.readCount(confPath1)).isZero();
+    assertThat(tunnel.writeCount(confPath1)).isZero();
+    assertThat(tunnel.modificationMarkerCount(confPath1)).isZero();
+
+    //
+    //
+    factory.refresh();
+    //
+    //
+
+    assertThat(tunnel.readCount(confPath1)).isEqualTo(1);
+    assertThat(tunnel.writeCount(confPath1)).isZero();
+    assertThat(tunnel.modificationMarkerCount(confPath1)).isGreaterThanOrEqualTo(1);
+
+    assertThat(conf1.param1()).describedAs("RI7p2Zm9aL :: Must be NEW value").isEqualTo("New Param Value 1");
+    assertThat(conf1.param2()).describedAs("i7052Bc9ci :: Must be NEW value").isEqualTo("NEW PARAM VALUE 2");
   }
 
   @Test
@@ -269,5 +404,11 @@ public class HotConfFactoryTest {
     assertThat(tunnel.readCount(confPath2)).describedAs("ycWUaL1LHy :: must be read").isZero();
     assertThat(tunnel.writeCount(confPath2)).isZero();
     assertThat(tunnel.modificationMarkerCount(confPath2)).describedAs("rMFGcMExaL :: must be read").isZero();
+  }
+
+  @Test
+  public void useDefaultConstructor() {
+    ConfTunnelFake tunnel = new ConfTunnelFake();
+    new HotConfFactory(tunnel);
   }
 }
