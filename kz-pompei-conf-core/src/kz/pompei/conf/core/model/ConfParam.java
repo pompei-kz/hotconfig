@@ -1,7 +1,9 @@
 package kz.pompei.conf.core.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * In-memory representation of one configuration parameter.
@@ -24,4 +26,18 @@ public class ConfParam {
    * Parameter value as a string.
    */
   public String valueStr;
+
+  public ConfParam() {}
+
+  public ConfParam(String name, String valueStr) {
+    this.name     = name;
+    this.valueStr = valueStr;
+  }
+
+  public ConfParam comment(@Nullable String comment) {
+    if (comment != null) {
+      Collections.addAll(comments, comment.split("\n"));
+    }
+    return this;
+  }
 }

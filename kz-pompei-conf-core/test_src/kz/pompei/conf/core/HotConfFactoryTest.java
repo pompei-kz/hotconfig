@@ -40,10 +40,19 @@ public class HotConfFactoryTest {
   }
 
   @Test
-  public void createConf__createsConfigFile() {
+  public void createConf__fewParams() {
 
-    ConfTunnelFake    tunnel                 = new ConfTunnelFake();
-    DynamicParamsFake clock                  = new DynamicParamsFake(13);
+    Conf conf = new Conf();
+    conf.params.add(new ConfParam("status1", "DIRECT VALUE"));
+    conf.params.add(new ConfParam("left-param", "come value").comment("line1\nline2"));
+
+    String confPath2 = "TestConf2.tst";
+
+    ConfTunnelFake tunnel = new ConfTunnelFake();
+
+    tunnel.storage.put(confPath2, new ConfTunnelFake.Dot(conf, 1));
+
+    DynamicParamsFake dynamicParams          = new DynamicParamsFake(13);
     int               revisionCheckTimeoutMs = 500;
 
     HotConfFactoryParams params = HotConfFactoryParams.builder()
@@ -51,7 +60,45 @@ public class HotConfFactoryTest {
                                                       .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
                                                       .build();
 
-    HotConfFactory factory = new HotConfFactory(tunnel, params, clock);
+    HotConfFactory factory = new HotConfFactory(tunnel, params, dynamicParams);
+
+    //
+    //
+    TestConf2 testConf2 = factory.createConf(TestConf2.class);
+    //
+    //
+
+    assertThat(testConf2).isNotNull();
+
+    String status1 = testConf2.status1();
+    String status2 = testConf2.status2();
+
+    assertThat(status1).isEqualTo("DIRECT VALUE");
+    assertThat(status2).isEqualTo("DEF VALUE 2");
+
+    Conf      conf2 = tunnel.storage.get(confPath2).conf();
+    ConfParam p0    = conf2.params.get(0);
+    ConfParam p1    = conf2.params.get(1);
+    ConfParam p2    = conf2.params.get(2);
+
+    assertThat(p0.name).isEqualTo("status1");
+    assertThat(p1.name).describedAs("3q1jRa8Dt0 :: it should not be removed").isEqualTo("left-param");
+    assertThat(p2.name).isEqualTo("status2");
+  }
+
+  @Test
+  public void createConf__createsConfigFile() {
+
+    ConfTunnelFake    tunnel                 = new ConfTunnelFake();
+    DynamicParamsFake dynamicParams          = new DynamicParamsFake(13);
+    int               revisionCheckTimeoutMs = 500;
+
+    HotConfFactoryParams params = HotConfFactoryParams.builder()
+                                                      .extension(".tst")
+                                                      .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
+                                                      .build();
+
+    HotConfFactory factory = new HotConfFactory(tunnel, params, dynamicParams);
 
     //
     //
@@ -125,7 +172,7 @@ public class HotConfFactoryTest {
      * Less time has passed than 'revisionCheckTimeoutMs',
      * so there was no need to check the changes in the config file
      */
-    clock.inc(revisionCheckTimeoutMs - 100);
+    dynamicParams.inc(revisionCheckTimeoutMs - 100);
 
     {
       tunnel.clearCounts();
@@ -145,7 +192,7 @@ public class HotConfFactoryTest {
     /*
      * Now enough time has passed for to call `modificationMarker`
      */
-    clock.inc(100 + 10);
+    dynamicParams.inc(100 + 10);
 
     {
       tunnel.clearCounts();
@@ -186,7 +233,7 @@ public class HotConfFactoryTest {
     /*
      * First, let's check that not enough time has passed.
      */
-    clock.inc(revisionCheckTimeoutMs - 100);
+    dynamicParams.inc(revisionCheckTimeoutMs - 100);
 
     {
       tunnel.clearCounts();
@@ -204,7 +251,7 @@ public class HotConfFactoryTest {
     /*
      * And enough time has passed for to call `modificationMarker`
      */
-    clock.inc(100 + 10);
+    dynamicParams.inc(100 + 10);
 
     {
       tunnel.clearCounts();
