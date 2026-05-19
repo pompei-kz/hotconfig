@@ -29,7 +29,7 @@ public class ParseUtil {
     return valueStr;
   }
 
-  private static String resolveStandardSubstitutions(@NonNull String valueStr) {
+  private static @NonNull String resolveStandardSubstitutions(@NonNull String valueStr) {
     StringBuilder resolved = new StringBuilder(valueStr.length());
     for (int i = 0; i < valueStr.length(); i++) {
       char ch = valueStr.charAt(i);
