@@ -21,8 +21,16 @@ public class Conf {
    */
   public List<ConfParam> params = new ArrayList<>();
 
-  public@NonNull Conf copy() {
-    // TODO: Implement Conf.copy() to create a deep copy of the configuration
-    throw new RuntimeException("2026-05-19 07:20 Not impl yet Conf.copy()");
+  public @NonNull Conf copy() {
+    Conf result = new Conf();
+    result.confComments = new ArrayList<>(confComments);
+    for (ConfParam param : params) {
+      ConfParam resultParam = new ConfParam();
+      resultParam.comments = new ArrayList<>(param.comments);
+      resultParam.name     = param.name;
+      resultParam.valueStr = param.valueStr;
+      result.params.add(resultParam);
+    }
+    return result;
   }
 }
