@@ -6,6 +6,7 @@
 [![Gradle](https://img.shields.io/badge/build-Gradle-green.svg)](#build-and-test)
 [![TestNG](https://img.shields.io/badge/tests-TestNG-orange.svg)](#build-and-test)
 [![Version](https://img.shields.io/badge/version-0.0.1-lightgrey.svg)](versions/version.txt)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 `kz-pompei-conf` turns a plain Java interface into a live configuration object. The first read creates a configuration file or storage row from defaults, later reads return typed values, and refresh checks pick up changes from the backing storage.
 
@@ -446,9 +447,8 @@ Notes for contributors:
 
 - Publish coordinates and examples for Maven Central or GitHub Packages.
 - Add CI badges once a GitHub Actions workflow exists.
-- Add a license before public reuse is encouraged.
 - Add more backend examples and production deployment recipes.
 
 ## License
 
-No license file is currently included. Add one before publishing if you want GitHub users to know the reuse terms.
+This project is licensed under the [MIT License](LICENSE).
