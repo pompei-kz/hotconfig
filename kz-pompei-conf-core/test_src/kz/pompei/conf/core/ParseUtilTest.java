@@ -141,6 +141,48 @@ public class ParseUtilTest {
   }
 
   @DataProvider
+  public Object[][] numericExpressionValues() {
+    return new Object[][]{
+      {"1 + 2", int.class, 3},
+      {"17 - 3", Integer.class, 14},
+      {"10 * 34", long.class, 340L},
+      {"450 / 10", Long.class, 45L},
+      {"3 + 7*3", int.class, 24},
+      {"(23 + 4)*(100 - 45)", BigInteger.class, new BigInteger("1485")},
+      {"10 / 4", int.class, 2},
+      {"10.0 / 4", Integer.class, 3},
+      {"-3 + 7*3", int.class, 18},
+      {"(-23 + 4)*(100 - 45)", BigInteger.class, new BigInteger("-1045")},
+      {"1.25 + 2.50", BigDecimal.class, new BigDecimal("3.75")},
+      {"10.0 / 4", BigDecimal.class, new BigDecimal("2.5")},
+      {"3 + 7*3", float.class, 24F},
+      {"450 / 10", Double.class, 45D},
+      {"1 / 3", float.class, 1F / 3F},
+      {"1 / 3", double.class, 1D / 3D},
+      {"3,5 * 2", double.class, 7D},
+      {"1\\n0 + 2_0", int.class, 30},
+    };
+  }
+
+  @DataProvider
+  public Object[][] booleanExpressionValues() {
+    return new Object[][]{
+      {"1 + 2", true},
+      {"17 - 17", false},
+      {"10 * 0", false},
+      {"450 / 10", true},
+      {"3 + 7*3", true},
+      {"(23 + 4)*(100 - 45)", true},
+      {"0.0009", false},
+      {"-0.0009", false},
+      {"0.001", true},
+      {"-0.001", true},
+      {"1.0 / 2000", false},
+      {"1.0 / 500", true},
+    };
+  }
+
+  @DataProvider
   public Object[][] booleanTrueValues() {
     return new Object[][]{
       {"t"},
@@ -321,6 +363,21 @@ public class ParseUtilTest {
     assertThat(value).isEqualTo("hello\nworld\t\\\"'");
   }
 
+  @Test
+  public void parseStrToGenericType__string__expression_is_not_evaluated() {
+
+    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+
+    //
+    //
+    Object value = ParseUtil.parseStrToGenericType("1 + 2", dynamicParams, String.class);
+    //
+    //
+
+    assertThat(value).isInstanceOf(String.class);
+    assertThat(value).isEqualTo("1 + 2");
+  }
+
   @Test(dataProvider = "primitiveAndBoxedTypes")
   public void parseStrToGenericType__primitive_and_boxed_types(String valueStr, Type type, Object expectedValue) {
 
@@ -334,6 +391,53 @@ public class ParseUtilTest {
 
     assertThat(value).isEqualTo(expectedValue);
     assertThat(value).isInstanceOf(expectedValue.getClass());
+  }
+
+  @Test(dataProvider = "numericExpressionValues")
+  public void parseStrToGenericType__numeric_expressions(String valueStr, Type type, Object expectedValue) {
+
+    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+
+    //
+    //
+    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    //
+    //
+
+    assertThat(value).isEqualTo(expectedValue);
+    assertThat(value).isInstanceOf(expectedValue.getClass());
+  }
+
+  @Test
+  public void parseStrToGenericType__numeric_expression__env_value() {
+
+    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    dynamicParams.envMap.put("NAME", "5");
+
+    //
+    //
+    Object value = ParseUtil.parseStrToGenericType("$ENV{NAME} * 16", dynamicParams, int.class);
+    //
+    //
+
+    assertThat(value).isEqualTo(80);
+    assertThat(value).isInstanceOf(Integer.class);
+  }
+
+  @Test(dataProvider = "booleanExpressionValues")
+  public void parseStrToGenericType__boolean_expressions(String valueStr, Object expectedValue) {
+
+    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+
+    //
+    //
+    Object primitiveValue = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, boolean.class);
+    Object boxedValue     = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, Boolean.class);
+    //
+    //
+
+    assertThat(primitiveValue).isEqualTo(expectedValue);
+    assertThat(boxedValue).isEqualTo(expectedValue);
   }
 
   @Test(dataProvider = "formattedNumericValues")
