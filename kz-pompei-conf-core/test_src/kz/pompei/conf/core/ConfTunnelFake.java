@@ -1,5 +1,6 @@
 package kz.pompei.conf.core;
 
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import kz.pompei.conf.core.model.Conf;
@@ -30,7 +31,7 @@ public class ConfTunnelFake implements ConfTunnel {
     writeCount.computeIfAbsent(localPath, k -> new AtomicInteger(0)).incrementAndGet();
 
     synchronized (storage) {
-      Long revision    = modificationMarker(localPath);
+      Long revision    = Optional.of(storage).map(x->x.get(localPath)).map(x->x.revision).orElse(null);
       long newRevision = revision == null ? 1 : revision + 1;
       Dot  newDot      = new Dot(conf.copy(), newRevision);
       storage.put(localPath, newDot);

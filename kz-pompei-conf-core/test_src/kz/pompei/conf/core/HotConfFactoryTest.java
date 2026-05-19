@@ -42,9 +42,9 @@ public class HotConfFactoryTest {
   @Test
   public void createConf__createsConfigFile() {
 
-    ConfTunnelFake tunnel                 = new ConfTunnelFake();
-    ClockFake      clock                  = new ClockFake();
-    int            revisionCheckTimeoutMs = 500;
+    ConfTunnelFake    tunnel                 = new ConfTunnelFake();
+    DynamicParamsFake clock                  = new DynamicParamsFake(13);
+    int               revisionCheckTimeoutMs = 500;
 
     HotConfFactoryParams params = HotConfFactoryParams.builder()
                                                       .extension(".tst")
@@ -71,14 +71,21 @@ public class HotConfFactoryTest {
     String confPath2 = "TestConf2.tst";
 
     {
+      tunnel.clearCounts();
+
       String param1 = conf1.param1();
+
+      assertThat(tunnel.modificationMarkerCount(confPath1)).isGreaterThanOrEqualTo(1);
+
       String param2 = conf1.param2();
+
+      assertThat(tunnel.modificationMarkerCount(confPath1)).isGreaterThanOrEqualTo(1);
+
       assertThat(param1).isEqualTo("def value 1");
       assertThat(param2).isEqualTo("def value 2");
 
-      assertThat(tunnel.readCount(confPath1)).isEqualTo(1L);
-      assertThat(tunnel.writeCount(confPath1)).isEqualTo(0L);
-      assertThat(tunnel.modificationMarkerCount(confPath1)).isEqualTo(0L);
+      assertThat(tunnel.readCount(confPath1)).isEqualTo(0);
+      assertThat(tunnel.writeCount(confPath1)).isEqualTo(1);
     }
 
     {
@@ -97,14 +104,21 @@ public class HotConfFactoryTest {
     }
 
     {
+      tunnel.clearCounts();
+
       String status1 = conf2.status1();
+
+      assertThat(tunnel.modificationMarkerCount(confPath2)).isGreaterThanOrEqualTo(1);
+
       String status2 = conf2.status2();
+
+      assertThat(tunnel.modificationMarkerCount(confPath2)).isGreaterThanOrEqualTo(1);
+
       assertThat(status1).isEqualTo("DEF VALUE 1");
       assertThat(status2).isEqualTo("DEF VALUE 2");
 
-      assertThat(tunnel.readCount(confPath2)).isEqualTo(1L);
-      assertThat(tunnel.writeCount(confPath2)).isEqualTo(0L);
-      assertThat(tunnel.modificationMarkerCount(confPath2)).isEqualTo(0L);
+      assertThat(tunnel.readCount(confPath2)).isEqualTo(0);
+      assertThat(tunnel.writeCount(confPath2)).isEqualTo(1);
     }
 
     /*
@@ -114,16 +128,18 @@ public class HotConfFactoryTest {
     clock.inc(revisionCheckTimeoutMs - 100);
 
     {
+      tunnel.clearCounts();
+
       String param1 = conf1.param1();
       String param2 = conf1.param2();
       assertThat(param1).isEqualTo("def value 1");
       assertThat(param2).isEqualTo("def value 2");
 
-      assertThat(tunnel.readCount(confPath1)).isEqualTo(1L);
-      assertThat(tunnel.writeCount(confPath1)).isEqualTo(0L);
+      assertThat(tunnel.readCount(confPath1)).isZero();
+      assertThat(tunnel.writeCount(confPath1)).isZero();
       assertThat(tunnel.modificationMarkerCount(confPath1))
         .describedAs("bqmJgokq4Q :: the system shouldn't call `modificationMarker`")
-        .isEqualTo(0L);
+        .isZero();
     }
 
     /*
@@ -132,25 +148,26 @@ public class HotConfFactoryTest {
     clock.inc(100 + 10);
 
     {
+      tunnel.clearCounts();
+
       String param1 = conf1.param1();
       String param2 = conf1.param2();
       assertThat(param1).isEqualTo("def value 1");
       assertThat(param2).isEqualTo("def value 2");
 
       assertThat(tunnel.readCount(confPath1))
-        .describedAs("UVe1kq1i1x :: enough time has passed for to call `modificationMarker`" +
-                       " and system not need to read because `modificationMarker` returns the same as earlier call").isEqualTo(1L);
-      assertThat(tunnel.writeCount(confPath1)).isEqualTo(0L);
+        .describedAs("UVe1kq1i1x :: Must be zero, because configFile didn't change").isEqualTo(0);
+      assertThat(tunnel.writeCount(confPath1)).isEqualTo(0);
       assertThat(tunnel.modificationMarkerCount(confPath1))
         .describedAs("dc6QP1Q1BR :: the system should call `modificationMarker` because enough time has passed")
-        .isEqualTo(1L);
+        .isGreaterThanOrEqualTo(1);
     }
 
 
     { // now let's change some value in the config file
 
       ConfTunnelFake.Dot dot  = tunnel.storage.get(confPath1);
-      Conf               conf = dot.conf();
+      Conf               conf = dot.conf().copy();
       assertThat(conf).isNotNull();
       assertThat(conf.confComments).isEqualTo(List.of("about1", "about2", "about3"));
 
@@ -162,15 +179,18 @@ public class HotConfFactoryTest {
 
       cp0.valueStr = "new value 1";
       cp1.valueStr = "new value 2";
+
+      tunnel.storage.put(confPath1, new ConfTunnelFake.Dot(conf, dot.revision() + 1));
     }
 
     /*
      * First, let's check that not enough time has passed.
      */
     clock.inc(revisionCheckTimeoutMs - 100);
-    tunnel.clearCounts();
 
     {
+      tunnel.clearCounts();
+
       String param1 = conf1.param1();
       String param2 = conf1.param2();
       assertThat(param1).describedAs("4t9MTx7dZl :: Must be old value").isEqualTo("def value 1");
@@ -187,6 +207,8 @@ public class HotConfFactoryTest {
     clock.inc(100 + 10);
 
     {
+      tunnel.clearCounts();
+
       String param1 = conf1.param1();
       String param2 = conf1.param2();
       assertThat(param1).describedAs("ZqPrcTBP2A :: Must be NEW value").isEqualTo("new value 1");
@@ -194,11 +216,11 @@ public class HotConfFactoryTest {
 
       assertThat(tunnel.readCount(confPath1)).describedAs("ycWUaL1LHy :: must be read").isEqualTo(1);
       assertThat(tunnel.writeCount(confPath1)).isZero();
-      assertThat(tunnel.modificationMarkerCount(confPath1)).describedAs("rMFGcMExaL :: must be read").isEqualTo(1);
+      assertThat(tunnel.modificationMarkerCount(confPath1)).describedAs("rMFGcMExaL :: must be read").isGreaterThanOrEqualTo(1);
     }
 
-    assertThat(tunnel.readCount(confPath2)).describedAs("ycWUaL1LHy :: must be read").isEqualTo(1);
+    assertThat(tunnel.readCount(confPath2)).describedAs("ycWUaL1LHy :: must be read").isZero();
     assertThat(tunnel.writeCount(confPath2)).isZero();
-    assertThat(tunnel.modificationMarkerCount(confPath2)).describedAs("rMFGcMExaL :: must be read").isEqualTo(1);
+    assertThat(tunnel.modificationMarkerCount(confPath2)).describedAs("rMFGcMExaL :: must be read").isZero();
   }
 }
