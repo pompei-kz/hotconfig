@@ -139,6 +139,32 @@ public class ParseUtilTest {
     };
   }
 
+  @DataProvider
+  public Object[][] envValues() {
+    return new Object[][]{
+      {"ENV_STRING", "hello world", "$ENV{ENV_STRING}", String.class, "hello world"},
+      {"ENV_BOOLEAN", "yes", "$ENV{ENV_BOOLEAN}", boolean.class, true},
+      {"ENV_BOOLEAN_BOXED", "on", "$ENV{ENV_BOOLEAN_BOXED}", Boolean.class, true},
+      {"ENV_BYTE", "1 2", "$ENV{ENV_BYTE}", byte.class, (byte) 12},
+      {"ENV_BYTE_BOXED", "1_3", "$ENV{ENV_BYTE_BOXED}", Byte.class, (byte) 13},
+      {"ENV_SHORT", "3 0 0", "$ENV{ENV_SHORT}", short.class, (short) 300},
+      {"ENV_SHORT_BOXED", "3_0_1", "$ENV{ENV_SHORT_BOXED}", Short.class, (short) 301},
+      {"ENV_INT", "123 456", "$ENV{ENV_INT}", int.class, 123456},
+      {"ENV_INT_BOXED", "123_456.50", "$ENV{ENV_INT_BOXED}", Integer.class, 123457},
+      {"ENV_LONG", "1 234 567 890 123", "$ENV{ENV_LONG}", long.class, 1234567890123L},
+      {"ENV_LONG_BOXED", "1_234_567_890_123,50", "$ENV{ENV_LONG_BOXED}", Long.class, 1234567890124L},
+      {"ENV_FLOAT", "3,25", "$ENV{ENV_FLOAT}", float.class, 3.25F},
+      {"ENV_FLOAT_BOXED", "4,5", "$ENV{ENV_FLOAT_BOXED}", Float.class, 4.5F},
+      {"ENV_DOUBLE", "6 000,75", "$ENV{ENV_DOUBLE}", double.class, 6000.75D},
+      {"ENV_DOUBLE_BOXED", "7_000,125", "$ENV{ENV_DOUBLE_BOXED}", Double.class, 7000.125D},
+      {"ENV_BIG_DECIMAL", "12 345_678,901", "$ENV{ENV_BIG_DECIMAL}", BigDecimal.class, new BigDecimal("12345678.901")},
+      {"ENV_BIG_INTEGER", "12_345_678.50", "$ENV{ENV_BIG_INTEGER}", BigInteger.class, new BigInteger("12345679")},
+      {"ENV_CHAR", "x", "$ENV{ENV_CHAR}", char.class, 'x'},
+      {"ENV_CHAR_BOXED", "y", "$ENV{ENV_CHAR_BOXED}", Character.class, 'y'},
+      {"ENV_STRING", "world", "hello $ENV{ENV_STRING}", String.class, "hello world"},
+    };
+  }
+
   @Test
   public void parseStrToGenericType__string() {
 
@@ -302,5 +328,21 @@ public class ParseUtilTest {
 
     assertThat(value).isEqualTo(BigDecimal.ZERO);
     assertThat(value).isInstanceOf(BigDecimal.class);
+  }
+
+  @Test(dataProvider = "envValues")
+  public void parseStrToGenericType__env_values(String envName, String envValue, String valueStr, Type type, Object expectedValue) {
+
+    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    dynamicParams.envMap.put(envName, envValue);
+
+    //
+    //
+    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    //
+    //
+
+    assertThat(value).isEqualTo(expectedValue);
+    assertThat(value).isInstanceOf(expectedValue.getClass());
   }
 }

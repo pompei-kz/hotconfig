@@ -9,8 +9,9 @@ import lombok.NonNull;
 public class ParseUtil {
 
   public static Object parseStrToGenericType(String valueStr, @NonNull DynamicParams dynamicParams, @NonNull Type genericReturnType) {
-    if (genericReturnType == String.class) return valueStr;
     if (valueStr == null) return defaultNullValue(genericReturnType);
+    valueStr = resolveDynamicParams(valueStr, dynamicParams);
+    if (genericReturnType == String.class) return valueStr;
     if (genericReturnType == boolean.class || genericReturnType == Boolean.class) return parseBoolean(valueStr);
     if (genericReturnType == byte.class || genericReturnType == Byte.class) return parseByte(valueStr);
     if (genericReturnType == short.class || genericReturnType == Short.class) return parseShort(valueStr);
@@ -25,6 +26,31 @@ public class ParseUtil {
       return valueStr.charAt(0);
     }
     return valueStr;
+  }
+
+  private static String resolveDynamicParams(@NonNull String valueStr, @NonNull DynamicParams dynamicParams) {
+    StringBuilder resolved = new StringBuilder(valueStr.length());
+    int           index    = 0;
+    while (index < valueStr.length()) {
+      int start = valueStr.indexOf("$ENV{", index);
+      if (start < 0) {
+        resolved.append(valueStr, index, valueStr.length());
+        break;
+      }
+
+      int end = valueStr.indexOf('}', start + 5);
+      if (end < 0) {
+        resolved.append(valueStr, index, valueStr.length());
+        break;
+      }
+
+      resolved.append(valueStr, index, start);
+      String envName  = valueStr.substring(start + 5, end);
+      String envValue = dynamicParams.env(envName);
+      if (envValue != null) resolved.append(envValue);
+      index = end + 1;
+    }
+    return resolved.toString();
   }
 
   private static byte parseByte(@NonNull String valueStr) {
