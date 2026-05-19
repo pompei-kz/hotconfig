@@ -11,6 +11,7 @@ public class ParseUtil {
   public static Object parseStrToGenericType(String valueStr, @NonNull DynamicParams dynamicParams, @NonNull Type genericReturnType) {
     if (valueStr == null) return defaultNullValue(genericReturnType);
     valueStr = resolveDynamicParams(valueStr, dynamicParams);
+    valueStr = resolveStandardSubstitutions(valueStr);
     if (genericReturnType == String.class) return valueStr;
     if (genericReturnType == boolean.class || genericReturnType == Boolean.class) return parseBoolean(valueStr);
     if (genericReturnType == byte.class || genericReturnType == Byte.class) return parseByte(valueStr);
@@ -26,6 +27,31 @@ public class ParseUtil {
       return valueStr.charAt(0);
     }
     return valueStr;
+  }
+
+  private static String resolveStandardSubstitutions(@NonNull String valueStr) {
+    StringBuilder resolved = new StringBuilder(valueStr.length());
+    for (int i = 0; i < valueStr.length(); i++) {
+      char ch = valueStr.charAt(i);
+      if (ch != '\\' || i == valueStr.length() - 1) {
+        resolved.append(ch);
+        continue;
+      }
+
+      char next = valueStr.charAt(++i);
+      switch (next) {
+        case 'n' -> resolved.append('\n');
+        case 't' -> resolved.append('\t');
+        case 'r' -> resolved.append('\r');
+        case 'b' -> resolved.append('\b');
+        case 'f' -> resolved.append('\f');
+        case '\\' -> resolved.append('\\');
+        case '"' -> resolved.append('"');
+        case '\'' -> resolved.append('\'');
+        default -> resolved.append('\\').append(next);
+      }
+    }
+    return resolved.toString();
   }
 
   private static String resolveDynamicParams(@NonNull String valueStr, @NonNull DynamicParams dynamicParams) {
@@ -87,7 +113,7 @@ public class ParseUtil {
     StringBuilder normalized = new StringBuilder(valueStr.length());
     for (int i = 0; i < valueStr.length(); i++) {
       char ch = valueStr.charAt(i);
-      if (Character.isWhitespace(ch) || ch == '_') continue;
+      if (Character.isWhitespace(ch) || ch == '_' || ch == '\\' || ch == '\b' || ch == '\f') continue;
       normalized.append(ch == ',' ? '.' : ch);
     }
     return normalized.toString();

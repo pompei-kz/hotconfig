@@ -53,6 +53,26 @@ public class ParseUtilTest {
   }
 
   @DataProvider
+  public Object[][] numericValuesWithStandardSubstitutions() {
+    return new Object[][]{
+      {"1\\n2", byte.class, (byte) 12},
+      {"1\\t3", Byte.class, (byte) 13},
+      {"3\\r0\\b0", short.class, (short) 300},
+      {"3\\f0_1", Short.class, (short) 301},
+      {"123\\n456", int.class, 123456},
+      {"123\\\\456", Integer.class, 123456},
+      {"1\\t234\\n567\\r890\\b123", long.class, 1234567890123L},
+      {"3\\f210\\\\987_654_321", Long.class, 3210987654321L},
+      {"3\\t,25", float.class, 3.25F},
+      {"4\\\\,5", Float.class, 4.5F},
+      {"6\\n000,75", double.class, 6000.75D},
+      {"7\\r000\\b,125", Double.class, 7000.125D},
+      {"12\\n345_678,901", BigDecimal.class, new BigDecimal("12345678.901")},
+      {"12\\t345\\r678.50", BigInteger.class, new BigInteger("12345679")},
+    };
+  }
+
+  @DataProvider
   public Object[][] integerValuesWithDecimalParts() {
     return new Object[][]{
       {"7.49", byte.class, (byte) 7},
@@ -140,6 +160,17 @@ public class ParseUtilTest {
   }
 
   @DataProvider
+  public Object[][] charStandardSubstitutions() {
+    return new Object[][]{
+      {"\\n", char.class, '\n'},
+      {"\\t", Character.class, '\t'},
+      {"\\\\", char.class, '\\'},
+      {"\\\"", Character.class, '"'},
+      {"\\'", char.class, '\''},
+    };
+  }
+
+  @DataProvider
   public Object[][] envValues() {
     return new Object[][]{
       {"ENV_STRING", "hello world", "$ENV{ENV_STRING}", String.class, "hello world"},
@@ -209,6 +240,21 @@ public class ParseUtilTest {
     assertThat(value).isNull();
   }
 
+  @Test
+  public void parseStrToGenericType__string__standard_substitutions() {
+
+    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+
+    //
+    //
+    Object value = ParseUtil.parseStrToGenericType("hello\\nworld\\t\\\\\\\"\\'", dynamicParams, String.class);
+    //
+    //
+
+    assertThat(value).isInstanceOf(String.class);
+    assertThat(value).isEqualTo("hello\nworld\t\\\"'");
+  }
+
   @Test(dataProvider = "primitiveAndBoxedTypes")
   public void parseStrToGenericType__primitive_and_boxed_types(String valueStr, Type type, Object expectedValue) {
 
@@ -239,8 +285,38 @@ public class ParseUtilTest {
     assertThat(value).isInstanceOf(expectedValue.getClass());
   }
 
+  @Test(dataProvider = "numericValuesWithStandardSubstitutions")
+  public void parseStrToGenericType__numeric_values_with_standard_substitutions(String valueStr, Type type, Object expectedValue) {
+
+    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+
+    //
+    //
+    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    //
+    //
+
+    assertThat(value).isEqualTo(expectedValue);
+    assertThat(value).isInstanceOf(expectedValue.getClass());
+  }
+
   @Test(dataProvider = "integerValuesWithDecimalParts")
   public void parseStrToGenericType__integer_values_with_decimal_parts_are_rounded(String valueStr, Type type, Object expectedValue) {
+
+    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+
+    //
+    //
+    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    //
+    //
+
+    assertThat(value).isEqualTo(expectedValue);
+    assertThat(value).isInstanceOf(expectedValue.getClass());
+  }
+
+  @Test(dataProvider = "charStandardSubstitutions")
+  public void parseStrToGenericType__char__standard_substitutions(String valueStr, Type type, Object expectedValue) {
 
     DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
 
