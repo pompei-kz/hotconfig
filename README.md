@@ -107,7 +107,7 @@ param1=def value 1
 param2=def value 2
 ```
 
-### 4. Edit And Refresh
+### 4. Edit and read new values
 
 Edit the file manually:
 
@@ -116,10 +116,9 @@ param1=SKY TREE
 param2=Flight near the star
 ```
 
-Then refresh and read the new values:
+Then read new values without restart application
 
 ```java
-factory.refresh();
 
 String updatedParam1 = conf.param1(); // "SKY TREE"
 String updatedParam2 = conf.param2(); // "Flight near the star"
@@ -135,16 +134,16 @@ String updatedParam2 = conf.param2(); // "Flight near the star"
 - Comments generated from annotations.
 - Rich string-to-type conversion for primitives, boxed types, `BigDecimal`, `BigInteger`, `String`, and `char`.
 - Numeric expression evaluation with normal math precedence.
-- `$ENV{NAME}` substitution through `DynamicParams`.
+- `$ENV{NAME}` substitution from environment variables.
 
 ## Modules
 
-| Module | Description |
-| --- | --- |
+| Module                | Description                                                            |
+|-----------------------|------------------------------------------------------------------------|
 | `kz-pompei-conf-core` | Core API, proxy factory, file tunnel, annotations, parser, and models. |
-| `kz-pompei-conf-jdbc` | JDBC tunnel for PostgreSQL and MariaDB. |
-| `kz-pompei-conf-etcd` | etcd v3 tunnel implemented with jetcd. |
-| `utils` | Test utilities used inside this repository. |
+| `kz-pompei-conf-jdbc` | JDBC tunnel for PostgreSQL and MariaDB.                                |
+| `kz-pompei-conf-etcd` | etcd v3 tunnel implemented with jetcd.                                 |
+| `utils`               | Test utilities used inside this repository.                            |
 
 ## Installation
 
@@ -196,11 +195,11 @@ public interface AppConf {
 
 Annotations:
 
-| Annotation | Target | Purpose |
-| --- | --- | --- |
-| `@ConfFolder("folder")` | interface | Places the configuration under a folder. |
-| `@ConfDoc("text")` | interface or method | Writes comments into generated configuration storage. |
-| `@ConfDefaultValue("value")` | method | Defines the value used when the parameter is absent. |
+| Annotation                   | Target              | Purpose                                               |
+|------------------------------|---------------------|-------------------------------------------------------|
+| `@ConfFolder("folder")`      | interface           | Places the configuration under a folder.              |
+| `@ConfDoc("text")`           | interface or method | Writes comments into generated configuration storage. |
+| `@ConfDefaultValue("value")` | method              | Defines the value used when the parameter is absent.  |
 
 Only zero-argument methods are supported.
 
@@ -241,16 +240,16 @@ DynamicParams.env("NAME")
 
 Supported escape sequences:
 
-| Input | Result |
-| --- | --- |
-| `\n` | newline |
-| `\t` | tab |
-| `\r` | carriage return |
-| `\b` | backspace |
-| `\f` | form feed |
-| `\\` | backslash |
-| `\"` | double quote |
-| `\'` | single quote |
+| Input   | Result          |
+|---------|-----------------|
+| `\n`    | newline         |
+| `\t`    | tab             |
+| `\r`    | carriage return |
+| `\b`    | backspace       |
+| `\f`    | form feed       |
+| `\\`    | backslash       |
+| `\"`    | double quote    |
+| `\'`    | single quote    |
 
 For numeric targets, whitespace, `_`, backslash separators, and escaped control characters are ignored where applicable.
 
@@ -273,11 +272,11 @@ Numeric parsing accepts:
 
 Base-prefixed integer literals:
 
-| Prefix | Base | Example |
-| --- | --- | --- |
-| `0x` / `0X` | hexadecimal | `0x234`, `0xAfeE76a03` |
-| `0b` / `0B` | binary | `0b100110101`, `0B0011010110` |
-| `0o` / `0O` | octal | `0o16542`, `0O643` |
+| Prefix      | Base        | Example                       |
+|-------------|-------------|-------------------------------|
+| `0x` / `0X` | hexadecimal | `0x234`, `0xAfeE76a03`        |
+| `0b` / `0B` | binary      | `0b100110101`, `0B0011010110` |
+| `0o` / `0O` | octal       | `0o16542`, `0O643`            |
 
 Leading-zero numbers without a base prefix stay decimal:
 
