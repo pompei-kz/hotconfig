@@ -2,6 +2,7 @@ package kz.pompei.conf.core;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import lombok.NonNull;
 
@@ -17,6 +18,8 @@ public class ParseUtil {
     if (genericReturnType == long.class || genericReturnType == Long.class) return parseLong(valueStr);
     if (genericReturnType == float.class || genericReturnType == Float.class) return Float.parseFloat(normalizeNumber(valueStr));
     if (genericReturnType == double.class || genericReturnType == Double.class) return Double.parseDouble(normalizeNumber(valueStr));
+    if (genericReturnType == BigDecimal.class) return parseBigDecimal(valueStr);
+    if (genericReturnType == BigInteger.class) return parseBigInteger(valueStr);
     if (genericReturnType == char.class || genericReturnType == Character.class) {
       if (valueStr.length() != 1) throw new IllegalArgumentException("hVMkE7Yv2t :: Cannot parse char from string: " + valueStr);
       return valueStr.charAt(0);
@@ -38,6 +41,16 @@ public class ParseUtil {
 
   private static long parseLong(@NonNull String valueStr) {
     return parseInteger(valueStr).longValueExact();
+  }
+
+  private static BigDecimal parseBigDecimal(@NonNull String valueStr) {
+    String normalized = normalizeNumber(valueStr);
+    if (normalized.isEmpty()) return BigDecimal.ZERO;
+    return new BigDecimal(normalized);
+  }
+
+  private static BigInteger parseBigInteger(@NonNull String valueStr) {
+    return parseInteger(valueStr).toBigIntegerExact();
   }
 
   private static BigDecimal parseInteger(@NonNull String valueStr) {
@@ -70,6 +83,8 @@ public class ParseUtil {
     if (genericReturnType == float.class) return 0F;
     if (genericReturnType == double.class) return 0D;
     if (genericReturnType == char.class) return (char) 0;
+    if (genericReturnType == BigDecimal.class) return BigDecimal.ZERO;
+    if (genericReturnType == BigInteger.class) return BigInteger.ZERO;
     return null;
   }
 }

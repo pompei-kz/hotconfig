@@ -1,6 +1,8 @@
 package kz.pompei.conf.core;
 
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -23,6 +25,8 @@ public class ParseUtilTest {
       {"4.5", Float.class, 4.5F},
       {"6.75", double.class, 6.75D},
       {"7.125", Double.class, 7.125D},
+      {"12345678901234567890.125", BigDecimal.class, new BigDecimal("12345678901234567890.125")},
+      {"12345678901234567890", BigInteger.class, new BigInteger("12345678901234567890")},
       {"x", char.class, 'x'},
       {"y", Character.class, 'y'},
     };
@@ -43,6 +47,8 @@ public class ParseUtilTest {
       {"4,5", Float.class, 4.5F},
       {"6 000,75", double.class, 6000.75D},
       {"7_000,125", Double.class, 7000.125D},
+      {"12 345_678,901", BigDecimal.class, new BigDecimal("12345678.901")},
+      {"12 345_678", BigInteger.class, new BigInteger("12345678")},
     };
   }
 
@@ -57,6 +63,8 @@ public class ParseUtilTest {
       {"123_456.50", Integer.class, 123457},
       {"1 234 567 890 123,49", long.class, 1234567890123L},
       {"1_234_567_890_123,50", Long.class, 1234567890124L},
+      {"12 345 678,49", BigInteger.class, new BigInteger("12345678")},
+      {"12_345_678.50", BigInteger.class, new BigInteger("12345679")},
     };
   }
 
@@ -118,6 +126,16 @@ public class ParseUtilTest {
       {Float.class},
       {Double.class},
       {Character.class},
+    };
+  }
+
+  @DataProvider
+  public Object[][] bigDecimalZeroValues() {
+    return new Object[][]{
+      {null},
+      {""},
+      {" "},
+      {"_"},
     };
   }
 
@@ -269,5 +287,20 @@ public class ParseUtilTest {
     //
 
     assertThat(value).isNull();
+  }
+
+  @Test(dataProvider = "bigDecimalZeroValues")
+  public void parseStrToGenericType__big_decimal__blank_or_null_value(String valueStr) {
+
+    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+
+    //
+    //
+    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, BigDecimal.class);
+    //
+    //
+
+    assertThat(value).isEqualTo(BigDecimal.ZERO);
+    assertThat(value).isInstanceOf(BigDecimal.class);
   }
 }
