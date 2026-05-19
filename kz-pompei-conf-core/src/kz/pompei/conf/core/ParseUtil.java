@@ -11,7 +11,10 @@ import org.jetbrains.annotations.Nullable;
 public class ParseUtil {
   private static final MathContext FLOATING_POINT_MATH_CONTEXT = new MathContext(50, RoundingMode.HALF_UP);
 
-  public static Object parseStrToGenericType(String valueStr, @NonNull DynamicParams dynamicParams, @NonNull Type genericReturnType) {
+  public static @Nullable Object parseStrToGenericType(@Nullable String valueStr,
+                                                       @NonNull DynamicParams dynamicParams,
+                                                       @NonNull Type genericReturnType) {
+
     if (valueStr == null) return defaultNullValue(genericReturnType);
     valueStr = resolveDynamicParams(valueStr, dynamicParams);
     valueStr = resolveStandardSubstitutions(valueStr);
@@ -57,7 +60,7 @@ public class ParseUtil {
     return resolved.toString();
   }
 
-  private static String resolveDynamicParams(@NonNull String valueStr, @NonNull DynamicParams dynamicParams) {
+  private static @NonNull String resolveDynamicParams(@NonNull String valueStr, @NonNull DynamicParams dynamicParams) {
     StringBuilder resolved = new StringBuilder(valueStr.length());
     int           index    = 0;
     while (index < valueStr.length()) {
@@ -74,8 +77,8 @@ public class ParseUtil {
       }
 
       resolved.append(valueStr, index, start);
-      String envName  = valueStr.substring(start + 5, end);
-      String envValue = dynamicParams.env(envName);
+      String           envName  = valueStr.substring(start + 5, end);
+      @Nullable String envValue = dynamicParams.env(envName);
       if (envValue != null) resolved.append(envValue);
       index = end + 1;
     }
@@ -98,23 +101,23 @@ public class ParseUtil {
     return parseInteger(valueStr).longValueExact();
   }
 
-  private static BigDecimal parseBigDecimal(@NonNull String valueStr) {
+  private static @NonNull BigDecimal parseBigDecimal(@NonNull String valueStr) {
     String normalized = normalizeNumber(valueStr);
     if (normalized.isEmpty()) return BigDecimal.ZERO;
     return new DecimalExpressionParser(normalized).parse();
   }
 
-  private static BigInteger parseBigInteger(@NonNull String valueStr) {
+  private static @NonNull BigInteger parseBigInteger(@NonNull String valueStr) {
     return parseInteger(valueStr).toBigIntegerExact();
   }
 
-  private static BigDecimal parseInteger(@NonNull String valueStr) {
+  private static @NonNull BigDecimal parseInteger(@NonNull String valueStr) {
     String normalized = normalizeNumber(valueStr);
     if (normalized.indexOf('.') >= 0) return new DecimalExpressionParser(normalized).parse().setScale(0, RoundingMode.HALF_UP);
     return new BigDecimal(new IntegerExpressionParser(normalized).parse());
   }
 
-  private static String normalizeNumber(@NonNull String valueStr) {
+  private static @NonNull String normalizeNumber(@NonNull String valueStr) {
     StringBuilder normalized = new StringBuilder(valueStr.length());
     for (int i = 0; i < valueStr.length(); i++) {
       char ch = valueStr.charAt(i);
@@ -143,20 +146,20 @@ public class ParseUtil {
   }
 
   private static final class IntegerExpressionParser {
-    private final String value;
-    private       int    index;
+    private final @NonNull String value;
+    private                int    index;
 
     private IntegerExpressionParser(@NonNull String value) {
       this.value = value;
     }
 
-    private BigInteger parse() {
+    private @NonNull BigInteger parse() {
       BigInteger result = parseAddSubtract();
       if (index != value.length()) throw new IllegalArgumentException("Ht2RaK7p9m :: Cannot parse integer expression: " + value);
       return result;
     }
 
-    private BigInteger parseAddSubtract() {
+    private @NonNull BigInteger parseAddSubtract() {
       BigInteger result = parseMultiplyDivide();
       while (index < value.length()) {
         char operator = value.charAt(index);
@@ -168,7 +171,7 @@ public class ParseUtil {
       return result;
     }
 
-    private BigInteger parseMultiplyDivide() {
+    private @NonNull BigInteger parseMultiplyDivide() {
       BigInteger result = parseUnary();
       while (index < value.length()) {
         char operator = value.charAt(index);
@@ -180,7 +183,7 @@ public class ParseUtil {
       return result;
     }
 
-    private BigInteger parseUnary() {
+    private @NonNull BigInteger parseUnary() {
       if (index < value.length() && value.charAt(index) == '+') {
         index++;
         return parseUnary();
@@ -192,7 +195,7 @@ public class ParseUtil {
       return parseAtom();
     }
 
-    private BigInteger parseAtom() {
+    private @NonNull BigInteger parseAtom() {
       if (index < value.length() && value.charAt(index) == '(') {
         index++;
         BigInteger result = parseAddSubtract();
@@ -211,20 +214,20 @@ public class ParseUtil {
   }
 
   private static final class DecimalExpressionParser {
-    private final String value;
-    private       int    index;
+    private final @NonNull String value;
+    private                int    index;
 
     private DecimalExpressionParser(@NonNull String value) {
       this.value = value;
     }
 
-    private BigDecimal parse() {
+    private @NonNull BigDecimal parse() {
       BigDecimal result = parseAddSubtract();
       if (index != value.length()) throw new IllegalArgumentException("Fz8Kv5Jh3n :: Cannot parse decimal expression: " + value);
       return result;
     }
 
-    private BigDecimal parseAddSubtract() {
+    private @NonNull BigDecimal parseAddSubtract() {
       BigDecimal result = parseMultiplyDivide();
       while (index < value.length()) {
         char operator = value.charAt(index);
@@ -236,7 +239,7 @@ public class ParseUtil {
       return result;
     }
 
-    private BigDecimal parseMultiplyDivide() {
+    private @NonNull BigDecimal parseMultiplyDivide() {
       BigDecimal result = parseUnary();
       while (index < value.length()) {
         char operator = value.charAt(index);
@@ -248,7 +251,7 @@ public class ParseUtil {
       return result;
     }
 
-    private BigDecimal parseUnary() {
+    private @NonNull BigDecimal parseUnary() {
       if (index < value.length() && value.charAt(index) == '+') {
         index++;
         return parseUnary();
@@ -260,7 +263,7 @@ public class ParseUtil {
       return parseAtom();
     }
 
-    private BigDecimal parseAtom() {
+    private @NonNull BigDecimal parseAtom() {
       if (index < value.length() && value.charAt(index) == '(') {
         index++;
         BigDecimal result = parseAddSubtract();

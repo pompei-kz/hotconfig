@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.NonNull;
+import org.jetbrains.annotations.Nullable;
 
 public class DynamicParamsFake implements DynamicParams {
   private final AtomicLong now = new AtomicLong(0);
@@ -18,7 +19,7 @@ public class DynamicParamsFake implements DynamicParams {
 
   public final Map<String, String> envMap = new HashMap<>();
 
-  @Override public String env(@NonNull String envName) {
+  @Override public @Nullable String env(@NonNull String envName) {
     return envMap.get(envName);
   }
 
