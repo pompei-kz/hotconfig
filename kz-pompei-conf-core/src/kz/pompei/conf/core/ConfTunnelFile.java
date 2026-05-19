@@ -75,8 +75,8 @@ public class ConfTunnelFile implements ConfTunnel {
     }
   }
 
-  @Override public void write(@NonNull String confPath, @NonNull Conf conf) {
-    Path path = path(confPath);
+  @Override public void write(@NonNull String localPath, @NonNull Conf conf) {
+    Path path = path(localPath);
     try {
       Path parent = path.getParent();
       if (parent != null) Files.createDirectories(parent);

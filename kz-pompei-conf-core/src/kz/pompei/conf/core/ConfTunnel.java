@@ -23,10 +23,10 @@ public interface ConfTunnel {
   /**
    * Writes configuration data to the storage.
    *
-   * @param confPath path of the configuration relative to the storage root
-   * @param conf     configuration data to write
+   * @param localPath path of the configuration relative to the storage root
+   * @param conf      configuration data to write
    */
-  void write(@NonNull String confPath, @NonNull Conf conf);
+  void write(@NonNull String localPath, @NonNull Conf conf);
 
   /**
    * Returns a modification marker for stored configuration data.

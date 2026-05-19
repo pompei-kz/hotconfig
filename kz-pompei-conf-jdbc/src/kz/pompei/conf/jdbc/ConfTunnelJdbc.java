@@ -79,9 +79,9 @@ public abstract class ConfTunnelJdbc implements ConfTunnel {
     }
   }
 
-  @Override public void write(@NonNull String confPath, @NonNull Conf conf) {
-    String folder     = folder(confPath);
-    String configName = configName(confPath);
+  @Override public void write(@NonNull String localPath, @NonNull Conf conf) {
+    String folder     = folder(localPath);
+    String configName = configName(localPath);
 
     createTableIfNotExists();
 

@@ -82,8 +82,8 @@ public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
     return parse(stored);
   }
 
-  @Override public void write(@NonNull String confPath, @NonNull Conf conf) {
-    storage.put(key(confPath), serialize(conf));
+  @Override public void write(@NonNull String localPath, @NonNull Conf conf) {
+    storage.put(key(localPath), serialize(conf));
   }
 
   @Override public @Nullable Long modificationMarker(@NonNull String localPath) {
