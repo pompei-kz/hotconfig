@@ -29,6 +29,38 @@ public class ParseUtilTest {
   }
 
   @DataProvider
+  public Object[][] formattedNumericValues() {
+    return new Object[][]{
+      {"1 2", byte.class, (byte) 12},
+      {"1_3", Byte.class, (byte) 13},
+      {"3 0 0", short.class, (short) 300},
+      {"3_0_1", Short.class, (short) 301},
+      {"123 456", int.class, 123456},
+      {"654_321", Integer.class, 654321},
+      {"1 234 567 890 123", long.class, 1234567890123L},
+      {"3_210_987_654_321", Long.class, 3210987654321L},
+      {"3,25", float.class, 3.25F},
+      {"4,5", Float.class, 4.5F},
+      {"6 000,75", double.class, 6000.75D},
+      {"7_000,125", Double.class, 7000.125D},
+    };
+  }
+
+  @DataProvider
+  public Object[][] integerValuesWithDecimalParts() {
+    return new Object[][]{
+      {"7.49", byte.class, (byte) 7},
+      {"7.50", Byte.class, (byte) 8},
+      {"299,49", short.class, (short) 299},
+      {"299,50", Short.class, (short) 300},
+      {"123 456.49", int.class, 123456},
+      {"123_456.50", Integer.class, 123457},
+      {"1 234 567 890 123,49", long.class, 1234567890123L},
+      {"1_234_567_890_123,50", Long.class, 1234567890124L},
+    };
+  }
+
+  @DataProvider
   public Object[][] booleanTrueValues() {
     return new Object[][]{
       {"t"},
@@ -135,6 +167,36 @@ public class ParseUtilTest {
 
   @Test(dataProvider = "primitiveAndBoxedTypes")
   public void parseStrToGenericType__primitive_and_boxed_types(String valueStr, Type type, Object expectedValue) {
+
+    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+
+    //
+    //
+    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    //
+    //
+
+    assertThat(value).isEqualTo(expectedValue);
+    assertThat(value).isInstanceOf(expectedValue.getClass());
+  }
+
+  @Test(dataProvider = "formattedNumericValues")
+  public void parseStrToGenericType__formatted_numeric_values(String valueStr, Type type, Object expectedValue) {
+
+    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+
+    //
+    //
+    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    //
+    //
+
+    assertThat(value).isEqualTo(expectedValue);
+    assertThat(value).isInstanceOf(expectedValue.getClass());
+  }
+
+  @Test(dataProvider = "integerValuesWithDecimalParts")
+  public void parseStrToGenericType__integer_values_with_decimal_parts_are_rounded(String valueStr, Type type, Object expectedValue) {
 
     DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
 
