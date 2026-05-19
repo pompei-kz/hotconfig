@@ -113,7 +113,7 @@ public class ParseUtil {
 
   private static @NonNull BigDecimal parseInteger(@NonNull String valueStr) {
     String normalized = normalizeNumber(valueStr);
-    if (normalized.indexOf('.') >= 0) return new DecimalExpressionParser(normalized).parse().setScale(0, RoundingMode.HALF_UP);
+    if (hasDecimalSyntax(normalized)) return new DecimalExpressionParser(normalized).parse().setScale(0, RoundingMode.HALF_UP);
     return new BigDecimal(new IntegerExpressionParser(normalized).parse());
   }
 
@@ -138,11 +138,15 @@ public class ParseUtil {
     String normalized = normalizeNumber(valueStr);
     if (normalized.isEmpty()) return false;
     try {
-      if (normalized.indexOf('.') >= 0) return new DecimalExpressionParser(normalized).parse().abs().compareTo(new BigDecimal("0.001")) >= 0;
+      if (hasDecimalSyntax(normalized)) return new DecimalExpressionParser(normalized).parse().abs().compareTo(new BigDecimal("0.001")) >= 0;
       return new IntegerExpressionParser(normalized).parse().compareTo(BigInteger.ZERO) != 0;
     } catch (RuntimeException ignored) {
       return false;
     }
+  }
+
+  private static boolean hasDecimalSyntax(@NonNull String valueStr) {
+    return valueStr.indexOf('.') >= 0 || valueStr.indexOf('e') >= 0 || valueStr.indexOf('E') >= 0;
   }
 
   private static final class IntegerExpressionParser {
@@ -274,17 +278,24 @@ public class ParseUtil {
         return result;
       }
 
-      int     start  = index;
-      boolean hasDot = false;
+      int     start       = index;
+      boolean hasDot      = false;
+      boolean hasExponent = false;
       while (index < value.length()) {
         char ch = value.charAt(index);
         if (Character.isDigit(ch)) {
           index++;
           continue;
         }
-        if (ch == '.' && !hasDot) {
+        if (ch == '.' && !hasDot && !hasExponent) {
           hasDot = true;
           index++;
+          continue;
+        }
+        if ((ch == 'e' || ch == 'E') && !hasExponent && index > start) {
+          hasExponent = true;
+          index++;
+          if (index < value.length() && (value.charAt(index) == '+' || value.charAt(index) == '-')) index++;
           continue;
         }
         break;
