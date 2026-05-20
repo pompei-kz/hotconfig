@@ -23,10 +23,10 @@ import org.jetbrains.annotations.Nullable;
  */
 public abstract class ConfigTunnelJdbc implements ConfigTunnel {
 
-  @NonNull protected final ConfTunnelJdbcDef params;
-  @NonNull protected final ConnectionGet     connectionGet;
+  @NonNull protected final ConfigTunnelJdbcDef params;
+  @NonNull protected final ConnectionGet       connectionGet;
 
-  protected ConfigTunnelJdbc(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef params) {
+  protected ConfigTunnelJdbc(@NonNull ConnectionGet connectionGet, @NonNull ConfigTunnelJdbcDef params) {
     this.params        = params;
     this.connectionGet = connectionGet;
   }

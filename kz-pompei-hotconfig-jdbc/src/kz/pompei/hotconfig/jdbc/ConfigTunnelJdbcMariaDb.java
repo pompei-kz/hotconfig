@@ -6,7 +6,7 @@ import java.sql.SQLException;
 import lombok.NonNull;
 
 public class ConfigTunnelJdbcMariaDb extends ConfigTunnelJdbc {
-  public ConfigTunnelJdbcMariaDb(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef params) {
+  public ConfigTunnelJdbcMariaDb(@NonNull ConnectionGet connectionGet, @NonNull ConfigTunnelJdbcDef params) {
     super(connectionGet, params);
   }
 

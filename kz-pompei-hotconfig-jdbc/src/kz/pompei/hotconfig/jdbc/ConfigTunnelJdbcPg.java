@@ -7,7 +7,7 @@ import java.sql.SQLException;
 import lombok.NonNull;
 
 public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
-  public ConfigTunnelJdbcPg(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef params) {
+  public ConfigTunnelJdbcPg(@NonNull ConnectionGet connectionGet, @NonNull ConfigTunnelJdbcDef params) {
     super(connectionGet, params);
   }
 

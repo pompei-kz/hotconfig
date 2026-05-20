@@ -4,7 +4,7 @@ package kz.pompei.hotconfig.jdbc;
  * Contains the data necessary to determine in which table the configuration should be stored,
  * and in which fields of this table what should be stored
  */
-public class ConfTunnelJdbcDef {
+public class ConfigTunnelJdbcDef {
 
   /**
    * The name of the column in which the directory where the config is stored.

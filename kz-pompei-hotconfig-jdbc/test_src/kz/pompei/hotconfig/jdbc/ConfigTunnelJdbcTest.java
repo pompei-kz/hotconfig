@@ -41,7 +41,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
 
     ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
 
-    ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
+    ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
     def.tableName = nameOfThisMethod + "_" + RND.str(8);
 
     createTable(connectionGet, def);
@@ -51,7 +51,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
     insertRow(connectionGet, def, "some/folder", "test-config.hotconf", "param0", "value0", "This is test0\nsecond line\nanother line");
     insertRow(connectionGet, def, "some/folder", "test-config.hotconf", "param1", "value1", "This is test1\nsecond line\nanother line");
 
-    ConfigTunnelJdbc confTunnelJdbc = ConfTunnelJdbcBuilder.build(connectionGet, def);
+    ConfigTunnelJdbc confTunnelJdbc = ConfigTunnelJdbcBuilder.build(connectionGet, def);
 
     //
     //
@@ -83,7 +83,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
 
     ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
 
-    ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
+    ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
     def.tableName = nameOfThisMethod + "_" + RND.str(8);
 
     createTable(connectionGet, def);
@@ -200,7 +200,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
       "iota comment 1\niota comment 2\niota comment 3"
     );
 
-    ConfigTunnelJdbc confTunnelJdbc = ConfTunnelJdbcBuilder.build(connectionGet, def);
+    ConfigTunnelJdbc confTunnelJdbc = ConfigTunnelJdbcBuilder.build(connectionGet, def);
 
     //
     //
@@ -275,10 +275,10 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
 
     ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
 
-    ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
+    ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
     def.tableName = nameOfThisMethod + "_" + RND.str(8);
 
-    ConfigTunnelJdbc confTunnelJdbc = ConfTunnelJdbcBuilder.build(connectionGet, def);
+    ConfigTunnelJdbc confTunnelJdbc = ConfigTunnelJdbcBuilder.build(connectionGet, def);
 
     assertThat(tableExists(connectionGet, def.tableName)).isFalse();
 
@@ -299,7 +299,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
 
     ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
 
-    ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
+    ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
     def.tableName = nameOfThisMethod + "_" + RND.str(8);
 
     Conf conf = new Conf();
@@ -323,7 +323,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
     param1.valueStr = "value1";
     conf.params.add(param1);
 
-    ConfigTunnelJdbc confTunnelJdbc = ConfTunnelJdbcBuilder.build(connectionGet, def);
+    ConfigTunnelJdbc confTunnelJdbc = ConfigTunnelJdbcBuilder.build(connectionGet, def);
 
     //
     //
@@ -356,7 +356,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
 
     ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
 
-    ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
+    ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
     def.tableName = nameOfThisMethod + "_" + RND.str(8);
 
     Conf firstConf = new Conf();
@@ -446,7 +446,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
     thirdIota.valueStr = "iota-value";
     thirdConf.params.add(thirdIota);
 
-    ConfigTunnelJdbc confTunnelJdbc = ConfTunnelJdbcBuilder.build(connectionGet, def);
+    ConfigTunnelJdbc confTunnelJdbc = ConfigTunnelJdbcBuilder.build(connectionGet, def);
 
     //
     //
@@ -537,7 +537,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
 
     ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
 
-    ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
+    ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
     def.tableName = nameOfThisMethod + "_" + RND.str(8);
 
     createTable(connectionGet, def);
@@ -545,7 +545,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
 
     insertRow(connectionGet, def, "some/folder", "test-config.hotconf", "", "", "This is comment for conf");
 
-    ConfigTunnelJdbc confTunnelJdbc = ConfTunnelJdbcBuilder.build(connectionGet, def);
+    ConfigTunnelJdbc confTunnelJdbc = ConfigTunnelJdbcBuilder.build(connectionGet, def);
 
     //
     //
@@ -574,7 +574,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
 
     ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
 
-    ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
+    ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
     def.tableName = nameOfThisMethod + "_" + RND.str(8);
 
     createTable(connectionGet, def);
@@ -599,7 +599,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
       "beta comment 1\nbeta comment 2\nbeta comment 3"
     );
 
-    ConfigTunnelJdbc confTunnelJdbc = ConfTunnelJdbcBuilder.build(connectionGet, def);
+    ConfigTunnelJdbc confTunnelJdbc = ConfigTunnelJdbcBuilder.build(connectionGet, def);
 
     //
     //

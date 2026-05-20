@@ -1,0 +1,24 @@
+plugins {
+  id 'java-library'
+  id 'maven-publish'
+  id 'signing'
+}
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      from components.java
+
+      pom {
+        name = 'kz-pompei-hotconfig-core'
+        description = 'Core part of hot configuration library'
+        url = 'https://pompei.kz/programs/kz-pompei-hotconfig'
+      }
+    }
+  }
+}
+
+signing {
+  useGpgCmd()
+  sign publishing.publications.mavenJava
+}

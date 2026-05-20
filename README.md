@@ -147,29 +147,6 @@ int    accessPort    = config.accessPort(); // 1744
 This project is built with Gradle and Java 21. 
 It is not currently documented as published to Maven Central, so use it as a source dependency or publish it to your internal Maven repository.
 
-For a multi-project Gradle build:
-
-```groovy
-dependencies {
-  implementation project(":kz-pompei-hotconfig-core")
-
-  // Optional backends
-  implementation project(":kz-pompei-hotconfig-jdbc")
-  implementation project(":kz-pompei-hotconfig-etcd")
-}
-```
-
-If you package and publish the modules yourself, the Gradle group is:
-
-```text
-kz.pompei.hotconfig
-```
-
-The current version is read from:
-
-```text
-versions/version.txt
-```
 
 ## Configuration Interfaces
 
@@ -313,8 +290,8 @@ Floating-point targets:
 Boolean targets:
 
 - text values such as `true`, `yes`, `on`, `false`, `no`, and `off` are supported
-- integer expression result `0` is `false`
-- floating expression result with `abs(value) < 0.001` is `false`
+- integer expression result `0` is `false`, otherwise `true`
+- floating expression result with `abs(value) < 0.001` is `false`, otherwise `true`
 
 ## Storage Backends
 
@@ -323,8 +300,8 @@ Boolean targets:
 `ConfTunnelFile` stores each configuration as a UTF-8 text file.
 
 ```java
-HotConfFactory factory = new HotConfFactory(
-  new ConfTunnelFile(Path.of("./conf"))
+HotConfigFactory factory = new HotConfigFactory(
+  new ConfTunnelFile(Path.of("/path/to/config/root"))
 );
 ```
 
@@ -348,16 +325,16 @@ The file tunnel uses file modification time as the modification marker.
 
 ```java
 import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbc;
-import kz.pompei.hotconfig.jdbc.ConfTunnelJdbcBuilder;
-import kz.pompei.hotconfig.jdbc.ConfTunnelJdbcDef;
+import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbcBuilder;
+import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbcDef;
 
-ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
-def.tableName = "conf";
+ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
+def.tableName = "hitconfig";
 
-ConfTunnelJdbc tunnel = ConfTunnelJdbcBuilder.build(connectionGet, def);
+ConfTunnelJdbc tunnel = ConfigTunnelJdbcBuilder.build(() -> dataSource.getConnection(), def);
 ```
 
-The table and schema are created automatically when missing. Column names are configurable through `ConfTunnelJdbcDef`.
+The table and schema are created automatically when missing. Column names are configurable through `ConfigTunnelJdbcDef`.
 
 ### etcd
 
@@ -366,13 +343,13 @@ The table and schema are created automatically when missing. Column names are co
 ```java
 import io.etcd.jetcd.Client;
 import kz.pompei.hotconfig.etcd.ConfigTunnelEtcd;
-import kz.pompei.hotconfig.etcd.ConfTunnelEtcdDef;
+import kz.pompei.hotconfig.etcd.ConfigTunnelEtcdDef;
 
-ConfTunnelEtcdDef def = new ConfTunnelEtcdDef();
+ConfigTunnelEtcdDef def = new ConfigTunnelEtcdDef();
 def.keyPrefix = "/kz-pompei-conf-etcd/";
 
 try (Client client = Client.builder().endpoints("http://localhost:17403").build();
-     ConfTunnelEtcd tunnel = new ConfTunnelEtcd(client, def)) {
+     ConfigTunnelEtcd tunnel = new ConfigTunnelEtcd(client, def)) {
   HotConfFactory factory = new HotConfFactory(tunnel);
 }
 ```
@@ -384,7 +361,7 @@ The etcd tunnel uses the key `modRevision` as the modification marker.
 Requirements:
 
 - JDK 21
-- Gradle wrapper included in this repository
+- Gradle wrapper is included in this repository
 - Docker for JDBC and etcd integration tests
 
 Run core tests:
@@ -393,17 +370,10 @@ Run core tests:
 ./gradlew :kz-pompei-conf-core:test
 ```
 
-Run all tests:
-
-```bash
-./gradlew test
-```
-
 Start local integration services:
 
 ```bash
-export APP_DATA_ROOT=/tmp/kz-pompei-conf-data
-docker compose -f docker/docker-compose.yaml up -d
+bash docker/docker-recreate.bash
 ```
 
 Then run backend tests:
@@ -413,13 +383,19 @@ Then run backend tests:
 ./gradlew :kz-pompei-conf-etcd:test
 ```
 
+Run all tests:
+
+```bash
+./gradlew test
+```
+
 ## Project Layout
 
 ```text
-kz-pompei-conf
-├── kz-pompei-conf-core
-├── kz-pompei-conf-jdbc
-├── kz-pompei-conf-etcd
+kz-pompei-hotconfig
+├── kz-pompei-hotconfig-core
+├── kz-pompei-hotconfig-jdbc
+├── kz-pompei-hotconfig-etcd
 ├── utils
 ├── docker
 ├── versions

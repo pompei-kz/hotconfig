@@ -5,8 +5,8 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import kz.pompei.hotconfig.jdbc.ConfTunnelJdbcBuilder;
-import kz.pompei.hotconfig.jdbc.ConfTunnelJdbcDef;
+import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbcBuilder;
+import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbcDef;
 import kz.pompei.hotconfig.jdbc.ConnectionGet;
 import kz.pompei.hotconfig.jdbc.DatabaseType;
 import lombok.NonNull;
@@ -26,7 +26,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
    * @param comment       comment
    */
   protected void insertRow(@NonNull ConnectionGet connectionGet,
-                           @NonNull ConfTunnelJdbcDef def,
+                           @NonNull ConfigTunnelJdbcDef def,
                            @NonNull String folder,
                            @NonNull String configName,
                            @NonNull String paramName,
@@ -70,7 +70,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
    * @param comment       comment
    */
   protected void updateRow(@NonNull ConnectionGet connectionGet,
-                           @NonNull ConfTunnelJdbcDef def,
+                           @NonNull ConfigTunnelJdbcDef def,
                            @NonNull String folder,
                            @NonNull String configName,
                            @NonNull String paramName,
@@ -109,8 +109,8 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
    * @param connectionGet connection source
    * @param def           table config definition
    */
-  protected void createTable(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef def) {
-    ConfTunnelJdbcBuilder.build(connectionGet, def).createTableIfNotExists();
+  protected void createTable(@NonNull ConnectionGet connectionGet, @NonNull ConfigTunnelJdbcDef def) {
+    ConfigTunnelJdbcBuilder.build(connectionGet, def).createTableIfNotExists();
   }
 
   protected boolean tableExists(@NonNull ConnectionGet connectionGet, @NonNull String tableName) {

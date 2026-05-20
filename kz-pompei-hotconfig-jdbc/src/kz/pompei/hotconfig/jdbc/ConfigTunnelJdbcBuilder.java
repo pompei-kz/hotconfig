@@ -4,9 +4,9 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import lombok.NonNull;
 
-public class ConfTunnelJdbcBuilder {
+public class ConfigTunnelJdbcBuilder {
 
-  public static @NonNull ConfigTunnelJdbc build(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef params) {
+  public static @NonNull ConfigTunnelJdbc build(@NonNull ConnectionGet connectionGet, @NonNull ConfigTunnelJdbcDef params) {
 
     DatabaseType databaseType = detectDb(connectionGet);
 
