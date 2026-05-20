@@ -47,3 +47,9 @@ jreleaser {
 tasks.matching { it.name == 'jreleaserDeploy' }.configureEach {
   dependsOn tasks.matching { it.name == 'copyStagingDeploy' }
 }
+
+tasks.register('goto-maven') {
+  group = 'pompei'
+  description = 'Deploys staged artifacts to Maven Central.'
+  dependsOn tasks.matching { it.name == 'jreleaserDeploy' }
+}
