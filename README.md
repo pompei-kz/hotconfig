@@ -1,4 +1,4 @@
-# kz-pompei-conf
+# kz-pompei-hotconfig
 
 > Hot configuration for Java services, backed by files, JDBC, or etcd.
 
