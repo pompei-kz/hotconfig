@@ -1,0 +1,17 @@
+def publicationModules = [
+  project(':kz-pompei-hotconfig-core'),
+  project(':kz-pompei-hotconfig-jdbc'),
+  project(':kz-pompei-hotconfig-etcd'),
+]
+
+tasks.register('copyStagingDeploy', Copy) {
+  group = 'publishing'
+  description = 'Copies module staging deploy files into my build/staging-deploy.'
+
+  publicationModules.each { publicationModule ->
+    from(publicationModule.layout.buildDirectory.dir('staging-deploy'))
+  }
+
+  into(layout.buildDirectory.dir('staging-deploy'))
+  includeEmptyDirs = false
+}
