@@ -156,11 +156,16 @@ repositories {
 }
 
 dependencies {
-  implementation 'kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.3'
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.3" 
+  // If you store configs in files, no extra modules are needed
 
   // Optional storage backends
-  implementation 'kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.3'
-  implementation 'kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.3'
+
+  // Add this if you want to store configs in SQL database
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.3"
+  
+  // Add this if you want to store configs in etcd database
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.3"
 }
 ```
 
@@ -174,12 +179,18 @@ dependencies {
     <version>0.0.3</version>
   </dependency>
 
+  <!-- If you store configs in files, no extra modules are needed -->
+
   <!-- Optional storage backends -->
+
+  <!-- Add this if you want to store configs in SQL database -->
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-jdbc</artifactId>
     <version>0.0.3</version>
   </dependency>
+
+  <!-- Add this if you want to store configs in etcd database -->
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-etcd</artifactId>
