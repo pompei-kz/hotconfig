@@ -9,7 +9,7 @@ def publicationModules = [
 ]
 
 tasks.register('copyStagingDeploy', Copy) {
-  group = 'publishing'
+  group = 'pompei'
   description = 'Copies module staging deploy files into my build/staging-deploy.'
 
   publicationModules.each { publicationModule ->
