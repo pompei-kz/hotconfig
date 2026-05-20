@@ -14,7 +14,7 @@ import org.testng.annotations.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ConfTunnelFileTest {
+public class ConfigTunnelFileTest {
 
   Path dir;
 
@@ -45,7 +45,7 @@ public class ConfTunnelFileTest {
       StandardCharsets.UTF_8
     );
 
-    ConfTunnelFile confTunnelFile = new ConfTunnelFile(dir);
+    ConfigTunnelFile confTunnelFile = new ConfigTunnelFile(dir);
 
     //
     //
@@ -70,7 +70,7 @@ public class ConfTunnelFileTest {
 
   @Test public void readMissingFile() {
 
-    ConfTunnelFile confTunnelFile = new ConfTunnelFile(dir);
+    ConfigTunnelFile confTunnelFile = new ConfigTunnelFile(dir);
 
     //
     //
@@ -100,7 +100,7 @@ public class ConfTunnelFileTest {
       StandardCharsets.UTF_8
     );
 
-    ConfTunnelFile confTunnelFile = new ConfTunnelFile(dir);
+    ConfigTunnelFile confTunnelFile = new ConfigTunnelFile(dir);
 
     //
     //
@@ -147,7 +147,7 @@ public class ConfTunnelFileTest {
     slash.valueStr = "C:\\data\\file";
     conf.params.add(slash);
 
-    ConfTunnelFile confTunnelFile = new ConfTunnelFile(dir);
+    ConfigTunnelFile confTunnelFile = new ConfigTunnelFile(dir);
 
     //
     //
@@ -172,7 +172,7 @@ public class ConfTunnelFileTest {
         """
     );
 
-    Conf readConf = new ConfTunnelFile(dir).read("nested/app.conf");
+    Conf readConf = new ConfigTunnelFile(dir).read("nested/app.conf");
     assertThat(readConf).isNotNull();
     assertThat(readConf.confComments).containsExactly("configuration comment", "second configuration comment");
     assertThat(readConf.params).hasSize(4);
@@ -188,7 +188,7 @@ public class ConfTunnelFileTest {
     file.toFile().getParentFile().mkdirs();
     Files.writeString(file, "");
 
-    ConfTunnelFile confTunnelFile = new ConfTunnelFile(dir);
+    ConfigTunnelFile confTunnelFile = new ConfigTunnelFile(dir);
 
     //
     //
@@ -202,7 +202,7 @@ public class ConfTunnelFileTest {
 
   @Test public void modificationMarkerMissingFile() {
 
-    ConfTunnelFile confTunnelFile = new ConfTunnelFile(dir);
+    ConfigTunnelFile confTunnelFile = new ConfigTunnelFile(dir);
 
     //
     //

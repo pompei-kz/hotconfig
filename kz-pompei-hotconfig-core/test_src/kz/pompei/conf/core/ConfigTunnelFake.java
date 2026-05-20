@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ConfTunnelFake implements ConfTunnel {
+public class ConfigTunnelFake implements ConfigTunnel {
 
   public record Dot(@NonNull Conf conf, long revision) {}
 

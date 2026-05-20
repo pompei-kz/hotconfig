@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
  * Implementations decide where and how the configuration is stored. Callers address a configuration by a local path relative to the
  * implementation's storage root.
  */
-public interface ConfTunnel {
+public interface ConfigTunnel {
 
   /**
    * Reads configuration data from the storage.

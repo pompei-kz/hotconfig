@@ -11,7 +11,7 @@ import utils.RND;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ConfTunnelEtcdTest extends EtcdTestParent {
+public class ConfigTunnelEtcdTest extends EtcdTestParent {
 
   @Test public void read_keyDoesNotExists() {
     ConfTunnelEtcdDef params = createParams("read_keyDoesNotExists");
@@ -20,7 +20,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     String fullKey   = key(params, localPath);
 
     try (Client client = createClient();
-         ConfTunnelEtcd confTunnelEtcd = new ConfTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
       assertThat(keyExists(client, fullKey)).isFalse();
 
       //
@@ -62,7 +62,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     conf.params.add(param1);
 
     try (Client client = createClient();
-         ConfTunnelEtcd confTunnelEtcd = new ConfTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
 
       //
       //
@@ -139,7 +139,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     );
 
     try (Client client = createClient();
-         ConfTunnelEtcd confTunnelEtcd = new ConfTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
       client.getKVClient().put(byteSequence(fullKey), byteSequence(stored)).get();
 
       //
@@ -180,7 +180,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     conf.params.add(param0);
 
     try (Client client = createClient();
-         ConfTunnelEtcd confTunnelEtcd = new ConfTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
       confTunnelEtcd.write(localPath, conf);
 
       //
@@ -222,7 +222,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     conf.params.get(0).valueStr = "value0";
 
     try (Client client = createClient();
-         ConfTunnelEtcd confTunnelEtcd = new ConfTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
       confTunnelEtcd.write(localPath, conf);
 
       assertThat(keyExists(client, customKey)).isTrue();
@@ -236,7 +236,7 @@ public class ConfTunnelEtcdTest extends EtcdTestParent {
     ConfTunnelEtcdDef params = createParams("constructor_usesExternalClient");
 
     try (Client client = createClient();
-         ConfTunnelEtcd confTunnelEtcd = new ConfTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
       assertThat(confTunnelEtcd).isNotNull();
     }
   }

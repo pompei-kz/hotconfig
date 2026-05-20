@@ -8,12 +8,14 @@
 [![Version](https://img.shields.io/badge/version-0.0.1-lightgrey.svg)](versions/version.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-`kz-pompei-conf` turns a plain Java interface into a live configuration object. The first read creates a configuration file or storage row from defaults, later reads return typed values, and refresh checks pick up changes from the backing storage.
+`kz-pompei-hotconfig` turns a plain Java interface into a live configuration object.
+The first read creates a configuration file or storage row from defaults,
+later reads return typed values, and refresh checks pick up changes from the backing storage.
 
 ```java
-AppConf conf = factory.createConf(AppConf.class);
+AppConfigInterface conf = factory.createConf(AppConfigInterface.class);
 
-int port = conf.port();
+int port = conf.port(); // read from config file (or SQL DB, or etcd)
 boolean enabled = conf.enabled();
 ```
 
@@ -32,7 +34,7 @@ boolean enabled = conf.enabled();
 
 ## Quick Start
 
-This example mirrors the configuration pattern tested in `HotConfFactoryTest`, but uses `ConfTunnelFile` as the storage tunnel.
+This example mirrors the configuration pattern tested in `HotConfigFactoryTest`, but uses `ConfigTunnelFile` as the storage tunnel.
 
 ### 1. Define A Configuration Interface
 
@@ -59,15 +61,15 @@ public interface TestConf1 {
 
 ```java
 import java.nio.file.Path;
-import kz.pompei.conf.core.ConfTunnelFile;
+import kz.pompei.conf.core.ConfigTunnelFile;
 import kz.pompei.conf.core.DynamicParams;
-import kz.pompei.conf.core.HotConfFactory;
+import kz.pompei.conf.core.HotConfigFactory;
 import kz.pompei.conf.core.model.HotConfFactoryParams;
 
-Path baseDir = Path.of("./conf");
+Path baseDir = Path.of("/path/to/config/root");
 
 HotConfFactoryParams params = HotConfFactoryParams.builder()
-  .extension(".tst")
+  .extension(".hot")
   .revisionCheckTimeoutMs(500)
   .build();
 
@@ -77,10 +79,10 @@ HotConfFactory factory = new HotConfFactory(
   DynamicParams.REAL
 );
 
-TestConf1 conf = factory.createConf(TestConf1.class);
+TestConf1 config = factory.createConf(TestConf1.class);
 
-String param1 = conf.param1(); // "def value 1"
-String param2 = conf.param2(); // "def value 2"
+String param1 = config.param1(); // "def value 1"
+String param2 = config.param2(); // "def value 2"
 ```
 
 ### 3. Inspect The Generated File
@@ -88,7 +90,7 @@ String param2 = conf.param2(); // "def value 2"
 On first read, the library creates:
 
 ```text
-./conf/cool/folder/TestConf1.tst
+/path/to/config/root/cool/folder/TestConf1.hot
 ```
 
 With content generated from annotations:
@@ -121,17 +123,17 @@ Then read new values without restart application
 
 ```java
 
-String updatedParam1 = conf.param1(); // "SKY TREE"
-String updatedParam2 = conf.param2(); // "Flight near the star"
+String updatedParam1 = config.param1(); // "SKY TREE"
+String updatedParam2 = config.param2(); // "Flight near the star"
 ```
 
 ## Features
 
 - Typed configuration access through Java interfaces.
-- Automatic default configuration creation.
+- Automatic default configuration creation (You don't need to create configuration files manually – just change them from the default values).
 - Automatic supplementation when new interface methods are added.
 - Hot refresh through storage-specific modification markers.
-- File, JDBC, and etcd storage tunnels.
+- You can store configuration in files, or SQL DB, or etcd, or write your own implementation of the tunnel interface (ConfigTunnel).
 - Comments generated from annotations.
 - Rich string-to-type conversion for primitives, boxed types, `BigDecimal`, `BigInteger`, `String`, and `char`.
 - Numeric expression evaluation with normal math precedence.
@@ -357,7 +359,7 @@ The file tunnel uses file modification time as the modification marker.
 `kz-pompei-conf-jdbc` stores configurations in a database table. PostgreSQL and MariaDB are detected from JDBC metadata.
 
 ```java
-import kz.pompei.conf.jdbc.ConfTunnelJdbc;
+import kz.pompei.conf.jdbc.ConfigTunnelJdbc;
 import kz.pompei.conf.jdbc.ConfTunnelJdbcBuilder;
 import kz.pompei.conf.jdbc.ConfTunnelJdbcDef;
 
@@ -375,7 +377,7 @@ The table and schema are created automatically when missing. Column names are co
 
 ```java
 import io.etcd.jetcd.Client;
-import kz.pompei.conf.etcd.ConfTunnelEtcd;
+import kz.pompei.conf.etcd.ConfigTunnelEtcd;
 import kz.pompei.conf.etcd.ConfTunnelEtcdDef;
 
 ConfTunnelEtcdDef def = new ConfTunnelEtcdDef();

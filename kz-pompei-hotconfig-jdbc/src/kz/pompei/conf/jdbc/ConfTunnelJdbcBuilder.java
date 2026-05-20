@@ -6,13 +6,13 @@ import lombok.NonNull;
 
 public class ConfTunnelJdbcBuilder {
 
-  public static @NonNull ConfTunnelJdbc build(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef params) {
+  public static @NonNull ConfigTunnelJdbc build(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef params) {
 
     DatabaseType databaseType = detectDb(connectionGet);
 
     return switch (databaseType) {
-      case PostgreSQL -> new ConfTunnelJdbcPg(connectionGet, params);
-      case MariaDB -> new ConfTunnelJdbcMariaDb(connectionGet, params);
+      case PostgreSQL -> new ConfigTunnelJdbcPg(connectionGet, params);
+      case MariaDB -> new ConfigTunnelJdbcMariaDb(connectionGet, params);
     };
   }
 

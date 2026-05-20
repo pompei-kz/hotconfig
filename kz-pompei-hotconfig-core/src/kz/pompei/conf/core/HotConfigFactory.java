@@ -23,20 +23,20 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
 
-public class HotConfFactory {
-  private final @NonNull ConfTunnel           tunnel;
+public class HotConfigFactory {
+  private final @NonNull ConfigTunnel         tunnel;
   private final @NonNull HotConfFactoryParams params;
   private final @NonNull DynamicParams        dynamicParams;
   private final @NonNull AtomicLong           lastReadMs  = new AtomicLong(0);
   private final @NonNull AtomicBoolean        refreshable = new AtomicBoolean(false);
 
-  public HotConfFactory(@NonNull ConfTunnel tunnel, @NonNull HotConfFactoryParams params, @NonNull DynamicParams dynamicParams) {
+  public HotConfigFactory(@NonNull ConfigTunnel tunnel, @NonNull HotConfFactoryParams params, @NonNull DynamicParams dynamicParams) {
     this.tunnel        = tunnel;
     this.params        = params;
     this.dynamicParams = dynamicParams;
   }
 
-  public HotConfFactory(@NonNull ConfTunnel tunnel) {
+  public HotConfigFactory(@NonNull ConfigTunnel tunnel) {
     this(tunnel, HotConfFactoryParams.builder().build(), DynamicParams.REAL);
   }
 

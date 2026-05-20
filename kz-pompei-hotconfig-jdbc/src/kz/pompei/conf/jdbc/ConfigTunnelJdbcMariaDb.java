@@ -5,8 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import lombok.NonNull;
 
-public class ConfTunnelJdbcMariaDb extends ConfTunnelJdbc {
-  public ConfTunnelJdbcMariaDb(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef params) {
+public class ConfigTunnelJdbcMariaDb extends ConfigTunnelJdbc {
+  public ConfigTunnelJdbcMariaDb(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef params) {
     super(connectionGet, params);
   }
 

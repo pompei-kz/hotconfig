@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import kz.pompei.conf.core.ConfTunnel;
+import kz.pompei.conf.core.ConfigTunnel;
 import kz.pompei.conf.core.model.Conf;
 import kz.pompei.conf.core.model.ConfParam;
 import lombok.NonNull;
@@ -55,7 +55,7 @@ import org.jetbrains.annotations.Nullable;
  * }
  * }</pre>
  */
-public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
+public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
 
   @NonNull private final ConfTunnelEtcdDef params;
   @NonNull private final EtcdStorage storage;
@@ -66,11 +66,11 @@ public class ConfTunnelEtcd implements ConfTunnel, AutoCloseable {
    * @param client jetcd client connected by the caller
    * @param params etcd connection and key layout settings
    */
-  public ConfTunnelEtcd(@NonNull Client client, @NonNull ConfTunnelEtcdDef params) {
+  public ConfigTunnelEtcd(@NonNull Client client, @NonNull ConfTunnelEtcdDef params) {
     this(params, new JetcdStorage(client));
   }
 
-  ConfTunnelEtcd(@NonNull ConfTunnelEtcdDef params, @NonNull EtcdStorage storage) {
+  ConfigTunnelEtcd(@NonNull ConfTunnelEtcdDef params, @NonNull EtcdStorage storage) {
     this.params = params;
     this.storage = storage;
   }

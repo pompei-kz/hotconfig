@@ -20,11 +20,11 @@ import org.jetbrains.annotations.Nullable;
  * Then comes a line with the parameter key, equals, and the parameter value—all on one line. If the parameter value contains a line break,
  * it is replaced with \n. The \ symbol is replaced with its repetition \\.
  */
-public class ConfTunnelFile implements ConfTunnel {
+public class ConfigTunnelFile implements ConfigTunnel {
 
   @NonNull private final Path baseDir;
 
-  public ConfTunnelFile(@NonNull Path baseDir) {
+  public ConfigTunnelFile(@NonNull Path baseDir) {
     this.baseDir = baseDir;
   }
 

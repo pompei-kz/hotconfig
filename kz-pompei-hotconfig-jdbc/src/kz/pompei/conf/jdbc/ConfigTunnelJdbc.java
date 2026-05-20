@@ -7,7 +7,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
-import kz.pompei.conf.core.ConfTunnel;
+import kz.pompei.conf.core.ConfigTunnel;
 import kz.pompei.conf.core.model.Conf;
 import kz.pompei.conf.core.model.ConfParam;
 import lombok.NonNull;
@@ -21,12 +21,12 @@ import org.jetbrains.annotations.Nullable;
  * If the table does not exist, it is created automatically on first access.
  *
  */
-public abstract class ConfTunnelJdbc implements ConfTunnel {
+public abstract class ConfigTunnelJdbc implements ConfigTunnel {
 
   @NonNull protected final ConfTunnelJdbcDef params;
   @NonNull protected final ConnectionGet     connectionGet;
 
-  protected ConfTunnelJdbc(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef params) {
+  protected ConfigTunnelJdbc(@NonNull ConnectionGet connectionGet, @NonNull ConfTunnelJdbcDef params) {
     this.params        = params;
     this.connectionGet = connectionGet;
   }

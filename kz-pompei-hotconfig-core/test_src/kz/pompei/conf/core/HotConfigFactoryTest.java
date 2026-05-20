@@ -11,7 +11,7 @@ import org.testng.annotations.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class HotConfFactoryTest {
+public class HotConfigFactoryTest {
 
   @ConfDoc("about1\nabout2\nabout3")
   @ConfFolder("cool/folder")
@@ -53,7 +53,7 @@ public class HotConfFactoryTest {
   @Test
   public void refresh() {
 
-    ConfTunnelFake tunnel = new ConfTunnelFake();
+    ConfigTunnelFake tunnel = new ConfigTunnelFake();
 
     String confPath1 = "cool/folder/TestConf1.tst";
     String confPath2 = "TestConf2.tst";
@@ -63,14 +63,14 @@ public class HotConfFactoryTest {
       Conf conf1 = new Conf();
       conf1.params.add(new ConfParam("param1", "SKY TREE"));
       conf1.params.add(new ConfParam("param2", "Flight near the star"));
-      tunnel.storage.put(confPath1, new ConfTunnelFake.Dot(conf1, 1));
+      tunnel.storage.put(confPath1, new ConfigTunnelFake.Dot(conf1, 1));
     }
 
     {
       Conf conf3 = new Conf();
       conf3.params.add(new ConfParam("stone", "STORED VALUE"));
       conf3.params.add(new ConfParam("left-param", "tmp"));
-      tunnel.storage.put(confPath3, new ConfTunnelFake.Dot(conf3, 1));
+      tunnel.storage.put(confPath3, new ConfigTunnelFake.Dot(conf3, 1));
     }
 
     DynamicParamsFake dynamicParams          = new DynamicParamsFake(13);
@@ -81,7 +81,7 @@ public class HotConfFactoryTest {
                                                       .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
                                                       .build();
 
-    HotConfFactory factory = new HotConfFactory(tunnel, params, dynamicParams);
+    HotConfigFactory factory = new HotConfigFactory(tunnel, params, dynamicParams);
 
     tunnel.clearCounts();
 
@@ -148,7 +148,7 @@ public class HotConfFactoryTest {
       Conf conf7 = new Conf();
       conf7.params.add(new ConfParam("param1", "New Param Value 1"));
       conf7.params.add(new ConfParam("param2", "NEW PARAM VALUE 2"));
-      tunnel.storage.put(confPath1, new ConfTunnelFake.Dot(conf7, 111));
+      tunnel.storage.put(confPath1, new ConfigTunnelFake.Dot(conf7, 111));
     }
 
     tunnel.clearCounts();
@@ -183,9 +183,9 @@ public class HotConfFactoryTest {
 
     String confPath2 = "TestConf2.tst";
 
-    ConfTunnelFake tunnel = new ConfTunnelFake();
+    ConfigTunnelFake tunnel = new ConfigTunnelFake();
 
-    tunnel.storage.put(confPath2, new ConfTunnelFake.Dot(conf, 1));
+    tunnel.storage.put(confPath2, new ConfigTunnelFake.Dot(conf, 1));
 
     DynamicParamsFake dynamicParams          = new DynamicParamsFake(13);
     int               revisionCheckTimeoutMs = 500;
@@ -195,7 +195,7 @@ public class HotConfFactoryTest {
                                                       .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
                                                       .build();
 
-    HotConfFactory factory = new HotConfFactory(tunnel, params, dynamicParams);
+    HotConfigFactory factory = new HotConfigFactory(tunnel, params, dynamicParams);
 
     //
     //
@@ -224,8 +224,8 @@ public class HotConfFactoryTest {
   @Test
   public void createConf__createsConfigFile() {
 
-    ConfTunnelFake    tunnel                 = new ConfTunnelFake();
-    DynamicParamsFake dynamicParams          = new DynamicParamsFake(13);
+    ConfigTunnelFake  tunnel        = new ConfigTunnelFake();
+    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
     int               revisionCheckTimeoutMs = 500;
 
     HotConfFactoryParams params = HotConfFactoryParams.builder()
@@ -233,7 +233,7 @@ public class HotConfFactoryTest {
                                                       .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
                                                       .build();
 
-    HotConfFactory factory = new HotConfFactory(tunnel, params, dynamicParams);
+    HotConfigFactory factory = new HotConfigFactory(tunnel, params, dynamicParams);
 
     //
     //
@@ -271,8 +271,8 @@ public class HotConfFactoryTest {
     }
 
     {
-      ConfTunnelFake.Dot dot  = tunnel.storage.get(confPath1);
-      Conf               conf = dot.conf();
+      ConfigTunnelFake.Dot dot  = tunnel.storage.get(confPath1);
+      Conf                 conf = dot.conf();
       assertThat(conf).isNotNull();
       assertThat(conf.confComments).isEqualTo(List.of("about1", "about2", "about3"));
       assertThat(conf.params.get(0).comments).isEqualTo(List.of("description1", "description2"));
@@ -348,8 +348,8 @@ public class HotConfFactoryTest {
 
     { // now let's change some value in the config file
 
-      ConfTunnelFake.Dot dot  = tunnel.storage.get(confPath1);
-      Conf               conf = dot.conf().copy();
+      ConfigTunnelFake.Dot dot  = tunnel.storage.get(confPath1);
+      Conf                 conf = dot.conf().copy();
       assertThat(conf).isNotNull();
       assertThat(conf.confComments).isEqualTo(List.of("about1", "about2", "about3"));
 
@@ -362,7 +362,7 @@ public class HotConfFactoryTest {
       cp0.valueStr = "new value 1";
       cp1.valueStr = "new value 2";
 
-      tunnel.storage.put(confPath1, new ConfTunnelFake.Dot(conf, dot.revision() + 1));
+      tunnel.storage.put(confPath1, new ConfigTunnelFake.Dot(conf, dot.revision() + 1));
     }
 
     /*
@@ -408,7 +408,7 @@ public class HotConfFactoryTest {
 
   @Test
   public void useDefaultConstructor() {
-    ConfTunnelFake tunnel = new ConfTunnelFake();
-    new HotConfFactory(tunnel);
+    ConfigTunnelFake tunnel = new ConfigTunnelFake();
+    new HotConfigFactory(tunnel);
   }
 }
