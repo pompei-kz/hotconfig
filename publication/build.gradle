@@ -1,55 +1,11 @@
 plugins {
-  id 'org.jreleaser'
+  id 'goto-maven'
 }
 
-def publicationModules = [
-  ':kz-pompei-hotconfig-core',
-  ':kz-pompei-hotconfig-jdbc',
-  ':kz-pompei-hotconfig-etcd',
-]
-
-tasks.register('copyStagingDeploy', Copy) {
-  group = 'pompei'
-  description = 'Copies module staging deploy files into my build/staging-deploy.'
-
-  publicationModules.each { publicationModule ->
-    dependsOn "${publicationModule}:publish"
-    from(project(publicationModule).layout.buildDirectory.dir('staging-deploy'))
-  }
-
-  into(layout.buildDirectory.dir('staging-deploy'))
-  includeEmptyDirs = false
-}
-
-jreleaser {
-  gitRootSearch = true
-
-  signing {
-    active = 'ALWAYS'
-    armored = true
-  }
-
-  deploy {
-    maven {
-      mavenCentral {
-        sonatype {
-          active = 'ALWAYS'
-          url = 'https://central.sonatype.com/api/v1/publisher'
-          stagingRepository('build/staging-deploy')
-          applyMavenCentralRules = true
-          namespace = 'kz.pompei'
-        }
-      }
-    }
-  }
-}
-
-tasks.matching { it.name == 'jreleaserDeploy' }.configureEach {
-  dependsOn tasks.matching { it.name == 'copyStagingDeploy' }
-}
-
-tasks.register('goto-maven') {
-  group = 'pompei'
-  description = 'Deploys staged artifacts to Maven Central.'
-  dependsOn tasks.matching { it.name == 'jreleaserDeploy' }
+gotoMaven {
+  publicationModules = [
+    ':kz-pompei-hotconfig-core',
+    ':kz-pompei-hotconfig-jdbc',
+    ':kz-pompei-hotconfig-etcd',
+  ]
 }
