@@ -36,6 +36,14 @@ boolean enabled = conf.enabled();
 
 This example mirrors the configuration pattern tested in `HotConfigFactoryTest`, but uses `ConfigTunnelFile` as the storage tunnel.
 
+### 1. Dependency
+
+Add this to build.gradle / dependencies
+
+```groovy
+implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.3"
+```
+
 ### 1. Define A Configuration Interface
 
 ```java
@@ -68,11 +76,10 @@ import kz.pompei.hotconfig.core.HotConfigFactoryParams;
 
 Path baseDir = Path.of("/path/to/config/root");
 
-HotConfigFactoryParams params = HotConfigFactoryParams.builder()
-                                                      .extension(".hot")
-                                                      .build();
+var params = HotConfigFactoryParams.builder().extension(".hot").build();
+var tunnel = new ConfTunnelFile(baseDir); // stores in files
 
-HotConfFactory factory = new HotConfFactory(new ConfTunnelFile(baseDir), params);
+HotConfFactory factory = new HotConfFactory(tunnel, params);
 
 TestConf1 config = factory.createConf(TestConf1.class);
 
