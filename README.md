@@ -1,6 +1,6 @@
 # kz-pompei-conf
 
-> Typed hot configuration for Java services, backed by files, JDBC, or etcd.
+> Hot configuration for Java services, backed by files, JDBC, or etcd.
 
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](#requirements)
 [![Gradle](https://img.shields.io/badge/build-Gradle-green.svg)](#build-and-test)
@@ -52,8 +52,8 @@ public interface TestConf1 {
   String param1();
 
   @ConfDoc("description3\ndescription4\ndescription5")
-  @ConfDefaultValue("def value 2")
-  String param2();
+  @ConfDefaultValue("20 + 1024")
+  int accessPort();
 }
 ```
 
@@ -69,20 +69,15 @@ import model.kz.pompei.hotconfig.core.HotConfFactoryParams;
 Path baseDir = Path.of("/path/to/config/root");
 
 HotConfFactoryParams params = HotConfFactoryParams.builder()
-  .extension(".hot")
-  .revisionCheckTimeoutMs(500)
-  .build();
+                                                  .extension(".hot")
+                                                  .build();
 
-HotConfFactory factory = new HotConfFactory(
-  new ConfTunnelFile(baseDir),
-  params,
-  DynamicParams.REAL
-);
+HotConfFactory factory = new HotConfFactory(new ConfTunnelFile(baseDir), params);
 
 TestConf1 config = factory.createConf(TestConf1.class);
 
-String param1 = config.param1(); // "def value 1"
-String param2 = config.param2(); // "def value 2"
+String param1     = config.param1();     // "def value 1"
+int    accessPort = config.accessPort(); // 1044
 ```
 
 ### 3. Inspect The Generated File
@@ -107,7 +102,7 @@ param1=def value 1
 #description3
 #description4
 #description5
-param2=def value 2
+accessPort=20 + 1024
 ```
 
 ### 4. Edit and read new values
@@ -116,15 +111,15 @@ Edit the file manually:
 
 ```text
 param1=SKY TREE
-param2=Flight near the star
+accessPort=20 + 1024 + 700
 ```
 
 Then read new values without restart application
 
 ```java
 
-String updatedParam1 = config.param1(); // "SKY TREE"
-String updatedParam2 = config.param2(); // "Flight near the star"
+String updatedParam1 = config.param1();     // "SKY TREE"
+int    accessPort    = config.accessPort(); // 1744
 ```
 
 ## Features
@@ -141,26 +136,26 @@ String updatedParam2 = config.param2(); // "Flight near the star"
 
 ## Modules
 
-| Module                | Description                                                            |
-|-----------------------|------------------------------------------------------------------------|
-| `kz-pompei-conf-core` | Core API, proxy factory, file tunnel, annotations, parser, and models. |
-| `kz-pompei-conf-jdbc` | JDBC tunnel for PostgreSQL and MariaDB.                                |
-| `kz-pompei-conf-etcd` | etcd v3 tunnel implemented with jetcd.                                 |
-| `utils`               | Test utilities used inside this repository.                            |
+| Module                     | Description                                                            |
+|----------------------------|------------------------------------------------------------------------|
+| `kz-pompei-hotconfig-core` | Core API, proxy factory, file tunnel, annotations, parser, and models. |
+| `kz-pompei-hotconfig-jdbc` | JDBC tunnel for PostgreSQL and MariaDB.                                |
+| `kz-pompei-hotconfig-etcd` | etcd v3 tunnel implemented with jetcd.                                 |
 
 ## Installation
 
-This project is built with Gradle and Java 21. It is not currently documented as published to Maven Central, so use it as a source dependency or publish it to your internal Maven repository.
+This project is built with Gradle and Java 21. 
+It is not currently documented as published to Maven Central, so use it as a source dependency or publish it to your internal Maven repository.
 
 For a multi-project Gradle build:
 
 ```groovy
 dependencies {
-  implementation project(":kz-pompei-conf-core")
+  implementation project(":kz-pompei-hotconfig-core")
 
   // Optional backends
-  implementation project(":kz-pompei-conf-jdbc")
-  implementation project(":kz-pompei-conf-etcd")
+  implementation project(":kz-pompei-hotconfig-jdbc")
+  implementation project(":kz-pompei-hotconfig-etcd")
 }
 ```
 
@@ -170,7 +165,7 @@ If you package and publish the modules yourself, the Gradle group is:
 kz.pompei.hotconfig
 ```
 
-Current version is read from:
+The current version is read from:
 
 ```text
 versions/version.txt
@@ -226,19 +221,12 @@ Supported target types:
 
 ### Environment Substitution
 
-Use `$ENV{NAME}` to resolve dynamic values before type conversion:
+Use `$ENV{NAME}` to resolve environment variables before type conversion:
 
 ```text
 port=$ENV{APP_PORT}
 workers=$ENV{WORKER_COUNT} * 2
 ```
-
-Resolution is delegated to:
-
-```java
-DynamicParams.env("NAME")
-```
-
 ### String Escapes
 
 Supported escape sequences:
@@ -269,8 +257,8 @@ Numeric parsing accepts:
 0.456e-17
 -17.45E+61
 0xAfeE76a03
-0b100110101
-0o16542
+0b100110101  - binary
+0o16542      - octal
 ```
 
 Base-prefixed integer literals:
