@@ -5,7 +5,7 @@
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](#requirements)
 [![Gradle](https://img.shields.io/badge/build-Gradle-green.svg)](#build-and-test)
 [![TestNG](https://img.shields.io/badge/tests-TestNG-orange.svg)](#build-and-test)
-[![Version](https://img.shields.io/badge/version-0.0.1-lightgrey.svg)](versions/version.txt)
+[![Version](https://img.shields.io/badge/version-0.0.3-lightgrey.svg)](versions/version.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 `kz-pompei-hotconfig` turns a plain Java interface into a live configuration object.
@@ -144,9 +144,49 @@ int    accessPort    = config.accessPort(); // 1744
 
 ## Installation
 
-This project is built with Gradle and Java 21. 
-It is not currently documented as published to Maven Central, so use it as a source dependency or publish it to your internal Maven repository.
+The library is published to Maven Central. It requires Java 21.
 
+Use `kz-pompei-hotconfig-core` for file-backed configuration. Add `kz-pompei-hotconfig-jdbc` or `kz-pompei-hotconfig-etcd` when you need those storage backends.
+
+### Gradle
+
+```groovy
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation 'kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.3'
+
+  // Optional storage backends
+  implementation 'kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.3'
+  implementation 'kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.3'
+}
+```
+
+### Maven
+
+```xml
+<dependencies>
+  <dependency>
+    <groupId>kz.pompei.hotconfig</groupId>
+    <artifactId>kz-pompei-hotconfig-core</artifactId>
+    <version>0.0.3</version>
+  </dependency>
+
+  <!-- Optional storage backends -->
+  <dependency>
+    <groupId>kz.pompei.hotconfig</groupId>
+    <artifactId>kz-pompei-hotconfig-jdbc</artifactId>
+    <version>0.0.3</version>
+  </dependency>
+  <dependency>
+    <groupId>kz.pompei.hotconfig</groupId>
+    <artifactId>kz-pompei-hotconfig-etcd</artifactId>
+    <version>0.0.3</version>
+  </dependency>
+</dependencies>
+```
 
 ## Configuration Interfaces
 
@@ -411,7 +451,6 @@ Notes for contributors:
 
 ## Roadmap Ideas
 
-- Publish coordinates and examples for Maven Central or GitHub Packages.
 - Add CI badges once a GitHub Actions workflow exists.
 - Add more backend examples and production deployment recipes.
 
