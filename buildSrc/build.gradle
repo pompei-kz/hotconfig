@@ -1,4 +1,17 @@
+plugins {
+  id 'groovy-gradle-plugin'
+}
+
 repositories {
   mavenLocal()
   mavenCentral()
+}
+
+gradlePlugin {
+  plugins {
+    kzPompeiMavenPublication {
+      id = 'kz-pompei-maven-publication'
+      implementationClass = 'kz.pompei.hotconfig.gradle.KzPompeiMavenPublicationPlugin'
+    }
+  }
 }
