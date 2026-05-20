@@ -39,9 +39,9 @@ This example mirrors the configuration pattern tested in `HotConfigFactoryTest`,
 ### 1. Define A Configuration Interface
 
 ```java
-import kz.pompei.conf.core.ann.ConfDefaultValue;
-import kz.pompei.conf.core.ann.ConfDoc;
-import kz.pompei.conf.core.ann.ConfFolder;
+import ann.kz.pompei.hotconfig.core.ConfDefaultValue;
+import ann.kz.pompei.hotconfig.core.ConfDoc;
+import ann.kz.pompei.hotconfig.core.ConfFolder;
 
 @ConfDoc("about1\nabout2\nabout3")
 @ConfFolder("cool/folder")
@@ -61,10 +61,10 @@ public interface TestConf1 {
 
 ```java
 import java.nio.file.Path;
-import kz.pompei.conf.core.ConfigTunnelFile;
-import kz.pompei.conf.core.DynamicParams;
-import kz.pompei.conf.core.HotConfigFactory;
-import kz.pompei.conf.core.model.HotConfFactoryParams;
+import kz.pompei.hotconfig.core.ConfigTunnelFile;
+import kz.pompei.hotconfig.core.DynamicParams;
+import kz.pompei.hotconfig.core.HotConfigFactory;
+import model.kz.pompei.hotconfig.core.HotConfFactoryParams;
 
 Path baseDir = Path.of("/path/to/config/root");
 
@@ -167,7 +167,7 @@ dependencies {
 If you package and publish the modules yourself, the Gradle group is:
 
 ```text
-kz.pompei.conf
+kz.pompei.hotconfig
 ```
 
 Current version is read from:
@@ -359,9 +359,9 @@ The file tunnel uses file modification time as the modification marker.
 `kz-pompei-conf-jdbc` stores configurations in a database table. PostgreSQL and MariaDB are detected from JDBC metadata.
 
 ```java
-import kz.pompei.conf.jdbc.ConfigTunnelJdbc;
-import kz.pompei.conf.jdbc.ConfTunnelJdbcBuilder;
-import kz.pompei.conf.jdbc.ConfTunnelJdbcDef;
+import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbc;
+import kz.pompei.hotconfig.jdbc.ConfTunnelJdbcBuilder;
+import kz.pompei.hotconfig.jdbc.ConfTunnelJdbcDef;
 
 ConfTunnelJdbcDef def = new ConfTunnelJdbcDef();
 def.tableName = "conf";
@@ -377,8 +377,8 @@ The table and schema are created automatically when missing. Column names are co
 
 ```java
 import io.etcd.jetcd.Client;
-import kz.pompei.conf.etcd.ConfigTunnelEtcd;
-import kz.pompei.conf.etcd.ConfTunnelEtcdDef;
+import kz.pompei.hotconfig.etcd.ConfigTunnelEtcd;
+import kz.pompei.hotconfig.etcd.ConfTunnelEtcdDef;
 
 ConfTunnelEtcdDef def = new ConfTunnelEtcdDef();
 def.keyPrefix = "/kz-pompei-conf-etcd/";
