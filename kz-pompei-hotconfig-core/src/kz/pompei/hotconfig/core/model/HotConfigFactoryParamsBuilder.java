@@ -2,24 +2,24 @@ package kz.pompei.hotconfig.core.model;
 
 import lombok.NonNull;
 
-public class HotConfFactoryParamsBuilder {
+public class HotConfigFactoryParamsBuilder {
   private @NonNull String extension              = ".hotconf";
   private          long   revisionCheckTimeoutMs = 350;
 
-  HotConfFactoryParamsBuilder() {}
+  HotConfigFactoryParamsBuilder() {}
 
-  public HotConfFactoryParamsBuilder extension(@NonNull String extension) {
+  public HotConfigFactoryParamsBuilder extension(@NonNull String extension) {
     this.extension = extension;
     return this;
   }
 
-  public HotConfFactoryParamsBuilder revisionCheckTimeoutMs(long revisionCheckTimeoutMs) {
+  public HotConfigFactoryParamsBuilder revisionCheckTimeoutMs(long revisionCheckTimeoutMs) {
     this.revisionCheckTimeoutMs = revisionCheckTimeoutMs;
     return this;
   }
 
-  public HotConfFactoryParams build() {
-    return new HotConfFactoryParams(this.extension, this.revisionCheckTimeoutMs);
+  public HotConfigFactoryParams build() {
+    return new HotConfigFactoryParams(this.extension, this.revisionCheckTimeoutMs);
   }
 
   public String toString() {

@@ -6,7 +6,7 @@ import kz.pompei.hotconfig.core.ann.ConfDoc;
 import kz.pompei.hotconfig.core.ann.ConfFolder;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
-import kz.pompei.hotconfig.core.model.HotConfFactoryParams;
+import kz.pompei.hotconfig.core.model.HotConfigFactoryParams;
 import org.testng.annotations.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -76,10 +76,10 @@ public class HotConfigFactoryTest {
     DynamicParamsFake dynamicParams          = new DynamicParamsFake(13);
     int               revisionCheckTimeoutMs = 500;
 
-    HotConfFactoryParams params = HotConfFactoryParams.builder()
-                                                      .extension(".tst")
-                                                      .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
-                                                      .build();
+    HotConfigFactoryParams params = HotConfigFactoryParams.builder()
+                                                          .extension(".tst")
+                                                          .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
+                                                          .build();
 
     HotConfigFactory factory = new HotConfigFactory(tunnel, params, dynamicParams);
 
@@ -190,10 +190,10 @@ public class HotConfigFactoryTest {
     DynamicParamsFake dynamicParams          = new DynamicParamsFake(13);
     int               revisionCheckTimeoutMs = 500;
 
-    HotConfFactoryParams params = HotConfFactoryParams.builder()
-                                                      .extension(".tst")
-                                                      .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
-                                                      .build();
+    HotConfigFactoryParams params = HotConfigFactoryParams.builder()
+                                                          .extension(".tst")
+                                                          .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
+                                                          .build();
 
     HotConfigFactory factory = new HotConfigFactory(tunnel, params, dynamicParams);
 
@@ -228,10 +228,10 @@ public class HotConfigFactoryTest {
     DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
     int               revisionCheckTimeoutMs = 500;
 
-    HotConfFactoryParams params = HotConfFactoryParams.builder()
-                                                      .extension(".tst")
-                                                      .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
-                                                      .build();
+    HotConfigFactoryParams params = HotConfigFactoryParams.builder()
+                                                          .extension(".tst")
+                                                          .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
+                                                          .build();
 
     HotConfigFactory factory = new HotConfigFactory(tunnel, params, dynamicParams);
 

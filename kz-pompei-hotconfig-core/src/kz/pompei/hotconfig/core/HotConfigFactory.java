@@ -18,26 +18,26 @@ import kz.pompei.hotconfig.core.ann.ConfDoc;
 import kz.pompei.hotconfig.core.ann.ConfFolder;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
-import kz.pompei.hotconfig.core.model.HotConfFactoryParams;
+import kz.pompei.hotconfig.core.model.HotConfigFactoryParams;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
 
 public class HotConfigFactory {
-  private final @NonNull ConfigTunnel         tunnel;
-  private final @NonNull HotConfFactoryParams params;
-  private final @NonNull DynamicParams        dynamicParams;
+  private final @NonNull ConfigTunnel           tunnel;
+  private final @NonNull HotConfigFactoryParams params;
+  private final @NonNull DynamicParams          dynamicParams;
   private final @NonNull AtomicLong           lastReadMs  = new AtomicLong(0);
   private final @NonNull AtomicBoolean        refreshable = new AtomicBoolean(false);
 
-  public HotConfigFactory(@NonNull ConfigTunnel tunnel, @NonNull HotConfFactoryParams params, @NonNull DynamicParams dynamicParams) {
+  public HotConfigFactory(@NonNull ConfigTunnel tunnel, @NonNull HotConfigFactoryParams params, @NonNull DynamicParams dynamicParams) {
     this.tunnel        = tunnel;
     this.params        = params;
     this.dynamicParams = dynamicParams;
   }
 
   public HotConfigFactory(@NonNull ConfigTunnel tunnel) {
-    this(tunnel, HotConfFactoryParams.builder().build(), DynamicParams.REAL);
+    this(tunnel, HotConfigFactoryParams.builder().build(), DynamicParams.REAL);
   }
 
   @RequiredArgsConstructor

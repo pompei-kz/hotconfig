@@ -64,13 +64,13 @@ import java.nio.file.Path;
 import kz.pompei.hotconfig.core.ConfigTunnelFile;
 import kz.pompei.hotconfig.core.DynamicParams;
 import kz.pompei.hotconfig.core.HotConfigFactory;
-import model.kz.pompei.hotconfig.core.HotConfFactoryParams;
+import kz.pompei.hotconfig.core.HotConfigFactoryParams;
 
 Path baseDir = Path.of("/path/to/config/root");
 
-HotConfFactoryParams params = HotConfFactoryParams.builder()
-                                                  .extension(".hot")
-                                                  .build();
+HotConfigFactoryParams params = HotConfigFactoryParams.builder()
+                                                      .extension(".hot")
+                                                      .build();
 
 HotConfFactory factory = new HotConfFactory(new ConfTunnelFile(baseDir), params);
 
@@ -82,7 +82,7 @@ int    accessPort = config.accessPort(); // 1044
 
 ### 3. Inspect The Generated File
 
-On first read, the library creates:
+On the first read, the library creates:
 
 ```text
 /path/to/config/root/cool/folder/TestConf1.hot
