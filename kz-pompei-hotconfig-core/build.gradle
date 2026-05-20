@@ -1,26 +1,52 @@
 plugins {
   id 'java-library'
-  id 'kz-pompei-maven-publication'
+  id 'maven-publish'
+  id 'signing'
 }
 
-kzPompeiMavenPublication {
-  pom {
-    name = 'kz-pompei-hotconfig-core'
-    description = 'Core part of hot configuration library'
-    url = 'https://pompei.kz/programs/kz-pompei-hotconfig'
-  }
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      from components.java
 
-  developers {
-    developer {
-      id = 'pompei'
-      name = 'Evgenij Kolpakov'
-      email = 'pompei@mail.ru'
+      pom {
+        name = 'kz-pompei-hotconfig-core'                         // move to config
+        description = 'Core part of hot configuration library'    // move to config
+        url = 'https://pompei.kz/programs/kz-pompei-hotconfig'    // move to config
+
+        licenses {
+          license {
+            name = 'MIT License'
+            url = 'https://opensource.org/license/mit/'
+          }
+        }
+
+        developers {
+          developer {                     // move to config with contents
+            id = 'pompei'
+            name = 'Evgenij Kolpakov'
+            email = 'pompei@mail.ru'
+          }
+        }
+
+        scm {                                                                             // move to config with contents
+          connection = 'scm:git:https://github.com/pompei-kz/hotconfig.git'
+          developerConnection = 'scm:git:ssh://git@github.com:pompei-kz/hotconfig.git'
+          url = 'https://github.com/pompei-kz/hotconfig'
+        }
+
+      }
     }
   }
 
-  scm {
-    connection = 'scm:git:https://github.com/pompei-kz/hotconfig.git'
-    developerConnection = 'scm:git:ssh://git@github.com:pompei-kz/hotconfig.git'
-    url = 'https://github.com/pompei-kz/hotconfig'
+  repositories {
+    maven {
+      url = layout.buildDirectory.dir('staging-deploy')
+    }
   }
+}
+
+signing {
+  useGpgCmd()
+  sign publishing.publications.mavenJava
 }
