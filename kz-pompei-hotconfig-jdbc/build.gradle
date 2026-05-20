@@ -1,5 +1,5 @@
 dependencies {
-  implementation project(":kz-pompei-conf-core")
+  implementation project(":kz-pompei-hotconfig-core")
 
   testImplementation project(":utils")
   testImplementation "org.postgresql:postgresql:$postgres_version"

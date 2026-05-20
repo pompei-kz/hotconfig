@@ -1,5 +1,5 @@
 dependencies {
-  implementation project(":kz-pompei-conf-core")
+  implementation project(":kz-pompei-hotconfig-core")
   implementation "io.etcd:jetcd-core:$jetcd_version"
 
   testImplementation project(":utils")

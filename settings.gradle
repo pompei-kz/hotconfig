@@ -1,6 +1,6 @@
-rootProject.name = 'kz-pompei-conf'
+rootProject.name = 'kz-pompei-hotconfig'
 
-include "kz-pompei-conf-core"
-include "kz-pompei-conf-jdbc"
-include "kz-pompei-conf-etcd"
+include "kz-pompei-hotconfig-core"
+include "kz-pompei-hotconfig-jdbc"
+include "kz-pompei-hotconfig-etcd"
 include "utils"
