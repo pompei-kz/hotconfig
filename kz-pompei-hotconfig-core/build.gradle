@@ -69,10 +69,12 @@ jreleaser {
           stagingRepository('build/staging-deploy')
           applyMavenCentralRules = true
           namespace = 'kz.pompei'
-          username = findProperty('jreleaserMavenCentralUsername')
-          password = findProperty('jreleaserMavenCentralPassword')
         }
       }
     }
   }
+}
+
+tasks.matching { it.name == 'jreleaserDeploy' }.configureEach {
+  dependsOn tasks.matching { it.name == 'publish' }
 }
