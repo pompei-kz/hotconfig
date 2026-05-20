@@ -11,9 +11,9 @@ publishing {
       from components.java
 
       pom {
-        name = 'kz-pompei-hotconfig-core'
-        description = 'Core part of hot configuration library'
-        url = 'https://pompei.kz/programs/kz-pompei-hotconfig'
+        name = 'kz-pompei-hotconfig-core'                         // move to config
+        description = 'Core part of hot configuration library'    // move to config
+        url = 'https://pompei.kz/programs/kz-pompei-hotconfig'    // move to config
 
         licenses {
           license {
@@ -23,14 +23,14 @@ publishing {
         }
 
         developers {
-          developer {
+          developer {                     // move to config with contents
             id = 'pompei'
             name = 'Evgenij Kolpakov'
             email = 'pompei@mail.ru'
           }
         }
 
-        scm {
+        scm {                                                                             // move to config with contents
           connection = 'scm:git:https://github.com/pompei-kz/hotconfig.git'
           developerConnection = 'scm:git:ssh://git@github.com:pompei-kz/hotconfig.git'
           url = 'https://github.com/pompei-kz/hotconfig'
