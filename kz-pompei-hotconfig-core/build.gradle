@@ -2,6 +2,7 @@ plugins {
   id 'java-library'
   id 'maven-publish'
   id 'signing'
+  id 'org.jreleaser'
 }
 
 publishing {
@@ -13,7 +14,35 @@ publishing {
         name = 'kz-pompei-hotconfig-core'
         description = 'Core part of hot configuration library'
         url = 'https://pompei.kz/programs/kz-pompei-hotconfig'
+
+        licenses {
+          license {
+            name = 'Apache-2.0'
+            url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+          }
+        }
+
+        developers {
+          developer {
+            id = 'pompei'
+            name = 'Evgenij Kolpakov'
+            email = 'pompei@mail.ru'
+          }
+        }
+
+        scm {
+          connection = 'scm:git:https://github.com/pompei-kz/hotconfig.git'
+          developerConnection = 'scm:git:ssh://git@github.com:pompei-kz/hotconfig.git'
+          url = 'https://github.com/pompei-kz/hotconfig'
+        }
+
       }
+    }
+  }
+
+  repositories {
+    maven {
+      url = layout.buildDirectory.dir('staging-deploy')
     }
   }
 }
@@ -21,4 +50,29 @@ publishing {
 signing {
   useGpgCmd()
   sign publishing.publications.mavenJava
+}
+
+jreleaser {
+  gitRootSearch = true
+
+  signing {
+    active = 'ALWAYS'
+    armored = true
+  }
+
+  deploy {
+    maven {
+      mavenCentral {
+        sonatype {
+          active = 'ALWAYS'
+          url = 'https://central.sonatype.com/api/v1/publisher'
+          stagingRepository('build/staging-deploy')
+          applyMavenCentralRules = true
+          namespace = 'kz.pompei'
+          username = findProperty('jreleaserMavenCentralUsername')
+          password = findProperty('jreleaserMavenCentralPassword')
+        }
+      }
+    }
+  }
 }
