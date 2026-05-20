@@ -60,7 +60,6 @@ class KzPompeiMavenPublicationPlugin implements Plugin<Project> {
               sonatype.url = 'https://central.sonatype.com/api/v1/publisher'
               sonatype.stagingRepository('build/staging-deploy')
               sonatype.applyMavenCentralRules = true
-              sonatype.autoPublish = false
               sonatype.namespace = 'kz.pompei'
             }
           }
