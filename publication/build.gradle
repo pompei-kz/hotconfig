@@ -1,7 +1,11 @@
+plugins {
+  id 'org.jreleaser'
+}
+
 def publicationModules = [
-  project(':kz-pompei-hotconfig-core'),
-  project(':kz-pompei-hotconfig-jdbc'),
-  project(':kz-pompei-hotconfig-etcd'),
+  ':kz-pompei-hotconfig-core',
+  ':kz-pompei-hotconfig-jdbc',
+  ':kz-pompei-hotconfig-etcd',
 ]
 
 tasks.register('copyStagingDeploy', Copy) {
@@ -9,9 +13,37 @@ tasks.register('copyStagingDeploy', Copy) {
   description = 'Copies module staging deploy files into my build/staging-deploy.'
 
   publicationModules.each { publicationModule ->
-    from(publicationModule.layout.buildDirectory.dir('staging-deploy'))
+    dependsOn "${publicationModule}:publish"
+    from(project(publicationModule).layout.buildDirectory.dir('staging-deploy'))
   }
 
   into(layout.buildDirectory.dir('staging-deploy'))
   includeEmptyDirs = false
+}
+
+jreleaser {
+  gitRootSearch = true
+
+  signing {
+    active = 'ALWAYS'
+    armored = true
+  }
+
+  deploy {
+    maven {
+      mavenCentral {
+        sonatype {
+          active = 'ALWAYS'
+          url = 'https://central.sonatype.com/api/v1/publisher'
+          stagingRepository('build/staging-deploy')
+          applyMavenCentralRules = true
+          namespace = 'kz.pompei'
+        }
+      }
+    }
+  }
+}
+
+tasks.matching { it.name == 'jreleaserDeploy' }.configureEach {
+  dependsOn tasks.matching { it.name == 'copyStagingDeploy' }
 }
