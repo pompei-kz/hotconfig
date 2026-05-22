@@ -9,6 +9,7 @@ import java.util.List;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -22,10 +23,20 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ConfigTunnelFile implements ConfigTunnel {
 
-  @NonNull private final Path baseDir;
+  @NonNull private final Def def;
 
-  public ConfigTunnelFile(@NonNull Path baseDir) {
-    this.baseDir = baseDir;
+  ConfigTunnelFile(@NonNull Def def) {
+    this.def = def;
+  }
+
+  public static @NonNull ConfigTunnelFileBuilder builder() {
+    return new ConfigTunnelFileBuilder();
+  }
+
+  @RequiredArgsConstructor
+  static class Def {
+    @NonNull private final Path   baseDir;
+    @NonNull private final String noticeExtension;
   }
 
   @Override public @Nullable Conf read(@NonNull String localPath) {
@@ -75,6 +86,11 @@ public class ConfigTunnelFile implements ConfigTunnel {
     }
   }
 
+  @Override public @NonNull List<String> readNoticeLines(@NonNull String localPath) {
+    // TODO here to localPath need to add def.noticeExtension
+    throw new RuntimeException("2026-05-22 17:14 Not impl yet ConfigTunnelFile.readLines()");
+  }
+
   @Override public void write(@NonNull String localPath, @NonNull Conf conf) {
     Path path = path(localPath);
     try {
@@ -84,6 +100,11 @@ public class ConfigTunnelFile implements ConfigTunnel {
     } catch (IOException e) {
       throw new RuntimeException("K1l2M3n4O5 :: Could not write configuration file: " + path, e);
     }
+  }
+
+  @Override public void writeNoticeLines(@NonNull String localPath, @NonNull List<String> lines) {
+    // TODO here to localPath need to add def.noticeExtension
+    throw new RuntimeException("2026-05-22 17:14 Not impl yet ConfigTunnelFile.writeLines()");
   }
 
   @Override public @Nullable Long modificationMarker(@NonNull String localPath) {
@@ -98,7 +119,7 @@ public class ConfigTunnelFile implements ConfigTunnel {
   }
 
   private Path path(@NonNull String localPath) {
-    return baseDir.resolve(localPath);
+    return def.baseDir.resolve(localPath);
   }
 
   private List<String> writeLines(@NonNull Conf conf) {

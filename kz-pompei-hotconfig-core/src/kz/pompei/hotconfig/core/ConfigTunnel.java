@@ -1,5 +1,6 @@
 package kz.pompei.hotconfig.core;
 
+import java.util.List;
 import kz.pompei.hotconfig.core.model.Conf;
 import lombok.NonNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,12 +22,28 @@ public interface ConfigTunnel {
   @Nullable Conf read(@NonNull String localPath);
 
   /**
+   * Reads lines of notice text associated with config by localPath
+   *
+   * @param localPath path of the configuration relative to the storage root
+   * @return list of lines
+   */
+  @NonNull List<String> readNoticeLines(@NonNull String localPath);
+
+  /**
    * Writes configuration data to the storage.
    *
    * @param localPath path of the configuration relative to the storage root
    * @param conf      configuration data to write
    */
   void write(@NonNull String localPath, @NonNull Conf conf);
+
+  /**
+   * Writes lines of notice text to config associated with config in path localPath
+   *
+   * @param localPath path of the configuration relative to the storage root
+   * @param lines     list of lines to write
+   */
+  void writeNoticeLines(@NonNull String localPath, @NonNull List<String> lines);
 
   /**
    * Returns a modification marker for stored configuration data.
