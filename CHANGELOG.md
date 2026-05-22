@@ -5,7 +5,7 @@ All notable changes to this project are documented here.
 This project keeps short release summaries in this file and detailed notes in
 `versions/<version>.md`.
 
-## [0.0.4] - 2026-05-22
+## [0.0.5] - 2026-05-22
 
 ### Added
 
@@ -28,4 +28,4 @@ This project keeps short release summaries in this file and detailed notes in
 - `ConfigTunnelFile` should be created through `ConfigTunnelFile.builder()` with both
   `baseDir` and `noticeExtension` set.
 
-[0.0.4]: versions/0.0.4.md
+[0.0.5]: versions/0.0.5.md
