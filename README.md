@@ -5,7 +5,7 @@
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](#requirements)
 [![Gradle](https://img.shields.io/badge/build-Gradle-green.svg)](#build-and-test)
 [![TestNG](https://img.shields.io/badge/tests-TestNG-orange.svg)](#build-and-test)
-[![Version](https://img.shields.io/badge/version-0.0.3-lightgrey.svg)](versions/version.txt)
+[![Version](https://img.shields.io/badge/version-0.0.4-lightgrey.svg)](versions/version.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 `kz-pompei-hotconfig` turns a plain Java interface into a live configuration object.
@@ -28,6 +28,7 @@ boolean enabled = conf.enabled();
 - [Configuration Interfaces](#configuration-interfaces)
 - [Value Parsing](#value-parsing)
 - [Storage Backends](#storage-backends)
+- [Changelog](#changelog)
 - [Build And Test](#build-and-test)
 - [Project Layout](#project-layout)
 - [License](#license)
@@ -41,15 +42,15 @@ This example mirrors the configuration pattern tested in `HotConfigFactoryTest`,
 Add this to build.gradle / dependencies
 
 ```groovy
-implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.3"
+implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.4"
 ```
 
-### 1. Define A Configuration Interface
+### 2. Define A Configuration Interface
 
 ```java
-import ann.kz.pompei.hotconfig.core.ConfDefaultValue;
-import ann.kz.pompei.hotconfig.core.ConfDoc;
-import ann.kz.pompei.hotconfig.core.ConfFolder;
+import kz.pompei.hotconfig.core.ann.ConfDefaultValue;
+import kz.pompei.hotconfig.core.ann.ConfDoc;
+import kz.pompei.hotconfig.core.ann.ConfFolder;
 
 @ConfDoc("about1\nabout2\nabout3")
 @ConfFolder("cool/folder")
@@ -65,21 +66,24 @@ public interface TestConf1 {
 }
 ```
 
-### 2. Create A Factory Backed By Files
+### 3. Create A Factory Backed By Files
 
 ```java
 import java.nio.file.Path;
 import kz.pompei.hotconfig.core.ConfigTunnelFile;
 import kz.pompei.hotconfig.core.DynamicParams;
 import kz.pompei.hotconfig.core.HotConfigFactory;
-import kz.pompei.hotconfig.core.HotConfigFactoryParams;
+import kz.pompei.hotconfig.core.model.HotConfigFactoryParams;
 
 Path baseDir = Path.of("/path/to/config/root");
 
 var params = HotConfigFactoryParams.builder().extension(".hot").build();
-var tunnel = new ConfTunnelFile(baseDir); // stores in files
+var tunnel = ConfigTunnelFile.builder()
+  .baseDir(baseDir)
+  .noticeExtension(".notice")
+  .build();
 
-HotConfFactory factory = new HotConfFactory(tunnel, params);
+HotConfigFactory factory = new HotConfigFactory(tunnel, params, DynamicParams.REAL);
 
 TestConf1 config = factory.createConf(TestConf1.class);
 
@@ -87,7 +91,7 @@ String param1     = config.param1();     // "def value 1"
 int    accessPort = config.accessPort(); // 1044
 ```
 
-### 3. Inspect The Generated File
+### 4. Inspect The Generated File
 
 On the first read, the library creates:
 
@@ -112,7 +116,7 @@ param1=def value 1
 accessPort=20 + 1024
 ```
 
-### 4. Edit and read new values
+### 5. Edit and read new values
 
 Edit the file manually:
 
@@ -137,6 +141,7 @@ int    accessPort    = config.accessPort(); // 1744
 - Hot refresh through storage-specific modification markers.
 - You can store configuration in files, or SQL DB, or etcd, or write your own implementation of the tunnel interface (ConfigTunnel).
 - Comments generated from annotations.
+- Notice lines associated with a whole configuration can be stored separately from parameter comments.
 - Rich string-to-type conversion for primitives, boxed types, `BigDecimal`, `BigInteger`, `String`, and `char`.
 - Numeric expression evaluation with normal math precedence.
 - `$ENV{NAME}` substitution from environment variables.
@@ -163,16 +168,16 @@ repositories {
 }
 
 dependencies {
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.3" 
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.4"
   // If you store configs in files, no extra modules are needed
 
   // Optional storage backends
 
   // Add this if you want to store configs in SQL database
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.3"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.4"
   
   // Add this if you want to store configs in etcd database
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.3"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.4"
 }
 ```
 
@@ -183,7 +188,7 @@ dependencies {
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-core</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
   </dependency>
 
   <!-- If you store configs in files, no extra modules are needed -->
@@ -194,14 +199,14 @@ dependencies {
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-jdbc</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
   </dependency>
 
   <!-- Add this if you want to store configs in etcd database -->
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-etcd</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
   </dependency>
 </dependencies>
 ```
@@ -355,11 +360,16 @@ Boolean targets:
 
 ### Files
 
-`ConfTunnelFile` stores each configuration as a UTF-8 text file.
+`ConfigTunnelFile` stores each configuration as a UTF-8 text file.
 
 ```java
+ConfigTunnelFile tunnel = ConfigTunnelFile.builder()
+  .baseDir(Path.of("/path/to/config/root"))
+  .noticeExtension(".notice")
+  .build();
+
 HotConfigFactory factory = new HotConfigFactory(
-  new ConfTunnelFile(Path.of("/path/to/config/root"))
+  tunnel
 );
 ```
 
@@ -376,10 +386,11 @@ host=localhost
 ```
 
 The file tunnel uses file modification time as the modification marker.
+Notice lines are stored in a sibling UTF-8 file at `localPath + noticeExtension`.
 
 ### JDBC
 
-`kz-pompei-conf-jdbc` stores configurations in a database table. PostgreSQL and MariaDB are detected from JDBC metadata.
+`kz-pompei-hotconfig-jdbc` stores configurations in a database table. PostgreSQL and MariaDB are detected from JDBC metadata.
 
 ```java
 import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbc;
@@ -387,32 +398,53 @@ import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbcBuilder;
 import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbcDef;
 
 ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
-def.tableName = "hitconfig";
+def.tableName = "hotconfig";
 
-ConfTunnelJdbc tunnel = ConfigTunnelJdbcBuilder.build(() -> dataSource.getConnection(), def);
+ConfigTunnelJdbc tunnel = ConfigTunnelJdbcBuilder.build(() -> dataSource.getConnection(), def);
 ```
 
 The table and schema are created automatically when missing. Column names are configurable through `ConfigTunnelJdbcDef`.
+Notice lines are stored in the `colNotice` text column on the configuration row only. If you already have a table from an older version,
+add this column manually before using notice storage.
 
 ### etcd
 
-`kz-pompei-conf-etcd` stores each configuration under one etcd key.
+`kz-pompei-hotconfig-etcd` stores each configuration under one etcd key.
 
 ```java
 import io.etcd.jetcd.Client;
 import kz.pompei.hotconfig.etcd.ConfigTunnelEtcd;
-import kz.pompei.hotconfig.etcd.ConfigTunnelEtcdDef;
+import kz.pompei.hotconfig.etcd.ConfTunnelEtcdDef;
 
-ConfigTunnelEtcdDef def = new ConfigTunnelEtcdDef();
+ConfTunnelEtcdDef def = new ConfTunnelEtcdDef();
 def.keyPrefix = "/kz-pompei-conf-etcd/";
 
 try (Client client = Client.builder().endpoints("http://localhost:17403").build();
      ConfigTunnelEtcd tunnel = new ConfigTunnelEtcd(client, def)) {
-  HotConfFactory factory = new HotConfFactory(tunnel);
+  HotConfigFactory factory = new HotConfigFactory(tunnel);
 }
 ```
 
 The etcd tunnel uses the key `modRevision` as the modification marker.
+Notice lines are stored under a separate key at `localPath + noticeExtension`.
+
+### Notice Lines
+
+`ConfigTunnel` supports notice text associated with a configuration:
+
+```java
+import java.util.List;
+
+tunnel.writeNoticeLines("app/AppConf.hotconf", List.of("invalid port", "fallback was used"));
+List<String> notices = tunnel.readNoticeLines("app/AppConf.hotconf");
+```
+
+Notice lines are separate from `@ConfDoc` comments and are not attached to individual parameters.
+
+## Changelog
+
+Release notes are kept in [CHANGELOG.md](CHANGELOG.md). Detailed notes for this release are in
+[versions/0.0.4.md](versions/0.0.4.md).
 
 ## Build And Test
 
@@ -425,7 +457,7 @@ Requirements:
 Run core tests:
 
 ```bash
-./gradlew :kz-pompei-conf-core:test
+./gradlew :kz-pompei-hotconfig-core:test
 ```
 
 Start local integration services:
@@ -437,8 +469,8 @@ bash docker/docker-recreate.bash
 Then run backend tests:
 
 ```bash
-./gradlew :kz-pompei-conf-jdbc:test
-./gradlew :kz-pompei-conf-etcd:test
+./gradlew :kz-pompei-hotconfig-jdbc:test
+./gradlew :kz-pompei-hotconfig-etcd:test
 ```
 
 Run all tests:
