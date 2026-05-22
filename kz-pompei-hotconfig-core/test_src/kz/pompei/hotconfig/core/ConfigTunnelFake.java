@@ -1,5 +1,6 @@
 package kz.pompei.hotconfig.core;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,6 +15,7 @@ public class ConfigTunnelFake implements ConfigTunnel {
   public record Dot(@NonNull Conf conf, long revision) {}
 
   public final  ConcurrentHashMap<String, Dot>           storage                 = new ConcurrentHashMap<>();
+  public final  ConcurrentHashMap<String, List<String>>  noticeStorage           = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, AtomicInteger> readCount               = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, AtomicInteger> writeCount              = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, AtomicInteger> modificationMarkerCount = new ConcurrentHashMap<>();
@@ -36,6 +38,14 @@ public class ConfigTunnelFake implements ConfigTunnel {
       Dot  newDot      = new Dot(conf.copy(), newRevision);
       storage.put(localPath, newDot);
     }
+  }
+
+  @Override public @NonNull List<String> readNoticeLines(@NonNull String localPath) {
+    return noticeStorage.getOrDefault(localPath, List.of());
+  }
+
+  @Override public void writeNoticeLines(@NonNull String localPath, @NonNull List<String> lines) {
+    noticeStorage.put(localPath, List.copyOf(lines));
   }
 
   @Override public @Nullable Long modificationMarker(@NonNull String localPath) {

@@ -87,8 +87,14 @@ public class ConfigTunnelFile implements ConfigTunnel {
   }
 
   @Override public @NonNull List<String> readNoticeLines(@NonNull String localPath) {
-    // TODO here to localPath need to add def.noticeExtension
-    throw new RuntimeException("2026-05-22 17:14 Not impl yet ConfigTunnelFile.readLines()");
+    Path path = noticePath(localPath);
+    if (!Files.exists(path)) return List.of();
+
+    try {
+      return Files.readAllLines(path, StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new RuntimeException("U1v2W3x4Y5 :: Could not read configuration notice file: " + path, e);
+    }
   }
 
   @Override public void write(@NonNull String localPath, @NonNull Conf conf) {
@@ -103,8 +109,14 @@ public class ConfigTunnelFile implements ConfigTunnel {
   }
 
   @Override public void writeNoticeLines(@NonNull String localPath, @NonNull List<String> lines) {
-    // TODO here to localPath need to add def.noticeExtension
-    throw new RuntimeException("2026-05-22 17:14 Not impl yet ConfigTunnelFile.writeLines()");
+    Path path = noticePath(localPath);
+    try {
+      Path parent = path.getParent();
+      if (parent != null) Files.createDirectories(parent);
+      Files.write(path, lines, StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new RuntimeException("Z6a7B8c9D0 :: Could not write configuration notice file: " + path, e);
+    }
   }
 
   @Override public @Nullable Long modificationMarker(@NonNull String localPath) {
@@ -120,6 +132,10 @@ public class ConfigTunnelFile implements ConfigTunnel {
 
   private Path path(@NonNull String localPath) {
     return def.baseDir.resolve(localPath);
+  }
+
+  private Path noticePath(@NonNull String localPath) {
+    return path(localPath + def.noticeExtension);
   }
 
   private List<String> writeLines(@NonNull Conf conf) {

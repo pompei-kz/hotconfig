@@ -86,6 +86,16 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
     storage.put(key(localPath), serialize(conf));
   }
 
+  @Override public @NonNull List<String> readNoticeLines(@NonNull String localPath) {
+    String stored = storage.get(noticeKey(localPath));
+    if (stored == null || stored.isEmpty()) return List.of();
+    return List.of(stored.split("\n", -1));
+  }
+
+  @Override public void writeNoticeLines(@NonNull String localPath, @NonNull List<String> lines) {
+    storage.put(noticeKey(localPath), String.join("\n", lines));
+  }
+
   @Override public @Nullable Long modificationMarker(@NonNull String localPath) {
     return storage.modificationMarker(key(localPath));
   }
@@ -97,6 +107,10 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
   private String key(@NonNull String localPath) {
     String normalized = localPath.startsWith("/") ? localPath.substring(1) : localPath;
     return params.keyPrefix + normalized;
+  }
+
+  private String noticeKey(@NonNull String localPath) {
+    return key(localPath + params.noticeExtension);
   }
 
   private String serialize(@NonNull Conf conf) {

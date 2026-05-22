@@ -20,6 +20,7 @@ public class ConfigTunnelJdbcMariaDb extends ConfigTunnelJdbc {
           {colParamName}        VARCHAR(255) NOT NULL,
           {colParamValueStr}    TEXT,
           {colComment}          TEXT,
+          {colNotice}           TEXT,
           {colCreatedAt}        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           {colLastModified}     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           PRIMARY KEY ({colFolder}, {colConfigName}, {colParamName})
@@ -31,6 +32,7 @@ public class ConfigTunnelJdbcMariaDb extends ConfigTunnelJdbc {
         .replace("{colParamName}", params.colParamName)
         .replace("{colParamValueStr}", params.colParamValueStr)
         .replace("{colComment}", params.colComment)
+        .replace("{colNotice}", params.colNotice)
         .replace("{colCreatedAt}", params.colCreatedAt)
         .replace("{colLastModified}", params.colLastModified);
 

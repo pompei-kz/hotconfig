@@ -100,12 +100,76 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         ps.executeUpdate();
       }
 
-      insertRow(connection, folder, configName, "", "", String.join("\n", conf.confComments));
+      insertRow(connection, folder, configName, "", "", String.join("\n", conf.confComments), null);
       for (ConfParam param : conf.params) {
-        insertRow(connection, folder, configName, param.name, param.valueStr, String.join("\n", param.comments));
+        insertRow(connection, folder, configName, param.name, param.valueStr, String.join("\n", param.comments), null);
       }
     } catch (SQLException e) {
       throw new RuntimeException("E1f2G3h4I5 :: Could not write configuration to table: " + params.tableName, e);
+    }
+  }
+
+  @Override public @NonNull List<String> readNoticeLines(@NonNull String localPath) {
+    String folder     = folder(localPath);
+    String configName = configName(localPath);
+
+    try (@NonNull Connection connection = connectionGet.getConnection()) {
+      String sql = """
+        SELECT {colNotice}
+        FROM {tableName}
+        WHERE {colFolder} = ? AND {colConfigName} = ? AND {colParamName} = ?
+        """
+        .replace("{colNotice}", params.colNotice)
+        .replace("{tableName}", params.tableName)
+        .replace("{colFolder}", params.colFolder)
+        .replace("{colConfigName}", params.colConfigName)
+        .replace("{colParamName}", params.colParamName);
+
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        ps.setString(1, folder);
+        ps.setString(2, configName);
+        ps.setString(3, "");
+        try (ResultSet rs = ps.executeQuery()) {
+          if (!rs.next()) return List.of();
+          return lines(rs.getString(params.colNotice));
+        }
+      }
+    } catch (SQLException e) {
+      if (isMissingTable(e)) return List.of();
+      throw new RuntimeException("V1w2X3y4Z5 :: Could not read configuration notice from table: " + params.tableName, e);
+    }
+  }
+
+  @Override public void writeNoticeLines(@NonNull String localPath, @NonNull List<String> lines) {
+    String folder     = folder(localPath);
+    String configName = configName(localPath);
+    String notice     = String.join("\n", lines);
+
+    createTableIfNotExists();
+
+    try (@NonNull Connection connection = connectionGet.getConnection()) {
+      String updateSql = """
+        UPDATE {tableName}
+        SET {colNotice} = ?
+        WHERE {colFolder} = ? AND {colConfigName} = ? AND {colParamName} = ?
+        """
+        .replace("{tableName}", params.tableName)
+        .replace("{colNotice}", params.colNotice)
+        .replace("{colFolder}", params.colFolder)
+        .replace("{colConfigName}", params.colConfigName)
+        .replace("{colParamName}", params.colParamName);
+
+      try (PreparedStatement ps = connection.prepareStatement(updateSql)) {
+        ps.setString(1, notice);
+        ps.setString(2, folder);
+        ps.setString(3, configName);
+        ps.setString(4, "");
+        if (ps.executeUpdate() > 0) return;
+      }
+
+      insertRow(connection, folder, configName, "", null, null, notice);
+    } catch (SQLException e) {
+      throw new RuntimeException("A6b7C8d9E0 :: Could not write configuration notice to table: " + params.tableName, e);
     }
   }
 
@@ -166,6 +230,10 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
   }
 
   private List<String> commentLines(@Nullable String comment) {
+    return lines(comment);
+  }
+
+  private List<String> lines(@Nullable String comment) {
     if (comment == null || comment.isEmpty()) return List.of();
     return Arrays.asList(comment.split("\\R", -1));
   }
@@ -192,18 +260,20 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
                          @NonNull String configName,
                          @NonNull String paramName,
                          @Nullable String paramValue,
-                         @Nullable String comment) throws SQLException {
+                         @Nullable String comment,
+                         @Nullable String notice) throws SQLException {
 
     String sql = """
-      INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment})
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment}, {colNotice})
+      VALUES (?, ?, ?, ?, ?, ?)
       """
       .replace("{tableName}", params.tableName)
       .replace("{colFolder}", params.colFolder)
       .replace("{colConfigName}", params.colConfigName)
       .replace("{colParamName}", params.colParamName)
       .replace("{colParamValueStr}", params.colParamValueStr)
-      .replace("{colComment}", params.colComment);
+      .replace("{colComment}", params.colComment)
+      .replace("{colNotice}", params.colNotice);
 
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
       ps.setString(1, folder);
@@ -211,6 +281,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
       ps.setString(3, paramName);
       ps.setString(4, paramValue);
       ps.setString(5, comment);
+      ps.setString(6, notice);
       ps.executeUpdate();
     }
   }

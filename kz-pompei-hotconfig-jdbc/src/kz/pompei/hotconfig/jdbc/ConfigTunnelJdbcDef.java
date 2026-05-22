@@ -57,6 +57,14 @@ public class ConfigTunnelJdbcDef {
   public String colComment = "cmt";
 
   /**
+   * The name of the column containing notice text associated with the whole config.
+   * <p>
+   * The notice is stored as a single text string—lines are joined by a line break (\n) when writing.
+   * This field is used only for the config row; parameter rows leave it null.
+   */
+  public String colNotice = "notice";
+
+  /**
    * The name of the column containing the creation timestamp of the config or parameter.
    */
   public String colCreatedAt = "created_at";

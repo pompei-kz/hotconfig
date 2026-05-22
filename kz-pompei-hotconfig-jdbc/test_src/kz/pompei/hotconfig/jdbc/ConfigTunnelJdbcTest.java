@@ -644,4 +644,83 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
     assertThat(updatedSecondMarker).isGreaterThan(initialSecondMarker);
   }
 
+  @Test(dataProvider = "databaseType")
+  public void readNoticeLines_missingConfig(@NonNull DatabaseType databaseType) {
+
+    String nameOfThisMethod = "readNoticeLines_missingConfig";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
+    def.tableName = nameOfThisMethod + "_" + RND.str(8);
+
+    ConfigTunnelJdbc confTunnelJdbc = ConfigTunnelJdbcBuilder.build(connectionGet, def);
+
+    //
+    //
+    List<String> lines = confTunnelJdbc.readNoticeLines("some/folder/test-config.hotconf");
+    //
+    //
+
+    assertThat(lines).isEmpty();
+    assertThat(tableExists(connectionGet, def.tableName)).isFalse();
+  }
+
+  @Test(dataProvider = "databaseType")
+  public void writeNoticeLines_configRowOnly(@NonNull DatabaseType databaseType) throws SQLException {
+
+    String nameOfThisMethod = "writeNoticeLines_configRowOnly";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
+    def.tableName = nameOfThisMethod + "_" + RND.str(8);
+
+    Conf conf = new Conf();
+    ConfParam param = new ConfParam();
+    param.name     = "param0";
+    param.valueStr = "value0";
+    conf.params.add(param);
+
+    ConfigTunnelJdbc confTunnelJdbc = ConfigTunnelJdbcBuilder.build(connectionGet, def);
+    confTunnelJdbc.write("some/folder/test-config.hotconf", conf);
+
+    //
+    //
+    confTunnelJdbc.writeNoticeLines("some/folder/test-config.hotconf", List.of("notice line 1", "notice line 2", ""));
+    //
+    //
+
+    assertThat(confTunnelJdbc.readNoticeLines("some/folder/test-config.hotconf"))
+      .isEqualTo(List.of("notice line 1", "notice line 2", ""));
+
+    try (@NonNull Connection connection = connectionGet.getConnection()) {
+      String sql = """
+        SELECT {colParamName}, {colNotice}
+        FROM {tableName}
+        WHERE {colFolder} = ? AND {colConfigName} = ?
+        ORDER BY {colParamName}
+        """
+        .replace("{colParamName}", def.colParamName)
+        .replace("{colNotice}", def.colNotice)
+        .replace("{tableName}", def.tableName)
+        .replace("{colFolder}", def.colFolder)
+        .replace("{colConfigName}", def.colConfigName);
+
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        ps.setString(1, "some/folder");
+        ps.setString(2, "test-config.hotconf");
+        try (ResultSet rs = ps.executeQuery()) {
+          assertThat(rs.next()).isTrue();
+          assertThat(rs.getString(def.colParamName)).isEqualTo("");
+          assertThat(rs.getString(def.colNotice)).isEqualTo("notice line 1\nnotice line 2\n");
+          assertThat(rs.next()).isTrue();
+          assertThat(rs.getString(def.colParamName)).isEqualTo("param0");
+          assertThat(rs.getString(def.colNotice)).isNull();
+          assertThat(rs.next()).isFalse();
+        }
+      }
+    }
+  }
+
 }

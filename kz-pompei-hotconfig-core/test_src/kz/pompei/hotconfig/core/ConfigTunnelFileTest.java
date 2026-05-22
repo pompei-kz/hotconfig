@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
 import lombok.NonNull;
@@ -45,7 +46,7 @@ public class ConfigTunnelFileTest {
       StandardCharsets.UTF_8
     );
 
-    ConfigTunnelFile confTunnelFile = new ConfigTunnelFile(dir);
+    ConfigTunnelFile confTunnelFile = tunnel();
 
     //
     //
@@ -70,7 +71,7 @@ public class ConfigTunnelFileTest {
 
   @Test public void readMissingFile() {
 
-    ConfigTunnelFile confTunnelFile = new ConfigTunnelFile(dir);
+    ConfigTunnelFile confTunnelFile = tunnel();
 
     //
     //
@@ -100,7 +101,7 @@ public class ConfigTunnelFileTest {
       StandardCharsets.UTF_8
     );
 
-    ConfigTunnelFile confTunnelFile = new ConfigTunnelFile(dir);
+    ConfigTunnelFile confTunnelFile = tunnel();
 
     //
     //
@@ -147,7 +148,7 @@ public class ConfigTunnelFileTest {
     slash.valueStr = "C:\\data\\file";
     conf.params.add(slash);
 
-    ConfigTunnelFile confTunnelFile = new ConfigTunnelFile(dir);
+    ConfigTunnelFile confTunnelFile = tunnel();
 
     //
     //
@@ -172,7 +173,7 @@ public class ConfigTunnelFileTest {
         """
     );
 
-    Conf readConf = new ConfigTunnelFile(dir).read("nested/app.conf");
+    Conf readConf = tunnel().read("nested/app.conf");
     assertThat(readConf).isNotNull();
     assertThat(readConf.confComments).containsExactly("configuration comment", "second configuration comment");
     assertThat(readConf.params).hasSize(4);
@@ -188,7 +189,7 @@ public class ConfigTunnelFileTest {
     file.toFile().getParentFile().mkdirs();
     Files.writeString(file, "");
 
-    ConfigTunnelFile confTunnelFile = new ConfigTunnelFile(dir);
+    ConfigTunnelFile confTunnelFile = tunnel();
 
     //
     //
@@ -202,7 +203,7 @@ public class ConfigTunnelFileTest {
 
   @Test public void modificationMarkerMissingFile() {
 
-    ConfigTunnelFile confTunnelFile = new ConfigTunnelFile(dir);
+    ConfigTunnelFile confTunnelFile = tunnel();
 
     //
     //
@@ -211,6 +212,40 @@ public class ConfigTunnelFileTest {
     //
 
     assertThat(lastModified).isNull();
+  }
+
+  @Test public void readNoticeLines_missingFile() {
+    ConfigTunnelFile confTunnelFile = tunnel();
+
+    //
+    //
+    List<String> lines = confTunnelFile.readNoticeLines("missing.conf");
+    //
+    //
+
+    assertThat(lines).isEmpty();
+  }
+
+  @Test public void writeNoticeLines() throws IOException {
+    ConfigTunnelFile confTunnelFile = tunnel();
+
+    //
+    //
+    confTunnelFile.writeNoticeLines("nested/app.conf", List.of("notice line 1", "notice line 2", ""));
+    //
+    //
+
+    assertThat(Files.readAllLines(dir.resolve("nested/app.conf.notice"), StandardCharsets.UTF_8))
+      .containsExactly("notice line 1", "notice line 2", "");
+    assertThat(confTunnelFile.readNoticeLines("nested/app.conf")).containsExactly("notice line 1", "notice line 2", "");
+    assertThat(Files.exists(dir.resolve("nested/app.conf"))).isFalse();
+  }
+
+  private @NonNull ConfigTunnelFile tunnel() {
+    return ConfigTunnelFile.builder()
+                           .baseDir(dir)
+                           .noticeExtension(".notice")
+                           .build();
   }
 
 }

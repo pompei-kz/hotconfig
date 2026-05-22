@@ -232,6 +232,57 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
     }
   }
 
+  @Test public void readNoticeLines_keyDoesNotExists() {
+    ConfTunnelEtcdDef params = createParams("readNoticeLines_keyDoesNotExists");
+
+    String localPath     = "some/folder/" + RND.str(10) + "/readNoticeLines_keyDoesNotExists.hotconf";
+    String fullNoticeKey = key(params, localPath + params.noticeExtension);
+
+    try (Client client = createClient();
+         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
+      assertThat(keyExists(client, fullNoticeKey)).isFalse();
+
+      //
+      //
+      List<String> lines = confTunnelEtcd.readNoticeLines(localPath);
+      //
+      //
+
+      assertThat(lines).isEmpty();
+      assertThat(keyExists(client, fullNoticeKey)).isFalse();
+    }
+  }
+
+  @Test public void writeNoticeLines() throws Exception {
+    ConfTunnelEtcdDef params = createParams("writeNoticeLines");
+
+    String localPath     = "some/folder/" + RND.str(10) + "/writeNoticeLines.hotconf";
+    String fullKey       = key(params, localPath);
+    String fullNoticeKey = key(params, localPath + params.noticeExtension);
+
+    try (Client client = createClient();
+         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
+
+      //
+      //
+      confTunnelEtcd.writeNoticeLines(localPath, List.of("notice line 1", "notice line 2", ""));
+      //
+      //
+
+      assertThat(keyExists(client, fullKey)).isFalse();
+      assertThat(keyExists(client, fullNoticeKey)).isTrue();
+
+      String stored = new String(
+        client.getKVClient().get(byteSequence(fullNoticeKey)).get().getKvs().get(0).getValue().getBytes(),
+        StandardCharsets.UTF_8
+      );
+      assertThat(stored).isEqualTo("notice line 1\nnotice line 2\n");
+      assertThat(confTunnelEtcd.readNoticeLines(localPath)).isEqualTo(List.of("notice line 1", "notice line 2", ""));
+
+      deleteKey(client, fullNoticeKey);
+    }
+  }
+
   @Test public void constructor_usesExternalClient() {
     ConfTunnelEtcdDef params = createParams("constructor_usesExternalClient");
 

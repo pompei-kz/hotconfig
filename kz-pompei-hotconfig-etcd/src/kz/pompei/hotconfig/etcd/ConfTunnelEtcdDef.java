@@ -11,4 +11,9 @@ public class ConfTunnelEtcdDef {
    * The final key is composed as {@code keyPrefix + localPath}.
    */
   public String keyPrefix = "/kz-pompei-conf-etcd/";
+
+  /**
+   * Extension appended to the configuration key when storing notice lines.
+   */
+  public String noticeExtension = ".notice";
 }
