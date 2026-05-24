@@ -49,13 +49,36 @@ public class HotConfigFactoryTest {
     String apple();
   }
 
+  public interface TestConfEnv {
+
+    @ConfDefaultValue("$ENV{APP_NAME}")
+    String appName();
+
+    @ConfDefaultValue("$ENV{APP_PORT}")
+    int appPort();
+
+    String endpoint();
+  }
+
   private static HotConfigFactory createFactory(ConfigTunnelFake tunnel, ClockFake clock, int revisionCheckTimeoutMs) {
+    return createFactory(tunnel, clock, EnvSrc.REAL, revisionCheckTimeoutMs);
+  }
+
+  private static HotConfigFactory createFactory(ConfigTunnelFake tunnel, ClockFake clock, EnvSrc envSrc, int revisionCheckTimeoutMs) {
     return HotConfigFactory.builder()
                            .tunnel(tunnel)
                            .clock(clock)
+                           .envSrc(envSrc)
                            .extension(".tst")
                            .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
                            .build();
+  }
+
+  private static ConfParam findParam(Conf conf, String name) {
+    return conf.params.stream()
+                      .filter(x -> name.equals(x.name))
+                      .findFirst()
+                      .orElseThrow();
   }
 
   @Test
@@ -217,6 +240,61 @@ public class HotConfigFactoryTest {
     assertThat(p0.name).isEqualTo("status1");
     assertThat(p1.name).describedAs("3q1jRa8Dt0 :: it should not be removed").isEqualTo("left-param");
     assertThat(p2.name).isEqualTo("status2");
+  }
+
+  @Test
+  public void createConf__usesEnvSrcForDefaultValues() {
+
+    ConfigTunnelFake tunnel = new ConfigTunnelFake();
+    ClockFake        clock  = new ClockFake(13);
+    EnvSrcFake       envSrc = new EnvSrcFake();
+    envSrc.envMap.put("APP_NAME", "weather-service");
+    envSrc.envMap.put("APP_PORT", "9090");
+
+    HotConfigFactory factory = createFactory(tunnel, clock, envSrc, 500);
+
+    //
+    //
+    TestConfEnv conf = factory.createConf(TestConfEnv.class);
+    //
+    //
+
+    assertThat(conf.appName()).isEqualTo("weather-service");
+    assertThat(conf.appPort()).isEqualTo(9090);
+    assertThat(conf.endpoint()).isNull();
+
+    Conf storedConf = tunnel.storage.get("TestConfEnv.tst").conf();
+    assertThat(findParam(storedConf, "appName").valueStr).isEqualTo("$ENV{APP_NAME}");
+    assertThat(findParam(storedConf, "appPort").valueStr).isEqualTo("$ENV{APP_PORT}");
+    assertThat(findParam(storedConf, "endpoint").valueStr).isNull();
+  }
+
+  @Test
+  public void createConf__usesEnvSrcForStoredValues() {
+
+    ConfigTunnelFake tunnel = new ConfigTunnelFake();
+    ClockFake        clock  = new ClockFake(13);
+    EnvSrcFake       envSrc = new EnvSrcFake();
+    envSrc.envMap.put("APP_NAME", "billing-service");
+    envSrc.envMap.put("APP_PORT", "17017");
+
+    Conf conf = new Conf();
+    conf.params.add(new ConfParam("appName", "$ENV{APP_NAME}"));
+    conf.params.add(new ConfParam("appPort", "$ENV{APP_PORT}"));
+    conf.params.add(new ConfParam("endpoint", "http://$ENV{APP_NAME}:$ENV{APP_PORT}/health"));
+    tunnel.storage.put("TestConfEnv.tst", new ConfigTunnelFake.Dot(conf, 1));
+
+    HotConfigFactory factory = createFactory(tunnel, clock, envSrc, 500);
+
+    //
+    //
+    TestConfEnv testConfEnv = factory.createConf(TestConfEnv.class);
+    //
+    //
+
+    assertThat(testConfEnv.appName()).isEqualTo("billing-service");
+    assertThat(testConfEnv.appPort()).isEqualTo(17017);
+    assertThat(testConfEnv.endpoint()).isEqualTo("http://billing-service:17017/health");
   }
 
   @Test
