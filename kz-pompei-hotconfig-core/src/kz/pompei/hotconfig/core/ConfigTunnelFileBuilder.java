@@ -12,8 +12,8 @@ import lombok.NonNull;
  */
 public class ConfigTunnelFileBuilder {
 
-  private Path   baseDir;
-  private String noticeExtension;
+  private          Path   baseDir;
+  private @NonNull String noticeExtension = ".notice";
 
   /**
    * The base directory in which files will be created. Paths are specified relative to this directory in the {@link ConfFolder} annotation.
@@ -62,9 +62,6 @@ public class ConfigTunnelFileBuilder {
   public @NonNull ConfigTunnelFile build() {
     if (baseDir == null) {
       throw new IllegalArgumentException("JYf0g5Hu6Y :: `baseDir` must be specified");
-    }
-    if (noticeExtension == null) {
-      throw new IllegalArgumentException("WWO0PtL58H :: `noticeExtension` must be specified");
     }
     return new ConfigTunnelFile(new ConfigTunnelFile.Def(baseDir, noticeExtension));
   }

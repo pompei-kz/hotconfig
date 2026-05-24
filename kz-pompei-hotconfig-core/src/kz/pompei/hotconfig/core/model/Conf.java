@@ -30,6 +30,7 @@ public class Conf {
       resultParam.comments = new ArrayList<>(param.comments);
       resultParam.name     = param.name;
       resultParam.valueStr = param.valueStr;
+      resultParam.error = param.error;
       result.params.add(resultParam);
     }
     return result;

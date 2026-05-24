@@ -348,7 +348,7 @@ public class ParseUtil {
     }
   }
 
-  private static @Nullable Object defaultNullValue(@NonNull Type genericReturnType) {
+  public static @Nullable Object defaultNullValue(@NonNull Type genericReturnType) {
     if (genericReturnType == boolean.class) return false;
     if (genericReturnType == byte.class) return (byte) 0;
     if (genericReturnType == short.class) return (short) 0;

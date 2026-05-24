@@ -60,4 +60,8 @@ public class ConfParam {
   @Override public int hashCode() {
     return Objects.hash(comments, name, valueStr, error);
   }
+
+  @Override public String toString() {
+    return name + "=" + valueStr + (error == null ? "" : " #ERR " + error);
+  }
 }

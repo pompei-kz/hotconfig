@@ -5,10 +5,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -18,6 +16,7 @@ import kz.pompei.hotconfig.core.ann.ConfDoc;
 import kz.pompei.hotconfig.core.ann.ConfFolder;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
+import kz.pompei.hotconfig.core.model.ParsedConf;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
@@ -58,9 +57,9 @@ public class HotConfigFactory {
 
   @RequiredArgsConstructor
   private static class Dot {
-    final long                modificationMarker;
-    final Map<String, Object> valueMap;
-    final AtomicBoolean       touched = new AtomicBoolean(true);
+    final long          modificationMarker;
+    final ParsedConf    parsedConf;
+    final AtomicBoolean touched = new AtomicBoolean(true);
   }
 
   private final ConcurrentHashMap<String, Dot>       localPath_to_dot = new ConcurrentHashMap<>();
@@ -73,7 +72,7 @@ public class HotConfigFactory {
    * value parsing.
    *
    * @param confClass configuration interface class
-   * @param <I> configuration interface type
+   * @param <I>       configuration interface type
    * @return proxy backed by the configured tunnel
    */
   public @NonNull <I> I createConf(@NonNull Class<I> confClass) {
@@ -116,9 +115,13 @@ public class HotConfigFactory {
           }
           {
             Dot    dot   = getDot(confClass);
-            Object value = dot.valueMap.get(method.getName());
+            Object value = dot.parsedConf.paramName_to_value.get(method.getName());
 
-            yield value;
+            if (value == null && method.getReturnType().isPrimitive()) {
+              yield ParseUtil.defaultNullValue(method.getReturnType());
+            } else {
+              yield value;
+            }
           }
         }
       };
@@ -191,7 +194,6 @@ public class HotConfigFactory {
           }
         }
 
-
         if (modificationMarker != null) {
           // assert conf != null
 
@@ -199,7 +201,16 @@ public class HotConfigFactory {
             conf = compareOrSupplementAndWriteConf(conf, confClass, localPath);
           }
 
-          Dot dot = new Dot(modificationMarker, convertConfToValueMap(conf, confClass));
+          Dot dot = new Dot(modificationMarker, parseConf(conf, confClass));
+
+          {
+            Conf copy = conf.copy();
+            dot.parsedConf.applyErrorsTo(conf);
+            if (!conf.equals(copy)) {
+              def.tunnel.write(localPath, conf);
+            }
+          }
+
           localPath_to_dot.put(localPath, dot);
           lastReadMs.set(def.clock.nowMs());
           return dot;
@@ -208,7 +219,10 @@ public class HotConfigFactory {
     }
 
     {
-      Conf conf = createDefaultConf(confClass);
+      Conf       conf       = createDefaultConf(confClass);
+      ParsedConf parsedConf = parseConf(conf, confClass);
+
+      parsedConf.applyErrorsTo(conf);
 
       def.tunnel.write(localPath, conf);
 
@@ -220,7 +234,7 @@ public class HotConfigFactory {
 
       lastReadMs.set(def.clock.nowMs());
 
-      Dot dot = new Dot(modificationMarker, convertConfToValueMap(conf, confClass));
+      Dot dot = new Dot(modificationMarker, parsedConf);
       localPath_to_dot.put(localPath, dot);
       return dot;
     }
@@ -264,18 +278,22 @@ public class HotConfigFactory {
     return ret;
   }
 
-  private @NonNull Map<String, Object> convertConfToValueMap(@NonNull Conf conf, @NonNull Class<?> confClass) {
+  private @NonNull ParsedConf parseConf(@NonNull Conf conf, @NonNull Class<?> confClass) {
 
-    Map<String, Object> ret = new HashMap<>();
+    ParsedConf ret = new ParsedConf();
 
     for (ConfParam param : conf.params) {
       try {
         Method method = confClass.getMethod(param.name);
 
-        ret.put(param.name, ParseUtil.parseStrToGenericType(param.valueStr, def.envSrc, method.getGenericReturnType()));
+        Object value = ParseUtil.parseStrToGenericType(param.valueStr, def.envSrc, method.getGenericReturnType());
+
+        ret.paramName_to_value.put(param.name, value);
 
       } catch (NoSuchMethodException e) {
         continue;
+      } catch (RuntimeException e) {
+        ret.paramName_to_error.put(param.name, e.getMessage());
       }
     }
 
@@ -352,7 +370,7 @@ public class HotConfigFactory {
           if (modificationMarker == null) {
             continue;
           }
-          localPath_to_dot.put(localPath, new Dot(modificationMarker, convertConfToValueMap(conf2, confClass)));
+          localPath_to_dot.put(localPath, new Dot(modificationMarker, parseConf(conf2, confClass)));
           continue;
         }
       }
@@ -364,7 +382,7 @@ public class HotConfigFactory {
         if (modificationMarker == null) {
           continue;
         }
-        localPath_to_dot.put(localPath, new Dot(modificationMarker, convertConfToValueMap(conf, confClass)));
+        localPath_to_dot.put(localPath, new Dot(modificationMarker, parseConf(conf, confClass)));
       }
     }
   }

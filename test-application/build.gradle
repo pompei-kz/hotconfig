@@ -1,0 +1,8 @@
+dependencies {
+
+  implementation "kz.pompei.fui:kz-pompei-fui:$kz_pompei_fui_version"
+  implementation project(":kz-pompei-hotconfig-core")
+  implementation project(":kz-pompei-hotconfig-etcd")
+  implementation project(":kz-pompei-hotconfig-jdbc")
+
+}
