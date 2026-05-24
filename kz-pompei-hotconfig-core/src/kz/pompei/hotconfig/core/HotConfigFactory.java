@@ -22,7 +22,13 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
 
-// TODO add Javadoc here and all public methods in this class
+/**
+ * Creates dynamic proxy implementations for configuration interfaces.
+ * <p>
+ * Each configuration interface is mapped to a storage path based on its simple class name, the configured extension, and optional
+ * {@link ConfFolder}. Values are read from the configured {@link ConfigTunnel}, cached locally, and refreshed after the configured
+ * revision check timeout or when {@link #refresh()} is called.
+ */
 public class HotConfigFactory {
   private final @NonNull Def           def;
   private final @NonNull AtomicLong    lastReadMs  = new AtomicLong(0);
@@ -41,6 +47,11 @@ public class HotConfigFactory {
     private final          long         revisionCheckTimeoutMs;
   }
 
+  /**
+   * Creates a builder for a hot config factory.
+   *
+   * @return new factory builder
+   */
   public static @NonNull HotConfigFactoryBuilder builder() {
     return new HotConfigFactoryBuilder();
   }
@@ -55,6 +66,16 @@ public class HotConfigFactory {
   private final ConcurrentHashMap<String, Dot>       localPath_to_dot = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<Class<?>, Integer> confClasses      = new ConcurrentHashMap<>();
 
+  /**
+   * Creates a proxy implementation for a configuration interface.
+   * <p>
+   * Interface methods must not declare parameters. Method names are used as configuration parameter names, and method return types drive
+   * value parsing.
+   *
+   * @param confClass configuration interface class
+   * @param <I> configuration interface type
+   * @return proxy backed by the configured tunnel
+   */
   public @NonNull <I> I createConf(@NonNull Class<I> confClass) {
 
     confClasses.put(confClass, 1);
@@ -298,6 +319,12 @@ public class HotConfigFactory {
     return param;
   }
 
+  /**
+   * Refreshes all configuration interfaces created by this factory.
+   * <p>
+   * Existing storage entries are re-read when their modification marker changes. Missing storage entries are created from interface
+   * defaults and documentation annotations.
+   */
   public void refresh() {
     refreshable.set(true);
 

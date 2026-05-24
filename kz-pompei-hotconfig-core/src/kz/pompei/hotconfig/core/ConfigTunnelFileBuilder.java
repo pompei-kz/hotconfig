@@ -4,7 +4,12 @@ import java.nio.file.Path;
 import kz.pompei.hotconfig.core.ann.ConfFolder;
 import lombok.NonNull;
 
-// TODO add Javadoc here
+/**
+ * Builder for {@link ConfigTunnelFile}.
+ * <p>
+ * The resulting tunnel stores configuration files below a configured base directory and stores notice files by appending a configured
+ * notice extension to the same local path.
+ */
 public class ConfigTunnelFileBuilder {
 
   private Path   baseDir;
@@ -48,6 +53,12 @@ public class ConfigTunnelFileBuilder {
     return this;
   }
 
+  /**
+   * Builds a file-backed configuration tunnel.
+   *
+   * @return configured file tunnel
+   * @throws IllegalArgumentException if {@link #baseDir(Path)} or {@link #noticeExtension(String)} was not specified
+   */
   public @NonNull ConfigTunnelFile build() {
     if (baseDir == null) {
       throw new IllegalArgumentException("JYf0g5Hu6Y :: `baseDir` must be specified");
