@@ -6,6 +6,10 @@ repositories {
   mavenCentral()
 }
 
+dependencies {
+  implementation "kz.pompei.gradle:kz-pompei-gradle-plugins:0.0.1"
+}
+
 gradlePlugin {
   plugins {
     kzPompeiPublication {
