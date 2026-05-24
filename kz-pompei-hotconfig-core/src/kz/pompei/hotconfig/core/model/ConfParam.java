@@ -3,6 +3,7 @@ package kz.pompei.hotconfig.core.model;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -27,6 +28,11 @@ public class ConfParam {
    */
   public String valueStr;
 
+  /**
+   * Error message if parameter parsing failed.
+   */
+  public @Nullable String error;
+
   public ConfParam() {}
 
   public ConfParam(String name, String valueStr) {
@@ -39,5 +45,19 @@ public class ConfParam {
       Collections.addAll(comments, comment.split("\n"));
     }
     return this;
+  }
+
+  @Override public boolean equals(Object o) {
+    if (!(o instanceof ConfParam confParam)) return false;
+    //@formatter:off
+    return Objects.equals(comments , confParam.comments )
+        && Objects.equals(name     , confParam.name     )
+        && Objects.equals(valueStr , confParam.valueStr )
+        && Objects.equals(error    , confParam.error    );
+    //@formatter:on
+  }
+
+  @Override public int hashCode() {
+    return Objects.hash(comments, name, valueStr, error);
   }
 }

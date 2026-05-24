@@ -2,6 +2,7 @@ package kz.pompei.hotconfig.core.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import lombok.NonNull;
 
 /**
@@ -32,5 +33,14 @@ public class Conf {
       result.params.add(resultParam);
     }
     return result;
+  }
+
+  @Override public boolean equals(Object o) {
+    if (!(o instanceof Conf conf)) return false;
+    return Objects.equals(confComments, conf.confComments) && Objects.equals(params, conf.params);
+  }
+
+  @Override public int hashCode() {
+    return Objects.hash(confComments, params);
   }
 }

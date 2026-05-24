@@ -18,26 +18,30 @@ import kz.pompei.hotconfig.core.ann.ConfDoc;
 import kz.pompei.hotconfig.core.ann.ConfFolder;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
-import kz.pompei.hotconfig.core.model.HotConfigFactoryParams;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
 
 public class HotConfigFactory {
-  private final @NonNull ConfigTunnel           tunnel;
-  private final @NonNull HotConfigFactoryParams params;
-  private final @NonNull DynamicParams          dynamicParams;
-  private final @NonNull AtomicLong           lastReadMs  = new AtomicLong(0);
-  private final @NonNull AtomicBoolean        refreshable = new AtomicBoolean(false);
+  private final @NonNull Def           def;
+  private final @NonNull AtomicLong    lastReadMs  = new AtomicLong(0);
+  private final @NonNull AtomicBoolean refreshable = new AtomicBoolean(false);
 
-  public HotConfigFactory(@NonNull ConfigTunnel tunnel, @NonNull HotConfigFactoryParams params, @NonNull DynamicParams dynamicParams) {
-    this.tunnel        = tunnel;
-    this.params        = params;
-    this.dynamicParams = dynamicParams;
+  HotConfigFactory(@NonNull Def def) {
+    this.def = def;
   }
 
-  public HotConfigFactory(@NonNull ConfigTunnel tunnel) {
-    this(tunnel, HotConfigFactoryParams.builder().build(), DynamicParams.REAL);
+  @RequiredArgsConstructor
+  static class Def {
+    private final @NonNull ConfigTunnel tunnel;
+    private final @NonNull Clock        clock;
+    private final @NonNull EnvSrc       envSrc;
+    private final @NonNull String       extension;
+    private final          long         revisionCheckTimeoutMs;
+  }
+
+  public static @NonNull HotConfigFactoryBuilder builder() {
+    return new HotConfigFactoryBuilder();
   }
 
   @RequiredArgsConstructor
@@ -66,7 +70,7 @@ public class HotConfigFactory {
   }
 
   private <I> @NonNull String formConfName(@NonNull Class<I> confClass) {
-    return confClass.getSimpleName() + params.extension;
+    return confClass.getSimpleName() + def.extension;
   }
 
   private class HotConfProxyHandler implements InvocationHandler {
@@ -129,16 +133,16 @@ public class HotConfigFactory {
         }
 
         long lastReadMs = this.lastReadMs.longValue();
-        long now        = dynamicParams.now();
+        long now        = def.clock.nowMs();
 
-        if (now < lastReadMs + this.params.revisionCheckTimeoutMs) {
+        if (now < lastReadMs + def.revisionCheckTimeoutMs) {
           return dot;
         }
 
         {
-          Long modificationMarker = tunnel.modificationMarker(localPath);
+          Long modificationMarker = def.tunnel.modificationMarker(localPath);
           if (modificationMarker != null) {
-            this.lastReadMs.set(dynamicParams.now());
+            this.lastReadMs.set(def.clock.nowMs());
             if (dot.modificationMarker == modificationMarker) {
               return dot;
             }
@@ -148,19 +152,19 @@ public class HotConfigFactory {
     }
 
     {
-      Long modificationMarker = tunnel.modificationMarker(localPath);
+      Long modificationMarker = def.tunnel.modificationMarker(localPath);
       if (modificationMarker != null) {
 
-        Conf conf = tunnel.read(localPath);
+        Conf conf = def.tunnel.read(localPath);
 
         if (conf == null) {
-          modificationMarker = tunnel.modificationMarker(localPath);
+          modificationMarker = def.tunnel.modificationMarker(localPath);
           if (modificationMarker != null) {
-            conf = tunnel.read(localPath);
+            conf = def.tunnel.read(localPath);
             if (conf == null) {
-              throw new RuntimeException("j22hK1Tm7q :: FATAL ERROR: tunnel.read(" + localPath + ") returns null" +
-                                           " just after tunnel.modificationMarker(" + localPath + ") returns non-null." +
-                                           " tunnel.class = " + tunnel.getClass());
+              throw new RuntimeException("j22hK1Tm7q :: FATAL ERROR: def.tunnel.read(" + localPath + ") returns null" +
+                                           " just after def.tunnel.modificationMarker(" + localPath + ") returns non-null." +
+                                           " def.tunnel.class = " + def.tunnel.getClass());
             }
           }
         }
@@ -175,7 +179,7 @@ public class HotConfigFactory {
 
           Dot dot = new Dot(modificationMarker, convertConfToValueMap(conf, confClass));
           localPath_to_dot.put(localPath, dot);
-          lastReadMs.set(dynamicParams.now());
+          lastReadMs.set(def.clock.nowMs());
           return dot;
         }
       }
@@ -184,15 +188,15 @@ public class HotConfigFactory {
     {
       Conf conf = createDefaultConf(confClass);
 
-      tunnel.write(localPath, conf);
+      def.tunnel.write(localPath, conf);
 
-      Long modificationMarker = tunnel.modificationMarker(localPath);
+      Long modificationMarker = def.tunnel.modificationMarker(localPath);
       if (modificationMarker == null) {
-        throw new RuntimeException("j22hK1Tm7q :: FATAL ERROR: tunnel.modificationMarker(" + localPath + ") returns null" +
-                                     " just after tunnel.write(...). tunnel.class = " + tunnel.getClass());
+        throw new RuntimeException("j22hK1Tm7q :: FATAL ERROR: def.tunnel.modificationMarker(" + localPath + ") returns null" +
+                                     " just after def.tunnel.write(...). def.tunnel.class = " + def.tunnel.getClass());
       }
 
-      lastReadMs.set(dynamicParams.now());
+      lastReadMs.set(def.clock.nowMs());
 
       Dot dot = new Dot(modificationMarker, convertConfToValueMap(conf, confClass));
       localPath_to_dot.put(localPath, dot);
@@ -233,7 +237,7 @@ public class HotConfigFactory {
       ret.params.add(convertToConfParam(method));
     }
 
-    tunnel.write(localPath, ret);
+    def.tunnel.write(localPath, ret);
 
     return ret;
   }
@@ -246,7 +250,7 @@ public class HotConfigFactory {
       try {
         Method method = confClass.getMethod(param.name);
 
-        ret.put(param.name, ParseUtil.parseStrToGenericType(param.valueStr, dynamicParams, method.getGenericReturnType()));
+        ret.put(param.name, ParseUtil.parseStrToGenericType(param.valueStr, def.envSrc, method.getGenericReturnType()));
 
       } catch (NoSuchMethodException e) {
         continue;
@@ -303,7 +307,7 @@ public class HotConfigFactory {
         Dot dot = localPath_to_dot.get(localPath);
         if (dot != null) {
 
-          Long modificationMarker = tunnel.modificationMarker(localPath);
+          Long modificationMarker = def.tunnel.modificationMarker(localPath);
           if (modificationMarker != null) {
             if (modificationMarker == dot.modificationMarker) {
               continue;
@@ -313,10 +317,10 @@ public class HotConfigFactory {
       }
 
       {
-        Conf conf = tunnel.read(localPath);
+        Conf conf = def.tunnel.read(localPath);
         if (conf != null) {
           Conf conf2              = compareOrSupplementAndWriteConf(conf, confClass, localPath);
-          Long modificationMarker = tunnel.modificationMarker(localPath);
+          Long modificationMarker = def.tunnel.modificationMarker(localPath);
           if (modificationMarker == null) {
             continue;
           }
@@ -327,8 +331,8 @@ public class HotConfigFactory {
 
       {
         Conf conf = createDefaultConf(confClass);
-        tunnel.write(localPath, conf);
-        Long modificationMarker = tunnel.modificationMarker(localPath);
+        def.tunnel.write(localPath, conf);
+        Long modificationMarker = def.tunnel.modificationMarker(localPath);
         if (modificationMarker == null) {
           continue;
         }

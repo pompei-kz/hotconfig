@@ -12,11 +12,11 @@ public class ParseUtil {
   private static final MathContext FLOATING_POINT_MATH_CONTEXT = new MathContext(50, RoundingMode.HALF_UP);
 
   public static @Nullable Object parseStrToGenericType(@Nullable String valueStr,
-                                                       @NonNull DynamicParams dynamicParams,
+                                                       @NonNull EnvSrc envSrc,
                                                        @NonNull Type genericReturnType) {
 
     if (valueStr == null) return defaultNullValue(genericReturnType);
-    valueStr = resolveDynamicParams(valueStr, dynamicParams);
+    valueStr = resolveDynamicParams(valueStr, envSrc);
     valueStr = resolveStandardSubstitutions(valueStr);
     if (genericReturnType == String.class) return valueStr;
     if (genericReturnType == boolean.class || genericReturnType == Boolean.class) return parseBoolean(valueStr);
@@ -60,7 +60,7 @@ public class ParseUtil {
     return resolved.toString();
   }
 
-  private static @NonNull String resolveDynamicParams(@NonNull String valueStr, @NonNull DynamicParams dynamicParams) {
+  private static @NonNull String resolveDynamicParams(@NonNull String valueStr, @NonNull EnvSrc envSrc) {
     StringBuilder resolved = new StringBuilder(valueStr.length());
     int           index    = 0;
     while (index < valueStr.length()) {
@@ -78,7 +78,7 @@ public class ParseUtil {
 
       resolved.append(valueStr, index, start);
       String           envName  = valueStr.substring(start + 5, end);
-      @Nullable String envValue = dynamicParams.env(envName);
+      @Nullable String envValue = envSrc.env(envName);
       if (envValue != null) resolved.append(envValue);
       index = end + 1;
     }
@@ -170,7 +170,7 @@ public class ParseUtil {
     int digitsStart = start;
     if (startsWithBasePrefix(value, start)) {
       char prefix = value.charAt(start + 1);
-      radix = switch (prefix) {
+      radix       = switch (prefix) {
         case 'x', 'X' -> 16;
         case 'b', 'B' -> 2;
         case 'o', 'O' -> 8;
