@@ -5,6 +5,37 @@ All notable changes to this project are documented here.
 This project keeps short release summaries in this file and detailed notes in
 `versions/<version>.md`.
 
+## [0.0.6] - 2026-05-24
+
+### Added
+
+- Added `HotConfigFactoryBuilder` as the public construction API for `HotConfigFactory`.
+- Added separate `Clock` and `EnvSrc` configuration hooks for refresh timing and environment substitution.
+- Added `ConfParam.error` persistence for file, JDBC, and etcd tunnels.
+- Added JDBC `error` text column support through `ConfigTunnelJdbcDef.colError`.
+- Added public API Javadocs for factory and builder classes.
+
+### Changed
+
+- README dependency snippets and release links now point to `0.0.6`.
+- File and etcd tunnels write parameter errors after the `name=value` line using the `#ERROR ` prefix.
+- File and etcd tunnels escape newlines and backslashes in parameter errors and restore them on read.
+- Tests now use focused `ClockFake` and `EnvSrcFake` test utilities instead of the removed combined dynamic source.
+
+### Removed
+
+- Removed `HotConfigFactoryParams` and `HotConfigFactoryParamsBuilder`.
+- Removed the legacy `DynamicParams` API and `DynamicParamsFake`.
+
+### Migration Notes
+
+- Construct factories with `HotConfigFactory.builder().tunnel(...).build()`.
+- If you already have JDBC config tables, add the error column manually. With default settings, the column is:
+
+  ```sql
+  error TEXT
+  ```
+
 ## [0.0.5] - 2026-05-22
 
 ### Added
@@ -28,4 +59,5 @@ This project keeps short release summaries in this file and detailed notes in
 - `ConfigTunnelFile` should be created through `ConfigTunnelFile.builder()` with both
   `baseDir` and `noticeExtension` set.
 
+[0.0.6]: versions/0.0.6.md
 [0.0.5]: versions/0.0.5.md

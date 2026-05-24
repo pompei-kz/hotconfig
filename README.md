@@ -5,7 +5,7 @@
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](#requirements)
 [![Gradle](https://img.shields.io/badge/build-Gradle-green.svg)](#build-and-test)
 [![TestNG](https://img.shields.io/badge/tests-TestNG-orange.svg)](#build-and-test)
-[![Version](https://img.shields.io/badge/version-0.0.5-lightgrey.svg)](versions/version.txt)
+[![Version](https://img.shields.io/badge/version-0.0.6-lightgrey.svg)](versions/version.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 `kz-pompei-hotconfig` turns a plain Java interface into a live configuration object.
@@ -42,7 +42,7 @@ This example mirrors the configuration pattern tested in `HotConfigFactoryTest`,
 Add this to build.gradle / dependencies
 
 ```groovy
-implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.5"
+implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.6"
 ```
 
 ### 2. Define A Configuration Interface
@@ -168,16 +168,16 @@ repositories {
 }
 
 dependencies {
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.5"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.6"
   // If you store configs in files, no extra modules are needed
 
   // Optional storage backends
 
   // Add this if you want to store configs in SQL database
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.5"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.6"
   
   // Add this if you want to store configs in etcd database
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.5"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.6"
 }
 ```
 
@@ -188,7 +188,7 @@ dependencies {
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-core</artifactId>
-    <version>0.0.5</version>
+    <version>0.0.6</version>
   </dependency>
 
   <!-- If you store configs in files, no extra modules are needed -->
@@ -199,14 +199,14 @@ dependencies {
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-jdbc</artifactId>
-    <version>0.0.5</version>
+    <version>0.0.6</version>
   </dependency>
 
   <!-- Add this if you want to store configs in etcd database -->
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-etcd</artifactId>
-    <version>0.0.5</version>
+    <version>0.0.6</version>
   </dependency>
 </dependencies>
 ```
@@ -406,6 +406,8 @@ ConfigTunnelJdbc tunnel = ConfigTunnelJdbcBuilder.build(() -> dataSource.getConn
 The table and schema are created automatically when missing. Column names are configurable through `ConfigTunnelJdbcDef`.
 Notice lines are stored in the `colNotice` text column on the configuration row only. If you already have a table from an older version,
 add this column manually before using notice storage.
+Parameter errors are stored in the `colError` text column on parameter rows. Existing JDBC tables must add this column manually before
+using version 0.0.6.
 
 ### etcd
 
@@ -443,10 +445,23 @@ List<String> notices = tunnel.readNoticeLines("app/AppConf.hotconf");
 
 Notice lines are separate from `@ConfDoc` comments and are not attached to individual parameters.
 
+### Parameter Errors
+
+`ConfParam.error` stores validation or parsing error text associated with a parameter.
+File and etcd tunnels write it immediately after the `name=value` line using the `#ERROR ` prefix:
+
+```text
+port=bad value
+#ERROR Cannot parse integer\\nsource=manual edit
+```
+
+Newlines and backslashes in error text are escaped when written and restored when read. If `error` is null, the `#ERROR ` line is absent.
+JDBC stores the same value in the configurable `colError` text column.
+
 ## Changelog
 
 Release notes are kept in [CHANGELOG.md](CHANGELOG.md). Detailed notes for this release are in
-[versions/0.0.5.md](versions/0.0.5.md).
+[versions/0.0.6.md](versions/0.0.6.md).
 
 ## Build And Test
 
