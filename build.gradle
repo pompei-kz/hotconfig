@@ -46,7 +46,7 @@ subprojects {
     ext.jetcd_version = "0.8.6"
     ext.hikari_version = "7.0.2"
     ext.lombok_version = "1.18.38"
-    ext.kz_pompei_fui_version = "0.0.1"
+    ext.kz_pompei_fui_version = "0.0.2"
 
     ext.test_ng_version = "7.11.0"
     ext.assertj_version = "3.27.3"

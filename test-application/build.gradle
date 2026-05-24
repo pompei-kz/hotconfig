@@ -6,3 +6,10 @@ dependencies {
   implementation project(":kz-pompei-hotconfig-jdbc")
 
 }
+
+tasks.register("test-application", JavaExec) {
+  group = "application"
+  description = "Runs the test application Main class."
+  classpath = sourceSets.main.runtimeClasspath
+  mainClass = "app.Main"
+}
