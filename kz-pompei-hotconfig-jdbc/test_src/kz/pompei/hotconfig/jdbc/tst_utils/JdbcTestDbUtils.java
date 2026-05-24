@@ -35,8 +35,8 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
       String sql = """
-        INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment}, {colNotice})
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment}, {colError}, {colNotice})
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """
         .replace("{tableName}", def.tableName)
         .replace("{colFolder}", def.colFolder)
@@ -44,6 +44,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
         .replace("{colParamName}", def.colParamName)
         .replace("{colParamValueStr}", def.colParamValueStr)
         .replace("{colComment}", def.colComment)
+        .replace("{colError}", def.colError)
         .replace("{colNotice}", def.colNotice);
 
       try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -53,6 +54,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
         ps.setString(4, paramValue);
         ps.setString(5, comment);
         ps.setString(6, null);
+        ps.setString(7, null);
         ps.executeUpdate();
       }
     } catch (SQLException e) {

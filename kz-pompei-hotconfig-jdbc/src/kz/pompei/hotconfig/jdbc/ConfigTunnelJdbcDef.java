@@ -57,6 +57,13 @@ public class ConfigTunnelJdbcDef {
   public String colComment = "cmt";
 
   /**
+   * The name of the column containing parameter error text.
+   * <p>
+   * This field is used only for parameter rows; the config row leaves it null.
+   */
+  public String colError = "error";
+
+  /**
    * The name of the column containing notice text associated with the whole config.
    * <p>
    * The notice is stored as a single text string—lines are joined by a line break (\n) when writing.

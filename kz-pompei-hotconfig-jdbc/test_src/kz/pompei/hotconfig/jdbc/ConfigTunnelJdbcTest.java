@@ -350,6 +350,82 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
   }
 
   @Test(dataProvider = "databaseType")
+  public void writeAndRead_paramError(@NonNull DatabaseType databaseType) throws SQLException {
+
+    String nameOfThisMethod = "writeAndRead_paramError";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
+    def.tableName = nameOfThisMethod + "_" + RND.str(8);
+
+    Conf conf = new Conf();
+
+    ConfParam param0 = new ConfParam();
+    param0.name     = "param0";
+    param0.valueStr = "value0";
+    param0.error    = "param0 parse failed";
+    conf.params.add(param0);
+
+    ConfParam param1 = new ConfParam();
+    param1.name     = "param1";
+    param1.valueStr = "value1";
+    conf.params.add(param1);
+
+    ConfigTunnelJdbc confTunnelJdbc = ConfigTunnelJdbcBuilder.build(connectionGet, def);
+
+    //
+    //
+    confTunnelJdbc.write("some/folder/test-config.hotconf", conf);
+    //
+    //
+
+    Conf readConf = confTunnelJdbc.read("some/folder/test-config.hotconf");
+
+    assertThat(readConf).isNotNull();
+    assertThat(readConf.params).hasSize(2);
+
+    ConfParam readParam0 = readConf.params.get(0);// params sorted by name
+    ConfParam readParam1 = readConf.params.get(1);
+
+    assertThat(readParam0.name).isEqualTo("param0");
+    assertThat(readParam0.error).isEqualTo("param0 parse failed");
+    assertThat(readParam1.name).isEqualTo("param1");
+    assertThat(readParam1.error).isNull();
+
+    try (@NonNull Connection connection = connectionGet.getConnection()) {
+      String sql = """
+        SELECT {colParamName}, {colError}
+        FROM {tableName}
+        WHERE {colFolder} = ? AND {colConfigName} = ?
+        ORDER BY {colParamName}
+        """
+        .replace("{colParamName}", def.colParamName)
+        .replace("{colError}", def.colError)
+        .replace("{tableName}", def.tableName)
+        .replace("{colFolder}", def.colFolder)
+        .replace("{colConfigName}", def.colConfigName);
+
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        ps.setString(1, "some/folder");
+        ps.setString(2, "test-config.hotconf");
+        try (ResultSet rs = ps.executeQuery()) {
+          assertThat(rs.next()).isTrue();
+          assertThat(rs.getString(def.colParamName)).isEqualTo("");
+          assertThat(rs.getString(def.colError)).isNull();
+          assertThat(rs.next()).isTrue();
+          assertThat(rs.getString(def.colParamName)).isEqualTo("param0");
+          assertThat(rs.getString(def.colError)).isEqualTo("param0 parse failed");
+          assertThat(rs.next()).isTrue();
+          assertThat(rs.getString(def.colParamName)).isEqualTo("param1");
+          assertThat(rs.getString(def.colError)).isNull();
+          assertThat(rs.next()).isFalse();
+        }
+      }
+    }
+  }
+
+  @Test(dataProvider = "databaseType")
   public void write_savesTwoConfigsWithMultilineComments(@NonNull DatabaseType databaseType) {
 
     String nameOfThisMethod = "write_savesTwoConfigsWithMultilineComments";

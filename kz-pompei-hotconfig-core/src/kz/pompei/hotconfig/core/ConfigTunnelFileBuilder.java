@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import kz.pompei.hotconfig.core.ann.ConfFolder;
 import lombok.NonNull;
 
+// TODO add Javadoc here
 public class ConfigTunnelFileBuilder {
 
   private Path   baseDir;

@@ -22,6 +22,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
 
+// TODO add Javadoc here and all public methods in this class
 public class HotConfigFactory {
   private final @NonNull Def           def;
   private final @NonNull AtomicLong    lastReadMs  = new AtomicLong(0);

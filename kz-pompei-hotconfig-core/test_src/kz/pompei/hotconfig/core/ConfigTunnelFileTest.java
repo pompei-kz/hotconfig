@@ -36,6 +36,7 @@ public class ConfigTunnelFileTest {
         
         #parameter comment
         host=localhost
+        #ERROR host is unavailable\\npath=C:\\\\data\\\\file
         
         multiline=line one\\nline two
         
@@ -61,8 +62,10 @@ public class ConfigTunnelFileTest {
     assertThat(conf.params.get(0).comments).containsExactly("parameter comment");
     assertThat(conf.params.get(0).name).isEqualTo("host");
     assertThat(conf.params.get(0).valueStr).isEqualTo("localhost");
+    assertThat(conf.params.get(0).error).isEqualTo("host is unavailable\npath=C:\\data\\file");
     assertThat(conf.params.get(1).name).isEqualTo("multiline");
     assertThat(conf.params.get(1).valueStr).isEqualTo("line one\nline two");
+    assertThat(conf.params.get(1).error).isNull();
     assertThat(conf.params.get(2).name).isEqualTo("literal");
     assertThat(conf.params.get(2).valueStr).isEqualTo("literal \\n text");
     assertThat(conf.params.get(3).name).isEqualTo("slash");
@@ -131,6 +134,7 @@ public class ConfigTunnelFileTest {
     host.comments.add("parameter comment");
     host.name     = "host";
     host.valueStr = "localhost";
+    host.error    = "host is unavailable\npath=C:\\data\\file";
     conf.params.add(host);
 
     ConfParam multiline = new ConfParam();
@@ -164,6 +168,7 @@ public class ConfigTunnelFileTest {
         
         #parameter comment
         host=localhost
+        #ERROR host is unavailable\\npath=C:\\\\data\\\\file
         
         multiline=line one\\nline two
         
@@ -177,7 +182,9 @@ public class ConfigTunnelFileTest {
     assertThat(readConf).isNotNull();
     assertThat(readConf.confComments).containsExactly("configuration comment", "second configuration comment");
     assertThat(readConf.params).hasSize(4);
+    assertThat(readConf.params.get(0).error).isEqualTo("host is unavailable\npath=C:\\data\\file");
     assertThat(readConf.params.get(1).valueStr).isEqualTo("line one\nline two");
+    assertThat(readConf.params.get(1).error).isNull();
     assertThat(readConf.params.get(2).valueStr).isEqualTo("literal \\n text");
     assertThat(readConf.params.get(3).valueStr).isEqualTo("C:\\data\\file");
   }

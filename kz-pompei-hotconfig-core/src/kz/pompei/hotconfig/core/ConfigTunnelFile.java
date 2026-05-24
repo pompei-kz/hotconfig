@@ -22,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
  * it is replaced with \n. The \ symbol is replaced with its repetition \\.
  */
 public class ConfigTunnelFile implements ConfigTunnel {
+  private static final String ERROR_PREFIX = "#ERROR ";
 
   @NonNull private final Def def;
 
@@ -75,9 +76,15 @@ public class ConfigTunnelFile implements ConfigTunnel {
         }
         param.name     = line.substring(0, split);
         param.valueStr = unescape(line.substring(split + 1));
+        index++;
+
+        if (index < lines.size() && lines.get(index).startsWith(ERROR_PREFIX)) {
+          param.error = unescape(lines.get(index).substring(ERROR_PREFIX.length()));
+          index++;
+        }
         conf.params.add(param);
 
-        index = skipBlankLines(lines, index + 1);
+        index = skipBlankLines(lines, index);
       }
 
       return conf;
@@ -147,6 +154,7 @@ public class ConfigTunnelFile implements ConfigTunnel {
       ConfParam param = conf.params.get(i);
       for (String comment : param.comments) lines.add(writeComment(comment));
       lines.add(param.name + "=" + escape(param.valueStr));
+      if (param.error != null) lines.add(ERROR_PREFIX + escape(param.error));
       if (i < conf.params.size() - 1) lines.add("");
     }
     return lines;

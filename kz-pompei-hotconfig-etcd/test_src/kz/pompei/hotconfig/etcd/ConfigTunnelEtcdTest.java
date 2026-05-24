@@ -51,6 +51,7 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
     param0.comments.add("param0 line 3");
     param0.name     = "param0";
     param0.valueStr = "value0";
+    param0.error    = "param0 failed\npath=C:\\data\\file";
     conf.params.add(param0);
 
     ConfParam param1 = new ConfParam();
@@ -86,6 +87,7 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
         "#param0 line 2",
         "#param0 line 3",
         "param0=value0",
+        "#ERROR param0 failed\\npath=C:\\\\data\\\\file",
         "",
         "#param1 line 1",
         "#param1 line 2",
@@ -107,6 +109,8 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
       assertThat(readParam1.name).isEqualTo("param1");
       assertThat(readParam0.valueStr).isEqualTo("value0");
       assertThat(readParam1.valueStr).isEqualTo("value1");
+      assertThat(readParam0.error).isEqualTo("param0 failed\npath=C:\\data\\file");
+      assertThat(readParam1.error).isNull();
       assertThat(readParam0.comments).isEqualTo(List.of("param0 line 1", "param0 line 2", "param0 line 3"));
       assertThat(readParam1.comments).isEqualTo(List.of("param1 line 1", "param1 line 2", "param1 line 3"));
 
@@ -131,6 +135,7 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
       "#param0 line 2",
       "#param0 line 3",
       "param0=value0",
+      "#ERROR param0 failed\\npath=C:\\\\data\\\\file",
       "",
       "#param1 line 1",
       "#param1 line 2",
@@ -158,6 +163,8 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
       assertThat(readParam1.name).isEqualTo("param1");
       assertThat(readParam0.valueStr).isEqualTo("value0");
       assertThat(readParam1.valueStr).isEqualTo("value1");
+      assertThat(readParam0.error).isEqualTo("param0 failed\npath=C:\\data\\file");
+      assertThat(readParam1.error).isNull();
       assertThat(readParam0.comments).isEqualTo(List.of("param0 line 1", "param0 line 2", "param0 line 3"));
       assertThat(readParam1.comments).isEqualTo(List.of("param1 line 1", "param1 line 2", "param1 line 3"));
 

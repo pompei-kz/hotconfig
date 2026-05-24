@@ -2,6 +2,7 @@ package kz.pompei.hotconfig.core;
 
 import lombok.NonNull;
 
+// TODO add Javadoc here and all public methods in this class
 public class HotConfigFactoryBuilder {
 
   private          ConfigTunnel tunnel;

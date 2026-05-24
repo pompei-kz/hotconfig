@@ -37,7 +37,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
       String sql = """
-        SELECT {colParamName}, {colParamValueStr}, {colComment}
+        SELECT {colParamName}, {colParamValueStr}, {colComment}, {colError}
         FROM {tableName}
         WHERE {colFolder} = ? AND {colConfigName} = ?
         ORDER BY {colParamName}
@@ -45,6 +45,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         .replace("{colParamName}", params.colParamName)
         .replace("{colParamValueStr}", params.colParamValueStr)
         .replace("{colComment}", params.colComment)
+        .replace("{colError}", params.colError)
         .replace("{tableName}", params.tableName)
         .replace("{colFolder}", params.colFolder)
         .replace("{colConfigName}", params.colConfigName);
@@ -66,6 +67,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
               ConfParam param = new ConfParam();
               param.name     = paramName;
               param.valueStr = rs.getString(params.colParamValueStr);
+              param.error    = rs.getString(params.colError);
               param.comments.addAll(commentLines(comment));
               conf.params.add(param);
             }
@@ -100,9 +102,9 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         ps.executeUpdate();
       }
 
-      insertRow(connection, folder, configName, "", "", String.join("\n", conf.confComments), null);
+      insertRow(connection, folder, configName, "", "", String.join("\n", conf.confComments), null, null);
       for (ConfParam param : conf.params) {
-        insertRow(connection, folder, configName, param.name, param.valueStr, String.join("\n", param.comments), null);
+        insertRow(connection, folder, configName, param.name, param.valueStr, String.join("\n", param.comments), param.error, null);
       }
     } catch (SQLException e) {
       throw new RuntimeException("E1f2G3h4I5 :: Could not write configuration to table: " + params.tableName, e);
@@ -167,7 +169,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         if (ps.executeUpdate() > 0) return;
       }
 
-      insertRow(connection, folder, configName, "", null, null, notice);
+      insertRow(connection, folder, configName, "", null, null, null, notice);
     } catch (SQLException e) {
       throw new RuntimeException("A6b7C8d9E0 :: Could not write configuration notice to table: " + params.tableName, e);
     }
@@ -261,11 +263,12 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
                          @NonNull String paramName,
                          @Nullable String paramValue,
                          @Nullable String comment,
+                         @Nullable String error,
                          @Nullable String notice) throws SQLException {
 
     String sql = """
-      INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment}, {colNotice})
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment}, {colError}, {colNotice})
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       """
       .replace("{tableName}", params.tableName)
       .replace("{colFolder}", params.colFolder)
@@ -273,6 +276,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
       .replace("{colParamName}", params.colParamName)
       .replace("{colParamValueStr}", params.colParamValueStr)
       .replace("{colComment}", params.colComment)
+      .replace("{colError}", params.colError)
       .replace("{colNotice}", params.colNotice);
 
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -281,7 +285,8 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
       ps.setString(3, paramName);
       ps.setString(4, paramValue);
       ps.setString(5, comment);
-      ps.setString(6, notice);
+      ps.setString(6, error);
+      ps.setString(7, notice);
       ps.executeUpdate();
     }
   }

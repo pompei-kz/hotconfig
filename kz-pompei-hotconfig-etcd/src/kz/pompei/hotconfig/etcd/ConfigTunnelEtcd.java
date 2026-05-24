@@ -56,6 +56,7 @@ import org.jetbrains.annotations.Nullable;
  * }</pre>
  */
 public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
+  private static final String ERROR_PREFIX = "#ERROR ";
 
   @NonNull private final ConfTunnelEtcdDef params;
   @NonNull private final EtcdStorage storage;
@@ -130,6 +131,7 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
       ConfParam param = conf.params.get(i);
       for (String comment : param.comments) lines.add(writeComment(comment));
       lines.add(param.name + "=" + escape(param.valueStr));
+      if (param.error != null) lines.add(ERROR_PREFIX + escape(param.error));
       if (i < conf.params.size() - 1) lines.add("");
     }
     return String.join("\n", lines);
@@ -167,9 +169,15 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
       }
       param.name = line.substring(0, split);
       param.valueStr = unescape(line.substring(split + 1));
+      index++;
+
+      if (index < lines.size() && lines.get(index).startsWith(ERROR_PREFIX)) {
+        param.error = unescape(lines.get(index).substring(ERROR_PREFIX.length()));
+        index++;
+      }
       conf.params.add(param);
 
-      index = skipBlankLines(lines, index + 1);
+      index = skipBlankLines(lines, index);
     }
 
     return conf;
