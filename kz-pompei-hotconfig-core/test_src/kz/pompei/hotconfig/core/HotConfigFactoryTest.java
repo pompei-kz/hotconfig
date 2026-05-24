@@ -6,7 +6,6 @@ import kz.pompei.hotconfig.core.ann.ConfDoc;
 import kz.pompei.hotconfig.core.ann.ConfFolder;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
-import kz.pompei.hotconfig.core.model.HotConfigFactoryParams;
 import org.testng.annotations.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,6 +49,15 @@ public class HotConfigFactoryTest {
     String apple();
   }
 
+  private static HotConfigFactory createFactory(ConfigTunnelFake tunnel, ClockFake clock, int revisionCheckTimeoutMs) {
+    return HotConfigFactory.builder()
+                           .tunnel(tunnel)
+                           .clock(clock)
+                           .extension(".tst")
+                           .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
+                           .build();
+  }
+
   @Test
   public void refresh() {
 
@@ -73,15 +81,10 @@ public class HotConfigFactoryTest {
       tunnel.storage.put(confPath3, new ConfigTunnelFake.Dot(conf3, 1));
     }
 
-    DynamicParamsFake dynamicParams          = new DynamicParamsFake(13);
-    int               revisionCheckTimeoutMs = 500;
+    ClockFake clock                  = new ClockFake(13);
+    int       revisionCheckTimeoutMs = 500;
 
-    HotConfigFactoryParams params = HotConfigFactoryParams.builder()
-                                                          .extension(".tst")
-                                                          .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
-                                                          .build();
-
-    HotConfigFactory factory = new HotConfigFactory(tunnel, params, dynamicParams);
+    HotConfigFactory factory = createFactory(tunnel, clock, revisionCheckTimeoutMs);
 
     tunnel.clearCounts();
 
@@ -187,15 +190,10 @@ public class HotConfigFactoryTest {
 
     tunnel.storage.put(confPath2, new ConfigTunnelFake.Dot(conf, 1));
 
-    DynamicParamsFake dynamicParams          = new DynamicParamsFake(13);
-    int               revisionCheckTimeoutMs = 500;
+    ClockFake clock                  = new ClockFake(13);
+    int       revisionCheckTimeoutMs = 500;
 
-    HotConfigFactoryParams params = HotConfigFactoryParams.builder()
-                                                          .extension(".tst")
-                                                          .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
-                                                          .build();
-
-    HotConfigFactory factory = new HotConfigFactory(tunnel, params, dynamicParams);
+    HotConfigFactory factory = createFactory(tunnel, clock, revisionCheckTimeoutMs);
 
     //
     //
@@ -224,16 +222,11 @@ public class HotConfigFactoryTest {
   @Test
   public void createConf__createsConfigFile() {
 
-    ConfigTunnelFake  tunnel        = new ConfigTunnelFake();
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
-    int               revisionCheckTimeoutMs = 500;
+    ConfigTunnelFake tunnel                 = new ConfigTunnelFake();
+    ClockFake        clock                  = new ClockFake(13);
+    int              revisionCheckTimeoutMs = 500;
 
-    HotConfigFactoryParams params = HotConfigFactoryParams.builder()
-                                                          .extension(".tst")
-                                                          .revisionCheckTimeoutMs(revisionCheckTimeoutMs)
-                                                          .build();
-
-    HotConfigFactory factory = new HotConfigFactory(tunnel, params, dynamicParams);
+    HotConfigFactory factory = createFactory(tunnel, clock, revisionCheckTimeoutMs);
 
     //
     //
@@ -307,7 +300,7 @@ public class HotConfigFactoryTest {
      * Less time has passed than 'revisionCheckTimeoutMs',
      * so there was no need to check the changes in the config file
      */
-    dynamicParams.inc(revisionCheckTimeoutMs - 100);
+    clock.inc(revisionCheckTimeoutMs - 100);
 
     {
       tunnel.clearCounts();
@@ -327,7 +320,7 @@ public class HotConfigFactoryTest {
     /*
      * Now enough time has passed for to call `modificationMarker`
      */
-    dynamicParams.inc(100 + 10);
+    clock.inc(100 + 10);
 
     {
       tunnel.clearCounts();
@@ -368,7 +361,7 @@ public class HotConfigFactoryTest {
     /*
      * First, let's check that not enough time has passed.
      */
-    dynamicParams.inc(revisionCheckTimeoutMs - 100);
+    clock.inc(revisionCheckTimeoutMs - 100);
 
     {
       tunnel.clearCounts();
@@ -386,7 +379,7 @@ public class HotConfigFactoryTest {
     /*
      * And enough time has passed for to call `modificationMarker`
      */
-    dynamicParams.inc(100 + 10);
+    clock.inc(100 + 10);
 
     {
       tunnel.clearCounts();
@@ -409,6 +402,6 @@ public class HotConfigFactoryTest {
   @Test
   public void useDefaultConstructor() {
     ConfigTunnelFake tunnel = new ConfigTunnelFake();
-    new HotConfigFactory(tunnel);
+    HotConfigFactory.builder().tunnel(tunnel).build();
   }
 }

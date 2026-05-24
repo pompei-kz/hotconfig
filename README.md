@@ -71,19 +71,19 @@ public interface TestConf1 {
 ```java
 import java.nio.file.Path;
 import kz.pompei.hotconfig.core.ConfigTunnelFile;
-import kz.pompei.hotconfig.core.DynamicParams;
 import kz.pompei.hotconfig.core.HotConfigFactory;
-import kz.pompei.hotconfig.core.model.HotConfigFactoryParams;
 
 Path baseDir = Path.of("/path/to/config/root");
 
-var params = HotConfigFactoryParams.builder().extension(".hot").build();
 var tunnel = ConfigTunnelFile.builder()
-  .baseDir(baseDir)
-  .noticeExtension(".notice")
-  .build();
+                             .baseDir(baseDir)
+                             .noticeExtension(".notice")
+                             .build();
 
-HotConfigFactory factory = new HotConfigFactory(tunnel, params, DynamicParams.REAL);
+HotConfigFactory factory = HotConfigFactory.builder()
+                                           .tunnel(tunnel)
+                                           .extension(".hot")
+                                           .build();
 
 TestConf1 config = factory.createConf(TestConf1.class);
 
@@ -368,9 +368,9 @@ ConfigTunnelFile tunnel = ConfigTunnelFile.builder()
   .noticeExtension(".notice")
   .build();
 
-HotConfigFactory factory = new HotConfigFactory(
-  tunnel
-);
+HotConfigFactory factory = HotConfigFactory.builder()
+  .tunnel(tunnel)
+  .build();
 ```
 
 Example generated file:
@@ -421,7 +421,9 @@ def.keyPrefix = "/kz-pompei-conf-etcd/";
 
 try (Client client = Client.builder().endpoints("http://localhost:17403").build();
      ConfigTunnelEtcd tunnel = new ConfigTunnelEtcd(client, def)) {
-  HotConfigFactory factory = new HotConfigFactory(tunnel);
+  HotConfigFactory factory = HotConfigFactory.builder()
+    .tunnel(tunnel)
+    .build();
 }
 ```
 

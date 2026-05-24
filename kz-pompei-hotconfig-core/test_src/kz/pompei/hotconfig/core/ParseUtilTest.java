@@ -387,11 +387,11 @@ public class ParseUtilTest {
   @Test
   public void parseStrToGenericType__string() {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType("hello world", dynamicParams, String.class);
+    Object value = ParseUtil.parseStrToGenericType("hello world", envSrc, String.class);
     //
     //
 
@@ -402,11 +402,11 @@ public class ParseUtilTest {
   @Test
   public void parseStrToGenericType__empty_string() {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType("", dynamicParams, String.class);
+    Object value = ParseUtil.parseStrToGenericType("", envSrc, String.class);
     //
     //
 
@@ -417,11 +417,11 @@ public class ParseUtilTest {
   @Test
   public void parseStrToGenericType__null_string() {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType(null, dynamicParams, String.class);
+    Object value = ParseUtil.parseStrToGenericType(null, envSrc, String.class);
     //
     //
 
@@ -431,11 +431,11 @@ public class ParseUtilTest {
   @Test
   public void parseStrToGenericType__string__standard_substitutions() {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType("hello\\nworld\\t\\\\\\\"\\'", dynamicParams, String.class);
+    Object value = ParseUtil.parseStrToGenericType("hello\\nworld\\t\\\\\\\"\\'", envSrc, String.class);
     //
     //
 
@@ -446,11 +446,11 @@ public class ParseUtilTest {
   @Test
   public void parseStrToGenericType__string__expression_is_not_evaluated() {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType("1 + 2", dynamicParams, String.class);
+    Object value = ParseUtil.parseStrToGenericType("1 + 2", envSrc, String.class);
     //
     //
 
@@ -461,11 +461,11 @@ public class ParseUtilTest {
   @Test(dataProvider = "primitiveAndBoxedTypes")
   public void parseStrToGenericType__primitive_and_boxed_types(String valueStr, Type type, Object expectedValue) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    Object value = ParseUtil.parseStrToGenericType(valueStr, envSrc, type);
     //
     //
 
@@ -476,11 +476,11 @@ public class ParseUtilTest {
   @Test(dataProvider = "numericExpressionValues")
   public void parseStrToGenericType__numeric_expressions(String valueStr, Type type, Object expectedValue) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    Object value = ParseUtil.parseStrToGenericType(valueStr, envSrc, type);
     //
     //
 
@@ -491,12 +491,12 @@ public class ParseUtilTest {
   @Test
   public void parseStrToGenericType__numeric_expression__env_value() {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
-    dynamicParams.envMap.put("NAME", "5");
+    EnvSrcFake envSrc = new EnvSrcFake();
+    envSrc.envMap.put("NAME", "5");
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType("$ENV{NAME} * 16", dynamicParams, int.class);
+    Object value = ParseUtil.parseStrToGenericType("$ENV{NAME} * 16", envSrc, int.class);
     //
     //
 
@@ -507,12 +507,12 @@ public class ParseUtilTest {
   @Test(dataProvider = "booleanExpressionValues")
   public void parseStrToGenericType__boolean_expressions(String valueStr, Object expectedValue) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object primitiveValue = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, boolean.class);
-    Object boxedValue     = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, Boolean.class);
+    Object primitiveValue = ParseUtil.parseStrToGenericType(valueStr, envSrc, boolean.class);
+    Object boxedValue     = ParseUtil.parseStrToGenericType(valueStr, envSrc, Boolean.class);
     //
     //
 
@@ -523,11 +523,11 @@ public class ParseUtilTest {
   @Test(dataProvider = "formattedNumericValues")
   public void parseStrToGenericType__formatted_numeric_values(String valueStr, Type type, Object expectedValue) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    Object value = ParseUtil.parseStrToGenericType(valueStr, envSrc, type);
     //
     //
 
@@ -538,11 +538,11 @@ public class ParseUtilTest {
   @Test(dataProvider = "numericValuesWithStandardSubstitutions")
   public void parseStrToGenericType__numeric_values_with_standard_substitutions(String valueStr, Type type, Object expectedValue) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    Object value = ParseUtil.parseStrToGenericType(valueStr, envSrc, type);
     //
     //
 
@@ -553,11 +553,11 @@ public class ParseUtilTest {
   @Test(dataProvider = "integerValuesWithDecimalParts")
   public void parseStrToGenericType__integer_values_with_decimal_parts_are_rounded(String valueStr, Type type, Object expectedValue) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    Object value = ParseUtil.parseStrToGenericType(valueStr, envSrc, type);
     //
     //
 
@@ -568,11 +568,11 @@ public class ParseUtilTest {
   @Test(dataProvider = "charStandardSubstitutions")
   public void parseStrToGenericType__char__standard_substitutions(String valueStr, Type type, Object expectedValue) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    Object value = ParseUtil.parseStrToGenericType(valueStr, envSrc, type);
     //
     //
 
@@ -583,12 +583,12 @@ public class ParseUtilTest {
   @Test(dataProvider = "booleanTrueValues")
   public void parseStrToGenericType__boolean_true_values(String valueStr) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object primitiveValue = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, boolean.class);
-    Object boxedValue     = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, Boolean.class);
+    Object primitiveValue = ParseUtil.parseStrToGenericType(valueStr, envSrc, boolean.class);
+    Object boxedValue     = ParseUtil.parseStrToGenericType(valueStr, envSrc, Boolean.class);
     //
     //
 
@@ -599,12 +599,12 @@ public class ParseUtilTest {
   @Test(dataProvider = "booleanFalseValues")
   public void parseStrToGenericType__boolean_false_values(String valueStr) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object primitiveValue = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, boolean.class);
-    Object boxedValue     = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, Boolean.class);
+    Object primitiveValue = ParseUtil.parseStrToGenericType(valueStr, envSrc, boolean.class);
+    Object boxedValue     = ParseUtil.parseStrToGenericType(valueStr, envSrc, Boolean.class);
     //
     //
 
@@ -615,11 +615,11 @@ public class ParseUtilTest {
   @Test(dataProvider = "primitiveTypesWithNullValues")
   public void parseStrToGenericType__primitive_types__null_value(Type type, Object expectedValue) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType(null, dynamicParams, type);
+    Object value = ParseUtil.parseStrToGenericType(null, envSrc, type);
     //
     //
 
@@ -630,11 +630,11 @@ public class ParseUtilTest {
   @Test(dataProvider = "boxedTypesWithNullValues")
   public void parseStrToGenericType__boxed_types__null_value(Type type) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType(null, dynamicParams, type);
+    Object value = ParseUtil.parseStrToGenericType(null, envSrc, type);
     //
     //
 
@@ -644,11 +644,11 @@ public class ParseUtilTest {
   @Test(dataProvider = "bigDecimalZeroValues")
   public void parseStrToGenericType__big_decimal__blank_or_null_value(String valueStr) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
+    EnvSrcFake envSrc = new EnvSrcFake();
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, BigDecimal.class);
+    Object value = ParseUtil.parseStrToGenericType(valueStr, envSrc, BigDecimal.class);
     //
     //
 
@@ -659,12 +659,12 @@ public class ParseUtilTest {
   @Test(dataProvider = "envValues")
   public void parseStrToGenericType__env_values(String envName, String envValue, String valueStr, Type type, Object expectedValue) {
 
-    DynamicParamsFake dynamicParams = new DynamicParamsFake(13);
-    dynamicParams.envMap.put(envName, envValue);
+    EnvSrcFake envSrc = new EnvSrcFake();
+    envSrc.envMap.put(envName, envValue);
 
     //
     //
-    Object value = ParseUtil.parseStrToGenericType(valueStr, dynamicParams, type);
+    Object value = ParseUtil.parseStrToGenericType(valueStr, envSrc, type);
     //
     //
 

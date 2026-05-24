@@ -38,6 +38,9 @@ public class HotConfigFactoryBuilder {
   }
 
   public HotConfigFactory build() {
+    if (tunnel == null) {
+      throw new IllegalArgumentException("r0E4Gx01Ek :: ConfigTunnel cannot be null");
+    }
     return new HotConfigFactory(new HotConfigFactory.Def(tunnel, clock, envSrc, extension, revisionCheckTimeoutMs));
   }
 }

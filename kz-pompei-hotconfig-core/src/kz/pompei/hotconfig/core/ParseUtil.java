@@ -16,7 +16,7 @@ public class ParseUtil {
                                                        @NonNull Type genericReturnType) {
 
     if (valueStr == null) return defaultNullValue(genericReturnType);
-    valueStr = resolveDynamicParams(valueStr, envSrc);
+    valueStr = resolveEnvSrc(valueStr, envSrc);
     valueStr = resolveStandardSubstitutions(valueStr);
     if (genericReturnType == String.class) return valueStr;
     if (genericReturnType == boolean.class || genericReturnType == Boolean.class) return parseBoolean(valueStr);
@@ -60,7 +60,7 @@ public class ParseUtil {
     return resolved.toString();
   }
 
-  private static @NonNull String resolveDynamicParams(@NonNull String valueStr, @NonNull EnvSrc envSrc) {
+  private static @NonNull String resolveEnvSrc(@NonNull String valueStr, @NonNull EnvSrc envSrc) {
     StringBuilder resolved = new StringBuilder(valueStr.length());
     int           index    = 0;
     while (index < valueStr.length()) {
