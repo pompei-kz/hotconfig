@@ -36,7 +36,8 @@ public class ConfigTunnelFileTest {
         
         #parameter comment
         host=localhost
-        #ERROR host is unavailable\\npath=C:\\\\data\\\\file
+        #ERROR host is unavailable
+        #ERROR path=C:\\data\\file
         
         multiline=line one\\nline two
         
@@ -168,7 +169,8 @@ public class ConfigTunnelFileTest {
         
         #parameter comment
         host=localhost
-        #ERROR host is unavailable\\npath=C:\\\\data\\\\file
+        #ERROR host is unavailable
+        #ERROR path=C:\\data\\file
         
         multiline=line one\\nline two
         

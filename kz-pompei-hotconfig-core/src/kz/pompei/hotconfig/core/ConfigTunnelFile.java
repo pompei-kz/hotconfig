@@ -78,10 +78,15 @@ public class ConfigTunnelFile implements ConfigTunnel {
         index++;
 
         String errorLinePrefix = errorLinePrefix();
-        if (index < lines.size() && lines.get(index).startsWith(errorLinePrefix)) {
-          param.error = unescape(lines.get(index).substring(errorLinePrefix.length()));
+        StringBuilder error = new StringBuilder();
+        boolean hasError = false;
+        while (index < lines.size() && lines.get(index).startsWith(errorLinePrefix)) {
+          hasError = true;
+          if (!error.isEmpty()) error.append('\n');
+          error.append(lines.get(index).substring(errorLinePrefix.length()));
           index++;
         }
+        if (hasError) param.error = error.toString();
         conf.params.add(param);
 
         index = skipBlankLines(lines, index);
@@ -158,7 +163,9 @@ public class ConfigTunnelFile implements ConfigTunnel {
       ConfParam param = conf.params.get(i);
       for (String comment : param.comments) lines.add(writeComment(comment));
       lines.add(param.name + "=" + escape(param.valueStr));
-      if (param.error != null) lines.add(errorLinePrefix() + escape(param.error));
+      if (param.error != null) {
+        for (String errorLine : param.error.split("\n", -1)) lines.add(errorLinePrefix() + errorLine);
+      }
       if (i < conf.params.size() - 1) lines.add("");
     }
     return lines;

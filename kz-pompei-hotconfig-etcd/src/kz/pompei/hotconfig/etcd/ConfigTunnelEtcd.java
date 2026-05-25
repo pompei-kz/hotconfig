@@ -131,7 +131,9 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
       ConfParam param = conf.params.get(i);
       for (String comment : param.comments) lines.add(writeComment(comment));
       lines.add(param.name + "=" + escape(param.valueStr));
-      if (param.error != null) lines.add(ERROR_PREFIX + escape(param.error));
+      if (param.error != null) {
+        for (String errorLine : param.error.split("\n", -1)) lines.add(ERROR_PREFIX + errorLine);
+      }
       if (i < conf.params.size() - 1) lines.add("");
     }
     return String.join("\n", lines);
@@ -171,10 +173,15 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
       param.valueStr = unescape(line.substring(split + 1));
       index++;
 
-      if (index < lines.size() && lines.get(index).startsWith(ERROR_PREFIX)) {
-        param.error = unescape(lines.get(index).substring(ERROR_PREFIX.length()));
+      StringBuilder error = new StringBuilder();
+      boolean hasError = false;
+      while (index < lines.size() && lines.get(index).startsWith(ERROR_PREFIX)) {
+        hasError = true;
+        if (!error.isEmpty()) error.append('\n');
+        error.append(lines.get(index).substring(ERROR_PREFIX.length()));
         index++;
       }
+      if (hasError) param.error = error.toString();
       conf.params.add(param);
 
       index = skipBlankLines(lines, index);
