@@ -6,7 +6,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbcBuilder;
-import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbcDef;
 import kz.pompei.hotconfig.jdbc.ConnectionGet;
 import kz.pompei.hotconfig.jdbc.DatabaseType;
 import lombok.NonNull;
@@ -18,7 +17,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
    * Inserts row into table of config
    *
    * @param connectionGet connection source
-   * @param def           table config definition
+   * @param builder       table config builder
    * @param folder        folder of config
    * @param configName    config name
    * @param paramName     param name
@@ -26,7 +25,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
    * @param comment       comment
    */
   protected void insertRow(@NonNull ConnectionGet connectionGet,
-                           @NonNull ConfigTunnelJdbcDef def,
+                           @NonNull ConfigTunnelJdbcBuilder builder,
                            @NonNull String folder,
                            @NonNull String configName,
                            @NonNull String paramName,
@@ -38,14 +37,14 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
         INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment}, {colError}, {colNotice})
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """
-        .replace("{tableName}", def.tableName)
-        .replace("{colFolder}", def.colFolder)
-        .replace("{colConfigName}", def.colConfigName)
-        .replace("{colParamName}", def.colParamName)
-        .replace("{colParamValueStr}", def.colParamValueStr)
-        .replace("{colComment}", def.colComment)
-        .replace("{colError}", def.colError)
-        .replace("{colNotice}", def.colNotice);
+        .replace("{tableName}", builder.tableName())
+        .replace("{colFolder}", builder.colFolder())
+        .replace("{colConfigName}", builder.colConfigName())
+        .replace("{colParamName}", builder.colParamName())
+        .replace("{colParamValueStr}", builder.colParamValueStr())
+        .replace("{colComment}", builder.colComment())
+        .replace("{colError}", builder.colError())
+        .replace("{colNotice}", builder.colNotice());
 
       try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.setString(1, folder);
@@ -58,7 +57,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
         ps.executeUpdate();
       }
     } catch (SQLException e) {
-      throw new RuntimeException("Y1z2A3b4C5 :: Could not insert configuration test row into table: " + def.tableName, e);
+      throw new RuntimeException("Y1z2A3b4C5 :: Could not insert configuration test row into table: " + builder.tableName(), e);
     }
   }
 
@@ -66,7 +65,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
    * Updates a row in the config table.
    *
    * @param connectionGet connection source
-   * @param def           table config definition
+   * @param builder       table config builder
    * @param folder        folder of config
    * @param configName    config name
    * @param paramName     param name
@@ -74,7 +73,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
    * @param comment       comment
    */
   protected void updateRow(@NonNull ConnectionGet connectionGet,
-                           @NonNull ConfigTunnelJdbcDef def,
+                           @NonNull ConfigTunnelJdbcBuilder builder,
                            @NonNull String folder,
                            @NonNull String configName,
                            @NonNull String paramName,
@@ -87,12 +86,12 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
         SET {colParamValueStr} = ?, {colComment} = ?
         WHERE {colFolder} = ? AND {colConfigName} = ? AND {colParamName} = ?
         """
-        .replace("{tableName}", def.tableName)
-        .replace("{colParamValueStr}", def.colParamValueStr)
-        .replace("{colComment}", def.colComment)
-        .replace("{colFolder}", def.colFolder)
-        .replace("{colConfigName}", def.colConfigName)
-        .replace("{colParamName}", def.colParamName);
+        .replace("{tableName}", builder.tableName())
+        .replace("{colParamValueStr}", builder.colParamValueStr())
+        .replace("{colComment}", builder.colComment())
+        .replace("{colFolder}", builder.colFolder())
+        .replace("{colConfigName}", builder.colConfigName())
+        .replace("{colParamName}", builder.colParamName());
 
       try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.setString(1, paramValue);
@@ -103,7 +102,7 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
         ps.executeUpdate();
       }
     } catch (SQLException e) {
-      throw new RuntimeException("D6e7F8g9H0 :: Could not update configuration test row in table: " + def.tableName, e);
+      throw new RuntimeException("D6e7F8g9H0 :: Could not update configuration test row in table: " + builder.tableName(), e);
     }
   }
 
@@ -111,10 +110,10 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
    * Creates table for config
    *
    * @param connectionGet connection source
-   * @param def           table config definition
+   * @param builder       table config builder
    */
-  protected void createTable(@NonNull ConnectionGet connectionGet, @NonNull ConfigTunnelJdbcDef def) {
-    ConfigTunnelJdbcBuilder.build(connectionGet, def).createTableIfNotExists();
+  protected void createTable(@NonNull ConnectionGet connectionGet, @NonNull ConfigTunnelJdbcBuilder builder) {
+    builder.connectionGet(connectionGet).build().createTableIfNotExists();
   }
 
   protected boolean tableExists(@NonNull ConnectionGet connectionGet, @NonNull String tableName) {

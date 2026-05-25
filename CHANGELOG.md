@@ -10,6 +10,7 @@ This project keeps short release summaries in this file and detailed notes in
 ### Added
 
 - Added `ConfigTunnelEtcdBuilder` and `ConfigTunnelEtcd.builder()` as the public etcd tunnel construction API.
+- Added `ConfigTunnelJdbcBuilder` and `ConfigTunnelJdbc.builder()` as the public JDBC tunnel construction API.
 - Added `ConfigTunnelEtcdBuilder.errorPrefix(...)` for configuring the etcd tunnel parameter error marker text.
 - Added `ConfigTunnelFileBuilder.errorPrefix(...)` for configuring the file tunnel parameter error marker text.
 - Added `ConfigTunnelMem` tests covering read/write behavior, modification markers, notices, copy isolation, and path isolation.
@@ -18,6 +19,7 @@ This project keeps short release summaries in this file and detailed notes in
 
 - File tunnel parameter error prefix configuration now lives in `ConfigTunnelFile.Def.errorPrefix`, defaulting to `ERROR `.
 - Etcd tunnel parameter error prefix configuration now lives in `ConfigTunnelEtcd.Def.errorPrefix`, defaulting to `ERROR `.
+- JDBC tunnel table and column configuration now lives in `ConfigTunnelJdbcBuilder` and `ConfigTunnelJdbc.Def`.
 - File and etcd tunnels now write multiline parameter errors as several consecutive prefixed lines instead of escaping newlines into one line.
 - File and etcd parameter error text is stored raw per line; backslashes are no longer escaped or unescaped for error text.
 - File and etcd `writeNoticeLines` now delete notice storage when passed an empty list.
@@ -27,6 +29,7 @@ This project keeps short release summaries in this file and detailed notes in
 ### Removed
 
 - Removed `ConfTunnelEtcdDef`; configure etcd tunnels through `ConfigTunnelEtcd.builder()` instead.
+- Removed `ConfigTunnelJdbcDef`; configure JDBC tunnels through `ConfigTunnelJdbc.builder()` instead.
 
 ## [0.0.6] - 2026-05-24
 
@@ -35,7 +38,7 @@ This project keeps short release summaries in this file and detailed notes in
 - Added `HotConfigFactoryBuilder` as the public construction API for `HotConfigFactory`.
 - Added separate `Clock` and `EnvSrc` configuration hooks for refresh timing and environment substitution.
 - Added `ConfParam.error` persistence for file, JDBC, and etcd tunnels.
-- Added JDBC `error` text column support through `ConfigTunnelJdbcDef.colError`.
+- Added JDBC `error` text column support through `ConfigTunnelJdbcBuilder.colError(...)`.
 - Added public API Javadocs for factory and builder classes.
 
 ### Changed
@@ -77,7 +80,7 @@ This project keeps short release summaries in this file and detailed notes in
 ### Migration Notes
 
 - Custom `ConfigTunnel` implementations must support `readNoticeLines` and `writeNoticeLines`.
-- Existing JDBC tables need a manual `TEXT` column matching `ConfigTunnelJdbcDef.colNotice`
+- Existing JDBC tables need a manual `TEXT` column matching `ConfigTunnelJdbcBuilder.colNotice(...)`
   before notice storage is used.
 - `ConfigTunnelFile` should be created through `ConfigTunnelFile.builder()` with both
   `baseDir` and `noticeExtension` set.

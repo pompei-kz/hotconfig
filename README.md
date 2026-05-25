@@ -394,16 +394,14 @@ Notice lines are stored in a sibling UTF-8 file at `localPath + noticeExtension`
 
 ```java
 import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbc;
-import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbcBuilder;
-import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbcDef;
 
-ConfigTunnelJdbcDef def = new ConfigTunnelJdbcDef();
-def.tableName = "hotconfig";
-
-ConfigTunnelJdbc tunnel = ConfigTunnelJdbcBuilder.build(() -> dataSource.getConnection(), def);
+ConfigTunnelJdbc tunnel = ConfigTunnelJdbc.builder()
+                                          .connectionGet(() -> dataSource.getConnection())
+                                          .tableName("hotconfig")
+                                          .build();
 ```
 
-The table and schema are created automatically when missing. Column names are configurable through `ConfigTunnelJdbcDef`.
+The table and schema are created automatically when missing. Column names are configurable through `ConfigTunnelJdbcBuilder`.
 Notice lines are stored in the `colNotice` text column on the configuration row only. If you already have a table from an older version,
 add this column manually before using notice storage.
 Parameter errors are stored in the `colError` text column on parameter rows. Existing JDBC tables must add this column manually before
@@ -418,13 +416,15 @@ import io.etcd.jetcd.Client;
 import kz.pompei.hotconfig.etcd.ConfigTunnelEtcd;
 
 try (Client client = Client.builder().endpoints("http://localhost:17403").build();
+
      ConfigTunnelEtcd tunnel = ConfigTunnelEtcd.builder()
-       .client(client)
-       .keyPrefix("/kz-pompei-conf-etcd/")
-       .build()) {
+                                               .client(client)
+                                               .keyPrefix("/kz-pompei-conf-etcd/")
+                                               .build()) {
+
   HotConfigFactory factory = HotConfigFactory.builder()
-    .tunnel(tunnel)
-    .build();
+                                             .tunnel(tunnel)
+                                             .build();
 }
 ```
 

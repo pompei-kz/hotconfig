@@ -11,6 +11,7 @@ import kz.pompei.hotconfig.core.ConfigTunnel;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -23,12 +24,30 @@ import org.jetbrains.annotations.Nullable;
  */
 public abstract class ConfigTunnelJdbc implements ConfigTunnel {
 
-  @NonNull protected final ConfigTunnelJdbcDef params;
-  @NonNull protected final ConnectionGet       connectionGet;
+  @NonNull final Def           def;
+  @NonNull final ConnectionGet connectionGet;
 
-  protected ConfigTunnelJdbc(@NonNull ConnectionGet connectionGet, @NonNull ConfigTunnelJdbcDef params) {
-    this.params        = params;
+  public static @NonNull ConfigTunnelJdbcBuilder builder() {
+    return new ConfigTunnelJdbcBuilder();
+  }
+
+  ConfigTunnelJdbc(@NonNull ConnectionGet connectionGet, @NonNull Def def) {
     this.connectionGet = connectionGet;
+    this.def           = def;
+  }
+
+  @RequiredArgsConstructor
+  static class Def {
+    final String colFolder;
+    final String tableName;
+    final String colConfigName;
+    final String colParamName;
+    final String colParamValueStr;
+    final String colComment;
+    final String colError;
+    final String colNotice;
+    final String colCreatedAt;
+    final String colLastModified;
   }
 
   @Override public @Nullable Conf read(@NonNull String localPath) {
@@ -42,13 +61,13 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         WHERE {colFolder} = ? AND {colConfigName} = ?
         ORDER BY {colParamName}
         """
-        .replace("{colParamName}", params.colParamName)
-        .replace("{colParamValueStr}", params.colParamValueStr)
-        .replace("{colComment}", params.colComment)
-        .replace("{colError}", params.colError)
-        .replace("{tableName}", params.tableName)
-        .replace("{colFolder}", params.colFolder)
-        .replace("{colConfigName}", params.colConfigName);
+        .replace("{colParamName}", def.colParamName)
+        .replace("{colParamValueStr}", def.colParamValueStr)
+        .replace("{colComment}", def.colComment)
+        .replace("{colError}", def.colError)
+        .replace("{tableName}", def.tableName)
+        .replace("{colFolder}", def.colFolder)
+        .replace("{colConfigName}", def.colConfigName);
 
       try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.setString(1, folder);
@@ -59,15 +78,15 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
           boolean ok   = false;
           while (rs.next()) {
             ok = true;
-            String paramName = rs.getString(params.colParamName);
-            String comment   = rs.getString(params.colComment);
+            String paramName = rs.getString(def.colParamName);
+            String comment   = rs.getString(def.colComment);
             if (paramName == null || paramName.isEmpty()) {
               conf.confComments.addAll(commentLines(comment));
             } else {
               ConfParam param = new ConfParam();
               param.name     = paramName;
-              param.valueStr = rs.getString(params.colParamValueStr);
-              param.error    = rs.getString(params.colError);
+              param.valueStr = rs.getString(def.colParamValueStr);
+              param.error    = rs.getString(def.colError);
               param.comments.addAll(commentLines(comment));
               conf.params.add(param);
             }
@@ -77,7 +96,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
       }
     } catch (SQLException e) {
       if (isMissingTable(e)) return null;
-      throw new RuntimeException("Z6a7B8c9D0 :: Could not read configuration from table: " + params.tableName, e);
+      throw new RuntimeException("Z6a7B8c9D0 :: Could not read configuration from table: " + def.tableName, e);
     }
   }
 
@@ -92,9 +111,9 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         DELETE FROM {tableName}
         WHERE {colFolder} = ? AND {colConfigName} = ?
         """
-        .replace("{tableName}", params.tableName)
-        .replace("{colFolder}", params.colFolder)
-        .replace("{colConfigName}", params.colConfigName);
+        .replace("{tableName}", def.tableName)
+        .replace("{colFolder}", def.colFolder)
+        .replace("{colConfigName}", def.colConfigName);
 
       try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.setString(1, folder);
@@ -107,7 +126,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         insertRow(connection, folder, configName, param.name, param.valueStr, String.join("\n", param.comments), param.error, null);
       }
     } catch (SQLException e) {
-      throw new RuntimeException("E1f2G3h4I5 :: Could not write configuration to table: " + params.tableName, e);
+      throw new RuntimeException("E1f2G3h4I5 :: Could not write configuration to table: " + def.tableName, e);
     }
   }
 
@@ -121,11 +140,11 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         FROM {tableName}
         WHERE {colFolder} = ? AND {colConfigName} = ? AND {colParamName} = ?
         """
-        .replace("{colNotice}", params.colNotice)
-        .replace("{tableName}", params.tableName)
-        .replace("{colFolder}", params.colFolder)
-        .replace("{colConfigName}", params.colConfigName)
-        .replace("{colParamName}", params.colParamName);
+        .replace("{colNotice}", def.colNotice)
+        .replace("{tableName}", def.tableName)
+        .replace("{colFolder}", def.colFolder)
+        .replace("{colConfigName}", def.colConfigName)
+        .replace("{colParamName}", def.colParamName);
 
       try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.setString(1, folder);
@@ -133,12 +152,12 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         ps.setString(3, "");
         try (ResultSet rs = ps.executeQuery()) {
           if (!rs.next()) return List.of();
-          return lines(rs.getString(params.colNotice));
+          return lines(rs.getString(def.colNotice));
         }
       }
     } catch (SQLException e) {
       if (isMissingTable(e)) return List.of();
-      throw new RuntimeException("V1w2X3y4Z5 :: Could not read configuration notice from table: " + params.tableName, e);
+      throw new RuntimeException("V1w2X3y4Z5 :: Could not read configuration notice from table: " + def.tableName, e);
     }
   }
 
@@ -155,11 +174,11 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         SET {colNotice} = ?
         WHERE {colFolder} = ? AND {colConfigName} = ? AND {colParamName} = ?
         """
-        .replace("{tableName}", params.tableName)
-        .replace("{colNotice}", params.colNotice)
-        .replace("{colFolder}", params.colFolder)
-        .replace("{colConfigName}", params.colConfigName)
-        .replace("{colParamName}", params.colParamName);
+        .replace("{tableName}", def.tableName)
+        .replace("{colNotice}", def.colNotice)
+        .replace("{colFolder}", def.colFolder)
+        .replace("{colConfigName}", def.colConfigName)
+        .replace("{colParamName}", def.colParamName);
 
       try (PreparedStatement ps = connection.prepareStatement(updateSql)) {
         ps.setString(1, notice);
@@ -171,7 +190,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
 
       insertRow(connection, folder, configName, "", null, null, null, notice);
     } catch (SQLException e) {
-      throw new RuntimeException("A6b7C8d9E0 :: Could not write configuration notice to table: " + params.tableName, e);
+      throw new RuntimeException("A6b7C8d9E0 :: Could not write configuration notice to table: " + def.tableName, e);
     }
   }
 
@@ -187,10 +206,10 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         FROM {tableName}
         WHERE {colFolder} = ? AND {colConfigName} = ?
         """
-        .replace("{colLastModified}", params.colLastModified)
-        .replace("{tableName}", params.tableName)
-        .replace("{colFolder}", params.colFolder)
-        .replace("{colConfigName}", params.colConfigName);
+        .replace("{colLastModified}", def.colLastModified)
+        .replace("{tableName}", def.tableName)
+        .replace("{colFolder}", def.colFolder)
+        .replace("{colConfigName}", def.colConfigName);
 
       try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.setString(1, folder);
@@ -203,17 +222,17 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         }
       }
     } catch (SQLException e) {
-      throw new RuntimeException("J6k7L8m9N0 :: Could not get configuration modification time from table: " + params.tableName, e);
+      throw new RuntimeException("J6k7L8m9N0 :: Could not get configuration modification time from table: " + def.tableName, e);
     }
   }
 
   public abstract void createTableIfNotExists();
 
   protected void createSchemaIfNotExists(@NonNull Connection connection) throws SQLException {
-    int dotIndex = params.tableName.indexOf('.');
+    int dotIndex = def.tableName.indexOf('.');
     if (dotIndex < 0) return;
 
-    String schema = params.tableName.substring(0, dotIndex);
+    String schema = def.tableName.substring(0, dotIndex);
     try (PreparedStatement ps = connection.prepareStatement("CREATE SCHEMA IF NOT EXISTS " + schema)) {
       ps.executeUpdate();
     }
@@ -243,15 +262,17 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
   private boolean isMissingTable(@NonNull SQLException e) {
     SQLException current = e;
     while (current != null) {
-      String sqlState = current.getSQLState();
-      int errorCode = current.getErrorCode();
-      String message = current.getMessage();
+      String sqlState  = current.getSQLState();
+      int    errorCode = current.getErrorCode();
+      String message   = current.getMessage();
       if ("42P01".equals(sqlState) || "42S02".equals(sqlState) || errorCode == 1146) return true;
       if (message != null && (
         message.contains("does not exist")
           || message.contains("Unknown table")
           || message.contains("Base table or view not found")
-      )) return true;
+      )) {
+        return true;
+      }
       current = current.getNextException();
     }
     return false;
@@ -270,14 +291,14 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
       INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment}, {colError}, {colNotice})
       VALUES (?, ?, ?, ?, ?, ?, ?)
       """
-      .replace("{tableName}", params.tableName)
-      .replace("{colFolder}", params.colFolder)
-      .replace("{colConfigName}", params.colConfigName)
-      .replace("{colParamName}", params.colParamName)
-      .replace("{colParamValueStr}", params.colParamValueStr)
-      .replace("{colComment}", params.colComment)
-      .replace("{colError}", params.colError)
-      .replace("{colNotice}", params.colNotice);
+      .replace("{tableName}", def.tableName)
+      .replace("{colFolder}", def.colFolder)
+      .replace("{colConfigName}", def.colConfigName)
+      .replace("{colParamName}", def.colParamName)
+      .replace("{colParamValueStr}", def.colParamValueStr)
+      .replace("{colComment}", def.colComment)
+      .replace("{colError}", def.colError)
+      .replace("{colNotice}", def.colNotice);
 
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
       ps.setString(1, folder);

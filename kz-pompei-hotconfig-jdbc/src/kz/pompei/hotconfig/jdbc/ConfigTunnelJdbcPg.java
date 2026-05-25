@@ -7,8 +7,8 @@ import java.sql.SQLException;
 import lombok.NonNull;
 
 public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
-  public ConfigTunnelJdbcPg(@NonNull ConnectionGet connectionGet, @NonNull ConfigTunnelJdbcDef params) {
-    super(connectionGet, params);
+  ConfigTunnelJdbcPg(@NonNull ConnectionGet connectionGet, @NonNull ConfigTunnelJdbc.Def def) {
+    super(connectionGet, def);
   }
 
   @Override public void createTableIfNotExists() {
@@ -28,16 +28,16 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
           PRIMARY KEY ({colFolder}, {colConfigName}, {colParamName})
         )
         """
-        .replace("{tableName}", params.tableName)
-        .replace("{colFolder}", params.colFolder)
-        .replace("{colConfigName}", params.colConfigName)
-        .replace("{colParamName}", params.colParamName)
-        .replace("{colParamValueStr}", params.colParamValueStr)
-        .replace("{colComment}", params.colComment)
-        .replace("{colError}", params.colError)
-        .replace("{colNotice}", params.colNotice)
-        .replace("{colCreatedAt}", params.colCreatedAt)
-        .replace("{colLastModified}", params.colLastModified);
+        .replace("{tableName}", def.tableName)
+        .replace("{colFolder}", def.colFolder)
+        .replace("{colConfigName}", def.colConfigName)
+        .replace("{colParamName}", def.colParamName)
+        .replace("{colParamValueStr}", def.colParamValueStr)
+        .replace("{colComment}", def.colComment)
+        .replace("{colError}", def.colError)
+        .replace("{colNotice}", def.colNotice)
+        .replace("{colCreatedAt}", def.colCreatedAt)
+        .replace("{colLastModified}", def.colLastModified);
 
       try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.executeUpdate();
@@ -57,10 +57,10 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
           $$ LANGUAGE plpgsql
           """
           .replace("{functionName}", functionName)
-          .replace("{colLastModified}", params.colLastModified);
+          .replace("{colLastModified}", def.colLastModified);
 
         statement.execute(functionSql);
-        statement.execute("DROP TRIGGER IF EXISTS " + triggerName + " ON " + params.tableName);
+        statement.execute("DROP TRIGGER IF EXISTS " + triggerName + " ON " + def.tableName);
         String triggerSql = """
           CREATE TRIGGER {triggerName}
           BEFORE UPDATE ON {tableName}
@@ -69,20 +69,20 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
           """
           .replace("{triggerName}", triggerName)
           .replace("{functionName}", functionName)
-          .replace("{tableName}", params.tableName);
+          .replace("{tableName}", def.tableName);
 
         statement.execute(triggerSql);
       }
     } catch (SQLException e) {
-      throw new RuntimeException("T6u7V8w9X0 :: Could not create configuration table: " + params.tableName, e);
+      throw new RuntimeException("T6u7V8w9X0 :: Could not create configuration table: " + def.tableName, e);
     }
   }
 
   private String triggerFunctionName() {
-    return "fn_" + params.tableName.replaceAll("[^A-Za-z0-9]+", "_") + "_last_modified";
+    return "fn_" + def.tableName.replaceAll("[^A-Za-z0-9]+", "_") + "_last_modified";
   }
 
   private String triggerName() {
-    return "trg_" + params.tableName.replaceAll("[^A-Za-z0-9]+", "_") + "_last_modified";
+    return "trg_" + def.tableName.replaceAll("[^A-Za-z0-9]+", "_") + "_last_modified";
   }
 }

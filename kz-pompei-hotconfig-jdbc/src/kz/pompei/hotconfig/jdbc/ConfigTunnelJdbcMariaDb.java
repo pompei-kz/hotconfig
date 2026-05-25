@@ -6,8 +6,8 @@ import java.sql.SQLException;
 import lombok.NonNull;
 
 public class ConfigTunnelJdbcMariaDb extends ConfigTunnelJdbc {
-  public ConfigTunnelJdbcMariaDb(@NonNull ConnectionGet connectionGet, @NonNull ConfigTunnelJdbcDef params) {
-    super(connectionGet, params);
+  ConfigTunnelJdbcMariaDb(@NonNull ConnectionGet connectionGet, @NonNull Def def) {
+    super(connectionGet, def);
   }
 
   @Override public void createTableIfNotExists() {
@@ -27,22 +27,22 @@ public class ConfigTunnelJdbcMariaDb extends ConfigTunnelJdbc {
           PRIMARY KEY ({colFolder}, {colConfigName}, {colParamName})
         )
         """
-        .replace("{tableName}", params.tableName)
-        .replace("{colFolder}", params.colFolder)
-        .replace("{colConfigName}", params.colConfigName)
-        .replace("{colParamName}", params.colParamName)
-        .replace("{colParamValueStr}", params.colParamValueStr)
-        .replace("{colComment}", params.colComment)
-        .replace("{colError}", params.colError)
-        .replace("{colNotice}", params.colNotice)
-        .replace("{colCreatedAt}", params.colCreatedAt)
-        .replace("{colLastModified}", params.colLastModified);
+        .replace("{tableName}", def.tableName)
+        .replace("{colFolder}", def.colFolder)
+        .replace("{colConfigName}", def.colConfigName)
+        .replace("{colParamName}", def.colParamName)
+        .replace("{colParamValueStr}", def.colParamValueStr)
+        .replace("{colComment}", def.colComment)
+        .replace("{colError}", def.colError)
+        .replace("{colNotice}", def.colNotice)
+        .replace("{colCreatedAt}", def.colCreatedAt)
+        .replace("{colLastModified}", def.colLastModified);
 
       try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.executeUpdate();
       }
     } catch (SQLException e) {
-      throw new RuntimeException("O1p2Q3r4S5 :: Could not create configuration table: " + params.tableName, e);
+      throw new RuntimeException("O1p2Q3r4S5 :: Could not create configuration table: " + def.tableName, e);
     }
   }
 }
