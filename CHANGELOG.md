@@ -5,6 +5,20 @@ All notable changes to this project are documented here.
 This project keeps short release summaries in this file and detailed notes in
 `versions/<version>.md`.
 
+## [0.0.7] - 2026-05-25
+
+### Added
+
+- Added `ConfigTunnelFileBuilder.errorPrefix(...)` for configuring the file tunnel parameter error marker text.
+- Added `ConfigTunnelMem` tests covering read/write behavior, modification markers, notices, copy isolation, and path isolation.
+
+### Changed
+
+- File tunnel parameter error prefix configuration now lives in `ConfigTunnelFile.Def.errorPrefix`, defaulting to `ERROR `.
+- File and etcd tunnels now write multiline parameter errors as several consecutive prefixed lines instead of escaping newlines into one line.
+- File and etcd parameter error text is stored raw per line; backslashes are no longer escaped or unescaped for error text.
+- README dependency snippets and release links now point to `0.0.7`.
+
 ## [0.0.6] - 2026-05-24
 
 ### Added
@@ -59,5 +73,6 @@ This project keeps short release summaries in this file and detailed notes in
 - `ConfigTunnelFile` should be created through `ConfigTunnelFile.builder()` with both
   `baseDir` and `noticeExtension` set.
 
+[0.0.7]: versions/0.0.7.md
 [0.0.6]: versions/0.0.6.md
 [0.0.5]: versions/0.0.5.md
