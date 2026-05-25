@@ -11,6 +11,8 @@ interface EtcdStorage extends AutoCloseable {
 
   void put(@NonNull String key, @NonNull String value);
 
+  void delete(@NonNull String key);
+
   @Override void close();
 
 }

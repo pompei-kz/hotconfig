@@ -444,6 +444,7 @@ List<String> notices = tunnel.readNoticeLines("app/AppConf.hotconf");
 ```
 
 Notice lines are separate from `@ConfDoc` comments and are not attached to individual parameters.
+For file and etcd tunnels, writing an empty notice list deletes the existing notice file or key.
 
 ### Parameter Errors
 

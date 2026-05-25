@@ -1,5 +1,8 @@
 .PHONY: test-application
 
+publishToMavenLocal:
+	./gradlew publishToMavenLocal
+
 test-application:
 	./gradlew :test-application:test-application
 

@@ -94,7 +94,12 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
   }
 
   @Override public void writeNoticeLines(@NonNull String localPath, @NonNull List<String> lines) {
-    storage.put(noticeKey(localPath), String.join("\n", lines));
+    String key = noticeKey(localPath);
+    if (lines.isEmpty()) {
+      storage.delete(key);
+      return;
+    }
+    storage.put(key, String.join("\n", lines));
   }
 
   @Override public @Nullable Long modificationMarker(@NonNull String localPath) {
@@ -279,6 +284,19 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
       }
       catch (ExecutionException e) {
         throw new RuntimeException("Q6r7S8t9U0 :: Could not write etcd key: " + key, e);
+      }
+    }
+
+    @Override public void delete(@NonNull String key) {
+      try {
+        kvClient.delete(ByteSequence.from(key.getBytes(StandardCharsets.UTF_8))).get();
+      }
+      catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException("V1w2X3y4Z5 :: Could not delete etcd key: " + key, e);
+      }
+      catch (ExecutionException e) {
+        throw new RuntimeException("A6b7C8d9E0 :: Could not delete etcd key: " + key, e);
       }
     }
 

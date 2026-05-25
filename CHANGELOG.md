@@ -17,6 +17,7 @@ This project keeps short release summaries in this file and detailed notes in
 - File tunnel parameter error prefix configuration now lives in `ConfigTunnelFile.Def.errorPrefix`, defaulting to `ERROR `.
 - File and etcd tunnels now write multiline parameter errors as several consecutive prefixed lines instead of escaping newlines into one line.
 - File and etcd parameter error text is stored raw per line; backslashes are no longer escaped or unescaped for error text.
+- File and etcd `writeNoticeLines` now delete notice storage when passed an empty list.
 - README dependency snippets and release links now point to `0.0.7`.
 
 ## [0.0.6] - 2026-05-24

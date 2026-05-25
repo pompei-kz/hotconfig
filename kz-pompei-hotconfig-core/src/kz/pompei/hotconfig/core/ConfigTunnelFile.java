@@ -123,6 +123,10 @@ public class ConfigTunnelFile implements ConfigTunnel {
   @Override public void writeNoticeLines(@NonNull String localPath, @NonNull List<String> lines) {
     Path path = noticePath(localPath);
     try {
+      if (lines.isEmpty()) {
+        Files.deleteIfExists(path);
+        return;
+      }
       Path parent = path.getParent();
       if (parent != null) Files.createDirectories(parent);
       Files.write(path, lines, StandardCharsets.UTF_8);

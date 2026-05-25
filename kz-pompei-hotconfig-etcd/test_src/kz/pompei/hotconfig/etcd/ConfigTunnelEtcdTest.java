@@ -292,6 +292,28 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
     }
   }
 
+  @Test public void writeNoticeLines_emptyListDeletesNoticeKey() {
+    ConfTunnelEtcdDef params = createParams("writeNoticeLines_emptyListDeletesNoticeKey");
+
+    String localPath     = "some/folder/" + RND.str(10) + "/writeNoticeLines_emptyListDeletesNoticeKey.hotconf";
+    String fullNoticeKey = key(params, localPath + params.noticeExtension);
+
+    try (Client client = createClient();
+         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
+      confTunnelEtcd.writeNoticeLines(localPath, List.of("notice line"));
+      assertThat(keyExists(client, fullNoticeKey)).isTrue();
+
+      //
+      //
+      confTunnelEtcd.writeNoticeLines(localPath, List.of());
+      //
+      //
+
+      assertThat(keyExists(client, fullNoticeKey)).isFalse();
+      assertThat(confTunnelEtcd.readNoticeLines(localPath)).isEmpty();
+    }
+  }
+
   @Test public void constructor_usesExternalClient() {
     ConfTunnelEtcdDef params = createParams("constructor_usesExternalClient");
 

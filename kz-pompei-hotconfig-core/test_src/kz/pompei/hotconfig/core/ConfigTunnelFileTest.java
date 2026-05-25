@@ -286,6 +286,22 @@ public class ConfigTunnelFileTest {
     assertThat(Files.exists(dir.resolve("nested/app.conf"))).isFalse();
   }
 
+  @Test public void writeNoticeLines_emptyListDeletesNoticeFile() {
+    ConfigTunnelFile confTunnelFile = tunnel();
+
+    confTunnelFile.writeNoticeLines("nested/app.conf", List.of("notice line"));
+    assertThat(Files.exists(dir.resolve("nested/app.conf.notice"))).isTrue();
+
+    //
+    //
+    confTunnelFile.writeNoticeLines("nested/app.conf", List.of());
+    //
+    //
+
+    assertThat(Files.exists(dir.resolve("nested/app.conf.notice"))).isFalse();
+    assertThat(confTunnelFile.readNoticeLines("nested/app.conf")).isEmpty();
+  }
+
   private @NonNull ConfigTunnelFile tunnel() {
     return ConfigTunnelFile.builder()
                            .baseDir(dir)
