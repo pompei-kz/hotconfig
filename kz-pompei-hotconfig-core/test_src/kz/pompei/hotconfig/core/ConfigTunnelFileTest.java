@@ -189,6 +189,42 @@ public class ConfigTunnelFileTest {
     assertThat(readConf.params.get(3).valueStr).isEqualTo("C:\\data\\file");
   }
 
+  @Test public void write__custom_errorPrefix() throws IOException {
+
+    Conf conf = new Conf();
+
+    ConfParam host = new ConfParam();
+    host.name     = "host";
+    host.valueStr = "localhost";
+    host.error    = "host is unavailable";
+    conf.params.add(host);
+
+    ConfigTunnelFile confTunnelFile = ConfigTunnelFile.builder()
+                                                      .baseDir(dir)
+                                                      .noticeExtension(".notice")
+                                                      .errorPrefix("ERR ")
+                                                      .build();
+
+    //
+    //
+    confTunnelFile.write("app.conf", conf);
+    //
+    //
+
+    assertThat(Files.readString(dir.resolve("app.conf"), StandardCharsets.UTF_8)).isEqualTo(
+      """
+        
+        host=localhost
+        #ERR host is unavailable
+        """
+    );
+
+    Conf readConf = confTunnelFile.read("app.conf");
+    assertThat(readConf).isNotNull();
+    assertThat(readConf.params).hasSize(1);
+    assertThat(readConf.params.get(0).error).isEqualTo("host is unavailable");
+  }
+
   @Test public void modificationMarker() throws IOException {
 
     Path file = dir.resolve("app.conf");

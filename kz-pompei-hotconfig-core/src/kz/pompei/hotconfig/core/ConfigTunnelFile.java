@@ -22,8 +22,6 @@ import org.jetbrains.annotations.Nullable;
  * it is replaced with \n. The \ symbol is replaced with its repetition \\.
  */
 public class ConfigTunnelFile implements ConfigTunnel {
-  private static final String ERROR_PREFIX = "#ERROR ";
-
   @NonNull private final Def def;
 
   ConfigTunnelFile(@NonNull Def def) {
@@ -38,6 +36,7 @@ public class ConfigTunnelFile implements ConfigTunnel {
   static class Def {
     @NonNull private final Path   baseDir;
     @NonNull private final String noticeExtension;
+    @NonNull private final String errorPrefix;
   }
 
   @Override public @Nullable Conf read(@NonNull String localPath) {
@@ -78,8 +77,9 @@ public class ConfigTunnelFile implements ConfigTunnel {
         param.valueStr = unescape(line.substring(split + 1));
         index++;
 
-        if (index < lines.size() && lines.get(index).startsWith(ERROR_PREFIX)) {
-          param.error = unescape(lines.get(index).substring(ERROR_PREFIX.length()));
+        String errorLinePrefix = errorLinePrefix();
+        if (index < lines.size() && lines.get(index).startsWith(errorLinePrefix)) {
+          param.error = unescape(lines.get(index).substring(errorLinePrefix.length()));
           index++;
         }
         conf.params.add(param);
@@ -137,15 +137,19 @@ public class ConfigTunnelFile implements ConfigTunnel {
     }
   }
 
-  private Path path(@NonNull String localPath) {
+  private @NonNull Path path(@NonNull String localPath) {
     return def.baseDir.resolve(localPath);
   }
 
-  private Path noticePath(@NonNull String localPath) {
+  private @NonNull Path noticePath(@NonNull String localPath) {
     return path(localPath + def.noticeExtension);
   }
 
-  private List<String> writeLines(@NonNull Conf conf) {
+  private @NonNull String errorLinePrefix() {
+    return "#" + def.errorPrefix;
+  }
+
+  private @NonNull List<String> writeLines(@NonNull Conf conf) {
     List<String> lines = new ArrayList<>();
     for (String comment : conf.confComments) lines.add(writeComment(comment));
     lines.add("");
@@ -154,7 +158,7 @@ public class ConfigTunnelFile implements ConfigTunnel {
       ConfParam param = conf.params.get(i);
       for (String comment : param.comments) lines.add(writeComment(comment));
       lines.add(param.name + "=" + escape(param.valueStr));
-      if (param.error != null) lines.add(ERROR_PREFIX + escape(param.error));
+      if (param.error != null) lines.add(errorLinePrefix() + escape(param.error));
       if (i < conf.params.size() - 1) lines.add("");
     }
     return lines;
@@ -164,11 +168,11 @@ public class ConfigTunnelFile implements ConfigTunnel {
     return line.startsWith("#");
   }
 
-  private String readComment(@NonNull String line) {
+  private @NonNull String readComment(@NonNull String line) {
     return line.substring(1);
   }
 
-  private String writeComment(@Nullable String comment) {
+  private @NonNull String writeComment(@Nullable String comment) {
     return "#" + (comment == null ? "" : comment);
   }
 
@@ -177,12 +181,12 @@ public class ConfigTunnelFile implements ConfigTunnel {
     return index;
   }
 
-  private String escape(@Nullable String value) {
+  private @NonNull String escape(@Nullable String value) {
     if (value == null) return "";
     return value.replace("\\", "\\\\").replace("\n", "\\n");
   }
 
-  private String unescape(@NonNull String value) {
+  private @NonNull String unescape(@NonNull String value) {
     StringBuilder result = new StringBuilder(value.length());
     for (int i = 0; i < value.length(); i++) {
       char c = value.charAt(i);

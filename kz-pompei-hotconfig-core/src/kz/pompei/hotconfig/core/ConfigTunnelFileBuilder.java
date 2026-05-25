@@ -14,6 +14,7 @@ public class ConfigTunnelFileBuilder {
 
   private          Path   baseDir;
   private @NonNull String noticeExtension = ".notice";
+  private @NonNull String errorPrefix     = "ERROR ";
 
   /**
    * The base directory in which files will be created. Paths are specified relative to this directory in the {@link ConfFolder} annotation.
@@ -54,6 +55,19 @@ public class ConfigTunnelFileBuilder {
   }
 
   /**
+   * The prefix used after the leading {@code #} marker for parameter error lines.
+   * <p>
+   * For example, the default value {@code ERROR } is written as {@code #ERROR } in configuration files.
+   *
+   * @param errorPrefix The error line prefix without the leading {@code #}
+   * @return this
+   */
+  public @NonNull ConfigTunnelFileBuilder errorPrefix(@NonNull String errorPrefix) {
+    this.errorPrefix = errorPrefix;
+    return this;
+  }
+
+  /**
    * Builds a file-backed configuration tunnel.
    *
    * @return configured file tunnel
@@ -63,6 +77,6 @@ public class ConfigTunnelFileBuilder {
     if (baseDir == null) {
       throw new IllegalArgumentException("JYf0g5Hu6Y :: `baseDir` must be specified");
     }
-    return new ConfigTunnelFile(new ConfigTunnelFile.Def(baseDir, noticeExtension));
+    return new ConfigTunnelFile(new ConfigTunnelFile.Def(baseDir, noticeExtension, errorPrefix));
   }
 }
