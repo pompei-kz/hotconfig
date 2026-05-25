@@ -14,13 +14,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ConfigTunnelEtcdTest extends EtcdTestParent {
 
   @Test public void read_keyDoesNotExists() {
-    ConfTunnelEtcdDef params = createParams("read_keyDoesNotExists");
+    ConfigTunnelEtcdBuilder builder = createBuilder("read_keyDoesNotExists");
 
     String localPath = "some/folder/" + RND.str(10) + "/" + RND.str(10) + "/read_keyDoesNotExists.hotconf";
-    String fullKey   = key(params, localPath);
+    String fullKey   = key(builder, localPath);
 
     try (Client client = createClient();
-         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = builder.client(client).build()) {
       assertThat(keyExists(client, fullKey)).isFalse();
 
       //
@@ -35,10 +35,10 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
   }
 
   @Test public void write__multiline_comments() throws Exception {
-    ConfTunnelEtcdDef params = createParams("write__multiline_comments");
+    ConfigTunnelEtcdBuilder builder = createBuilder("write__multiline_comments");
 
     String localPath = "some/folder/" + RND.str(10) + "/write__multiline_comments.hotconf";
-    String fullKey   = key(params, localPath);
+    String fullKey   = key(builder, localPath);
 
     Conf conf = new Conf();
     conf.confComments.add("config line 1");
@@ -63,7 +63,7 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
     conf.params.add(param1);
 
     try (Client client = createClient();
-         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = builder.client(client).build()) {
 
       //
       //
@@ -121,10 +121,10 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
   }
 
   @Test public void read__multiline_comments() throws Exception {
-    ConfTunnelEtcdDef params = createParams("read__multiline_comments");
+    ConfigTunnelEtcdBuilder builder = createBuilder("read__multiline_comments");
 
     String localPath = "some/folder/" + RND.str(10) + "/read__multiline_comments.hotconf";
-    String fullKey   = key(params, localPath);
+    String fullKey   = key(builder, localPath);
 
     String stored = String.join(
       "\n",
@@ -146,7 +146,7 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
     );
 
     try (Client client = createClient();
-         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = builder.client(client).build()) {
       client.getKVClient().put(byteSequence(fullKey), byteSequence(stored)).get();
 
       //
@@ -175,10 +175,10 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
   }
 
   @Test public void modificationMarker_updatesOnValueChange() throws InterruptedException {
-    ConfTunnelEtcdDef params = createParams("lastModified_updatesOnValueChange");
+    ConfigTunnelEtcdBuilder builder = createBuilder("lastModified_updatesOnValueChange");
 
     String localPath = "some/folder/" + RND.str(10) + "/lastModified_updatesOnValueChange.hotconf";
-    String fullKey   = key(params, localPath);
+    String fullKey   = key(builder, localPath);
 
     Conf conf = new Conf();
     conf.confComments.add("This is comment for conf");
@@ -189,7 +189,7 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
     conf.params.add(param0);
 
     try (Client client = createClient();
-         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = builder.client(client).build()) {
       confTunnelEtcd.write(localPath, conf);
 
       //
@@ -218,11 +218,11 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
   }
 
   @Test public void write_usesConfiguredKeyPrefix() {
-    ConfTunnelEtcdDef params = createParams("write_usesConfiguredKeyPrefix");
-    params.keyPrefix = "/custom-prefix/";
+    ConfigTunnelEtcdBuilder builder = createBuilder("write_usesConfiguredKeyPrefix");
+    builder.keyPrefix("/custom-prefix/");
 
     String localPath  = "some/folder/" + RND.str(10) + "/write_usesConfiguredKeyPrefix.hotconf";
-    String customKey  = key(params, localPath);
+    String customKey  = key(builder, localPath);
     String defaultKey = KEY_PREFIX + localPath;
 
     Conf conf = new Conf();
@@ -231,7 +231,7 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
     conf.params.get(0).valueStr = "value0";
 
     try (Client client = createClient();
-         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = builder.client(client).build()) {
       confTunnelEtcd.write(localPath, conf);
 
       assertThat(keyExists(client, customKey)).isTrue();
@@ -242,13 +242,13 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
   }
 
   @Test public void readNoticeLines_keyDoesNotExists() {
-    ConfTunnelEtcdDef params = createParams("readNoticeLines_keyDoesNotExists");
+    ConfigTunnelEtcdBuilder builder = createBuilder("readNoticeLines_keyDoesNotExists");
 
     String localPath     = "some/folder/" + RND.str(10) + "/readNoticeLines_keyDoesNotExists.hotconf";
-    String fullNoticeKey = key(params, localPath + params.noticeExtension);
+    String fullNoticeKey = key(builder, localPath + builder.noticeExtension());
 
     try (Client client = createClient();
-         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = builder.client(client).build()) {
       assertThat(keyExists(client, fullNoticeKey)).isFalse();
 
       //
@@ -263,14 +263,14 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
   }
 
   @Test public void writeNoticeLines() throws Exception {
-    ConfTunnelEtcdDef params = createParams("writeNoticeLines");
+    ConfigTunnelEtcdBuilder builder = createBuilder("writeNoticeLines");
 
     String localPath     = "some/folder/" + RND.str(10) + "/writeNoticeLines.hotconf";
-    String fullKey       = key(params, localPath);
-    String fullNoticeKey = key(params, localPath + params.noticeExtension);
+    String fullKey       = key(builder, localPath);
+    String fullNoticeKey = key(builder, localPath + builder.noticeExtension());
 
     try (Client client = createClient();
-         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = builder.client(client).build()) {
 
       //
       //
@@ -293,13 +293,13 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
   }
 
   @Test public void writeNoticeLines_emptyListDeletesNoticeKey() {
-    ConfTunnelEtcdDef params = createParams("writeNoticeLines_emptyListDeletesNoticeKey");
+    ConfigTunnelEtcdBuilder builder = createBuilder("writeNoticeLines_emptyListDeletesNoticeKey");
 
     String localPath     = "some/folder/" + RND.str(10) + "/writeNoticeLines_emptyListDeletesNoticeKey.hotconf";
-    String fullNoticeKey = key(params, localPath + params.noticeExtension);
+    String fullNoticeKey = key(builder, localPath + builder.noticeExtension());
 
     try (Client client = createClient();
-         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = builder.client(client).build()) {
       confTunnelEtcd.writeNoticeLines(localPath, List.of("notice line"));
       assertThat(keyExists(client, fullNoticeKey)).isTrue();
 
@@ -315,10 +315,10 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
   }
 
   @Test public void constructor_usesExternalClient() {
-    ConfTunnelEtcdDef params = createParams("constructor_usesExternalClient");
+    ConfigTunnelEtcdBuilder builder = createBuilder("constructor_usesExternalClient");
 
     try (Client client = createClient();
-         ConfigTunnelEtcd confTunnelEtcd = new ConfigTunnelEtcd(client, params)) {
+         ConfigTunnelEtcd confTunnelEtcd = builder.client(client).build()) {
       assertThat(confTunnelEtcd).isNotNull();
     }
   }

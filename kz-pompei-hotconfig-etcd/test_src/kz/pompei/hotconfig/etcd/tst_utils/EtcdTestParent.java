@@ -5,7 +5,8 @@ import io.etcd.jetcd.Client;
 import io.etcd.jetcd.kv.GetResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
-import kz.pompei.hotconfig.etcd.ConfTunnelEtcdDef;
+import kz.pompei.hotconfig.etcd.ConfigTunnelEtcd;
+import kz.pompei.hotconfig.etcd.ConfigTunnelEtcdBuilder;
 import lombok.NonNull;
 
 public abstract class EtcdTestParent {
@@ -13,10 +14,9 @@ public abstract class EtcdTestParent {
   protected static final String ENDPOINT = "http://localhost:17403";
   protected static final String KEY_PREFIX = "/kz-pompei-conf-etcd/";
 
-  protected @NonNull ConfTunnelEtcdDef createParams(@NonNull String testName) {
-    ConfTunnelEtcdDef params = new ConfTunnelEtcdDef();
-    params.keyPrefix = KEY_PREFIX + testName + "_" + Long.toUnsignedString(System.nanoTime()) + "/";
-    return params;
+  protected @NonNull ConfigTunnelEtcdBuilder createBuilder(@NonNull String testName) {
+    return ConfigTunnelEtcd.builder()
+                           .keyPrefix(KEY_PREFIX + testName + "_" + Long.toUnsignedString(System.nanoTime()) + "/");
   }
 
   protected @NonNull Client createClient() {
@@ -50,9 +50,9 @@ public abstract class EtcdTestParent {
     }
   }
 
-  protected @NonNull String key(@NonNull ConfTunnelEtcdDef params, @NonNull String localPath) {
+  protected @NonNull String key(@NonNull ConfigTunnelEtcdBuilder builder, @NonNull String localPath) {
     String normalized = localPath.startsWith("/") ? localPath.substring(1) : localPath;
-    return params.keyPrefix + normalized;
+    return builder.keyPrefix() + normalized;
   }
 
   protected ByteSequence byteSequence(@NonNull String value) {

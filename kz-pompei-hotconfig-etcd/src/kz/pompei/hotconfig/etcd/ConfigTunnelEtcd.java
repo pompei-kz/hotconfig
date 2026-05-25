@@ -13,13 +13,14 @@ import kz.pompei.hotconfig.core.ParseUtil;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Stores configuration data in etcd.
  * <p>
  * Connect it to a running etcd v3 server by building a jetcd client separately and passing it
- * to the constructor together with the storage parameters. For the local Docker compose setup
+ * to the builder. For the local Docker compose setup
  * in this repository, the endpoint is {@code http://localhost:17403}.
  * <p>
  * One configuration is stored under one etcd key. The value uses a line-oriented format:
@@ -49,9 +50,7 @@ import org.jetbrains.annotations.Nullable;
  * <p>
  * Example:
  * <pre>{@code
- * ConfTunnelEtcdDef params = new ConfTunnelEtcdDef();
- * try (Client client = Client.builder().endpoints("http://localhost:17403").build();
- *      ConfTunnelEtcd tunnel = new ConfTunnelEtcd(client, params)) {
+ * try (ConfigTunnelEtcd tunnel = ConfigTunnelEtcd.builder().endpoints("http://localhost:17403").build()) {
  *   Conf conf = tunnel.read("some/folder/test-config.hotconf");
  * }
  * }</pre>
@@ -59,20 +58,28 @@ import org.jetbrains.annotations.Nullable;
 public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
   private static final String ERROR_PREFIX = "#ERROR ";
 
-  @NonNull private final ConfTunnelEtcdDef params;
-  @NonNull private final Client            client;
-  @NonNull private final KV                kvClient;
+  @NonNull private final Def def;
+  @NonNull private final KV  kvClient;
+
+  public static @NonNull ConfigTunnelEtcdBuilder builder() {
+    return new ConfigTunnelEtcdBuilder();
+  }
 
   /**
-   * Creates an etcd tunnel using the provided jetcd client and storage parameters.
+   * Creates an etcd tunnel using the provided builder definition.
    *
-   * @param client jetcd client connected by the caller
-   * @param params etcd connection and key layout settings
+   * @param def etcd connection and key layout settings.
    */
-  public ConfigTunnelEtcd(@NonNull Client client, @NonNull ConfTunnelEtcdDef params) {
-    this.params   = params;
-    this.client   = client;
-    this.kvClient = client.getKVClient();
+  ConfigTunnelEtcd(@NonNull Def def) {
+    this.def      = def;
+    this.kvClient = def.client.getKVClient();
+  }
+
+  @RequiredArgsConstructor
+  static class Def {
+    final @NonNull Client client;
+    final @NonNull String keyPrefix;
+    final @NonNull String noticeExtension;
   }
 
   @Override public @Nullable Conf read(@NonNull String localPath) {
@@ -106,16 +113,16 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
   }
 
   @Override public void close() {
-    client.close();
+    def.client.close();
   }
 
   private @NonNull String key(@NonNull String localPath) {
     String normalized = localPath.startsWith("/") ? localPath.substring(1) : localPath;
-    return params.keyPrefix + normalized;
+    return def.keyPrefix + normalized;
   }
 
   private @NonNull String noticeKey(@NonNull String localPath) {
-    return key(localPath + params.noticeExtension);
+    return key(localPath + def.noticeExtension);
   }
 
   private @Nullable String get(@NonNull String key) {

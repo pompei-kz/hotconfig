@@ -416,13 +416,12 @@ using version 0.0.7.
 ```java
 import io.etcd.jetcd.Client;
 import kz.pompei.hotconfig.etcd.ConfigTunnelEtcd;
-import kz.pompei.hotconfig.etcd.ConfTunnelEtcdDef;
-
-ConfTunnelEtcdDef def = new ConfTunnelEtcdDef();
-def.keyPrefix = "/kz-pompei-conf-etcd/";
 
 try (Client client = Client.builder().endpoints("http://localhost:17403").build();
-     ConfigTunnelEtcd tunnel = new ConfigTunnelEtcd(client, def)) {
+     ConfigTunnelEtcd tunnel = ConfigTunnelEtcd.builder()
+       .client(client)
+       .keyPrefix("/kz-pompei-conf-etcd/")
+       .build()) {
   HotConfigFactory factory = HotConfigFactory.builder()
     .tunnel(tunnel)
     .build();

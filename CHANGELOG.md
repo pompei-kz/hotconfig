@@ -9,6 +9,7 @@ This project keeps short release summaries in this file and detailed notes in
 
 ### Added
 
+- Added `ConfigTunnelEtcdBuilder` and `ConfigTunnelEtcd.builder()` as the public etcd tunnel construction API.
 - Added `ConfigTunnelFileBuilder.errorPrefix(...)` for configuring the file tunnel parameter error marker text.
 - Added `ConfigTunnelMem` tests covering read/write behavior, modification markers, notices, copy isolation, and path isolation.
 
@@ -20,6 +21,10 @@ This project keeps short release summaries in this file and detailed notes in
 - File and etcd `writeNoticeLines` now delete notice storage when passed an empty list.
 - Etcd tunnel storage calls now live directly in `ConfigTunnelEtcd` instead of a separate internal `EtcdStorage` abstraction.
 - README dependency snippets and release links now point to `0.0.7`.
+
+### Removed
+
+- Removed `ConfTunnelEtcdDef`; configure etcd tunnels through `ConfigTunnelEtcd.builder()` instead.
 
 ## [0.0.6] - 2026-05-24
 
