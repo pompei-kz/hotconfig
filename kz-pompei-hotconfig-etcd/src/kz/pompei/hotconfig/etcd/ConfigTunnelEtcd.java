@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import kz.pompei.hotconfig.core.ConfigTunnel;
+import kz.pompei.hotconfig.core.ParseUtil;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
 import lombok.NonNull;
@@ -59,7 +60,8 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
   private static final String ERROR_PREFIX = "#ERROR ";
 
   @NonNull private final ConfTunnelEtcdDef params;
-  @NonNull private final EtcdStorage storage;
+  @NonNull private final Client            client;
+  @NonNull private final KV                kvClient;
 
   /**
    * Creates an etcd tunnel using the provided jetcd client and storage parameters.
@@ -68,27 +70,24 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
    * @param params etcd connection and key layout settings
    */
   public ConfigTunnelEtcd(@NonNull Client client, @NonNull ConfTunnelEtcdDef params) {
-    this(params, new JetcdStorage(client));
-  }
-
-  ConfigTunnelEtcd(@NonNull ConfTunnelEtcdDef params, @NonNull EtcdStorage storage) {
-    this.params = params;
-    this.storage = storage;
+    this.params   = params;
+    this.client   = client;
+    this.kvClient = client.getKVClient();
   }
 
   @Override public @Nullable Conf read(@NonNull String localPath) {
-    String stored = storage.get(key(localPath));
+    String stored = get(key(localPath));
     if (stored == null) return null;
 
     return parse(stored);
   }
 
   @Override public void write(@NonNull String localPath, @NonNull Conf conf) {
-    storage.put(key(localPath), serialize(conf));
+    put(key(localPath), serialize(conf));
   }
 
   @Override public @NonNull List<String> readNoticeLines(@NonNull String localPath) {
-    String stored = storage.get(noticeKey(localPath));
+    String stored = get(noticeKey(localPath));
     if (stored == null || stored.isEmpty()) return List.of();
     return List.of(stored.split("\n", -1));
   }
@@ -96,38 +95,89 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
   @Override public void writeNoticeLines(@NonNull String localPath, @NonNull List<String> lines) {
     String key = noticeKey(localPath);
     if (lines.isEmpty()) {
-      storage.delete(key);
+      delete(key);
       return;
     }
-    storage.put(key, String.join("\n", lines));
+    put(key, String.join("\n", lines));
   }
 
   @Override public @Nullable Long modificationMarker(@NonNull String localPath) {
-    return storage.modificationMarker(key(localPath));
+    return modificationMarkerByKey(key(localPath));
   }
 
   @Override public void close() {
-    storage.close();
+    client.close();
   }
 
-  private String key(@NonNull String localPath) {
+  private @NonNull String key(@NonNull String localPath) {
     String normalized = localPath.startsWith("/") ? localPath.substring(1) : localPath;
     return params.keyPrefix + normalized;
   }
 
-  private String noticeKey(@NonNull String localPath) {
+  private @NonNull String noticeKey(@NonNull String localPath) {
     return key(localPath + params.noticeExtension);
   }
 
-  private String serialize(@NonNull Conf conf) {
+  private @Nullable String get(@NonNull String key) {
+    try {
+      List<KeyValue> kvs = kvClient.get(ByteSequence.from(key.getBytes(StandardCharsets.UTF_8))).get().getKvs();
+      if (kvs.isEmpty()) return null;
+      return new String(kvs.get(0).getValue().getBytes(), StandardCharsets.UTF_8);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("R1s2T3u4V5 :: Could not read etcd key: " + key, e);
+    } catch (ExecutionException e) {
+      throw new RuntimeException("W6x7Y8z9A0 :: Could not read etcd key: " + key, e);
+    }
+  }
+
+  private @Nullable Long modificationMarkerByKey(@NonNull String key) {
+    try {
+      List<KeyValue> kvs = kvClient.get(ByteSequence.from(key.getBytes(StandardCharsets.UTF_8))).get().getKvs();
+      if (kvs.isEmpty()) return null;
+      return kvs.get(0).getModRevision();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("B1c2D3e4F5 :: Could not read etcd revision: " + key, e);
+    } catch (ExecutionException e) {
+      throw new RuntimeException("G6h7I8j9K0 :: Could not read etcd revision: " + key, e);
+    }
+  }
+
+  private void put(@NonNull String key, @NonNull String value) {
+    try {
+      kvClient.put(
+        ByteSequence.from(key.getBytes(StandardCharsets.UTF_8)),
+        ByteSequence.from(value.getBytes(StandardCharsets.UTF_8))
+      ).get();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("L1m2N3o4P5 :: Could not write etcd key: " + key, e);
+    } catch (ExecutionException e) {
+      throw new RuntimeException("Q6r7S8t9U0 :: Could not write etcd key: " + key, e);
+    }
+  }
+
+  private void delete(@NonNull String key) {
+    try {
+      kvClient.delete(ByteSequence.from(key.getBytes(StandardCharsets.UTF_8))).get();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("V1w2X3y4Z5 :: Could not delete etcd key: " + key, e);
+    } catch (ExecutionException e) {
+      throw new RuntimeException("A6b7C8d9E0 :: Could not delete etcd key: " + key, e);
+    }
+  }
+
+  private @NonNull String serialize(@NonNull Conf conf) {
     return serializeConf(conf);
   }
 
-  private Conf parse(@NonNull String stored) {
+  private @NonNull Conf parse(@NonNull String stored) {
     return parseConf(stored);
   }
 
-  private String serializeConf(@NonNull Conf conf) {
+  private @NonNull String serializeConf(@NonNull Conf conf) {
     List<String> lines = new ArrayList<>();
     for (String comment : conf.confComments) lines.add(writeComment(comment));
     lines.add("");
@@ -144,10 +194,10 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
     return String.join("\n", lines);
   }
 
-  private Conf parseConf(@NonNull String body) {
+  private @NonNull Conf parseConf(@NonNull String body) {
     List<String> lines = body.isEmpty() ? List.of() : List.of(body.split("\n", -1));
-    Conf conf = new Conf();
-    int index = 0;
+    Conf         conf  = new Conf();
+    int          index = 0;
 
     while (index < lines.size() && isComment(lines.get(index))) {
       conf.confComments.add(readComment(lines.get(index)));
@@ -163,23 +213,25 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
         index++;
       }
 
-      if (index >= lines.size()) break;
+      if (index >= lines.size()) {
+        break;
+      }
       if (lines.get(index).isBlank()) {
         index = skipBlankLines(lines, index);
         continue;
       }
 
-      String line = lines.get(index);
-      int split = line.indexOf('=');
+      String line  = lines.get(index);
+      int    split = line.indexOf('=');
       if (split < 0) {
         throw new IllegalArgumentException("Invalid etcd configuration payload: missing '=' in parameter line");
       }
-      param.name = line.substring(0, split);
-      param.valueStr = unescape(line.substring(split + 1));
+      param.name     = line.substring(0, split);
+      param.valueStr = ParseUtil.unescape(line.substring(split + 1));
       index++;
 
-      StringBuilder error = new StringBuilder();
-      boolean hasError = false;
+      StringBuilder error    = new StringBuilder();
+      boolean       hasError = false;
       while (index < lines.size() && lines.get(index).startsWith(ERROR_PREFIX)) {
         hasError = true;
         if (!error.isEmpty()) error.append('\n');
@@ -212,96 +264,9 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
     return index;
   }
 
-  private String escape(@Nullable String value) {
+  private @NonNull String escape(@Nullable String value) {
     if (value == null) return "";
     return value.replace("\\", "\\\\").replace("\n", "\\n");
   }
 
-  private String unescape(@NonNull String value) {
-    StringBuilder result = new StringBuilder(value.length());
-    for (int i = 0; i < value.length(); i++) {
-      char c = value.charAt(i);
-      if (c == '\\' && i + 1 < value.length()) {
-        char next = value.charAt(++i);
-        if (next == 'n') result.append('\n');
-        else result.append(next);
-      }
-      else result.append(c);
-    }
-    return result.toString();
-  }
-
-  private static final class JetcdStorage implements EtcdStorage {
-
-    @NonNull private final Client client;
-    @NonNull private final KV kvClient;
-
-    private JetcdStorage(@NonNull Client client) {
-      this.client = client;
-      this.kvClient = client.getKVClient();
-    }
-
-    @Override public @Nullable String get(@NonNull String key) {
-      try {
-        List<KeyValue> kvs = kvClient.get(ByteSequence.from(key.getBytes(StandardCharsets.UTF_8))).get().getKvs();
-        if (kvs.isEmpty()) return null;
-        return new String(kvs.get(0).getValue().getBytes(), StandardCharsets.UTF_8);
-      }
-      catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException("R1s2T3u4V5 :: Could not read etcd key: " + key, e);
-      }
-      catch (ExecutionException e) {
-        throw new RuntimeException("W6x7Y8z9A0 :: Could not read etcd key: " + key, e);
-      }
-    }
-
-    @Override public @Nullable Long modificationMarker(@NonNull String key) {
-      try {
-        List<KeyValue> kvs = kvClient.get(ByteSequence.from(key.getBytes(StandardCharsets.UTF_8))).get().getKvs();
-        if (kvs.isEmpty()) return null;
-        return kvs.get(0).getModRevision();
-      }
-      catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException("B1c2D3e4F5 :: Could not read etcd revision: " + key, e);
-      }
-      catch (ExecutionException e) {
-        throw new RuntimeException("G6h7I8j9K0 :: Could not read etcd revision: " + key, e);
-      }
-    }
-
-    @Override public void put(@NonNull String key, @NonNull String value) {
-      try {
-        kvClient.put(
-          ByteSequence.from(key.getBytes(StandardCharsets.UTF_8)),
-          ByteSequence.from(value.getBytes(StandardCharsets.UTF_8))
-        ).get();
-      }
-      catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException("L1m2N3o4P5 :: Could not write etcd key: " + key, e);
-      }
-      catch (ExecutionException e) {
-        throw new RuntimeException("Q6r7S8t9U0 :: Could not write etcd key: " + key, e);
-      }
-    }
-
-    @Override public void delete(@NonNull String key) {
-      try {
-        kvClient.delete(ByteSequence.from(key.getBytes(StandardCharsets.UTF_8))).get();
-      }
-      catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException("V1w2X3y4Z5 :: Could not delete etcd key: " + key, e);
-      }
-      catch (ExecutionException e) {
-        throw new RuntimeException("A6b7C8d9E0 :: Could not delete etcd key: " + key, e);
-      }
-    }
-
-    @Override public void close() {
-      client.close();
-    }
-  }
 }

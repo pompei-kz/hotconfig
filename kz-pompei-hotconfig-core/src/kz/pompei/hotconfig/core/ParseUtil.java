@@ -11,6 +11,24 @@ import org.jetbrains.annotations.Nullable;
 public class ParseUtil {
   private static final MathContext FLOATING_POINT_MATH_CONTEXT = new MathContext(50, RoundingMode.HALF_UP);
 
+  public static @NonNull String unescape(@NonNull String value) {
+    StringBuilder result = new StringBuilder(value.length());
+    for (int i = 0; i < value.length(); i++) {
+      char c = value.charAt(i);
+      if (c == '\\' && i + 1 < value.length()) {
+        char next = value.charAt(++i);
+        if (next == 'n') {
+          result.append('\n');
+        } else {
+          result.append(next);
+        }
+      } else {
+        result.append(c);
+      }
+    }
+    return result.toString();
+  }
+
   public static @Nullable Object parseStrToGenericType(@Nullable String valueStr,
                                                        @NonNull EnvSrc envSrc,
                                                        @NonNull Type genericReturnType) {

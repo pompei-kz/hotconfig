@@ -74,12 +74,12 @@ public class ConfigTunnelFile implements ConfigTunnel {
           throw new IllegalArgumentException("A1b2C3d4E5 :: Invalid configuration parameter line: " + line);
         }
         param.name     = line.substring(0, split);
-        param.valueStr = unescape(line.substring(split + 1));
+        param.valueStr = ParseUtil.unescape(line.substring(split + 1));
         index++;
 
-        String errorLinePrefix = errorLinePrefix();
-        StringBuilder error = new StringBuilder();
-        boolean hasError = false;
+        String        errorLinePrefix = errorLinePrefix();
+        StringBuilder error           = new StringBuilder();
+        boolean       hasError        = false;
         while (index < lines.size() && lines.get(index).startsWith(errorLinePrefix)) {
           hasError = true;
           if (!error.isEmpty()) error.append('\n');
@@ -188,7 +188,9 @@ public class ConfigTunnelFile implements ConfigTunnel {
   }
 
   private int skipBlankLines(@NonNull List<String> lines, int index) {
-    while (index < lines.size() && lines.get(index).isBlank()) index++;
+    while (index < lines.size() && lines.get(index).isBlank()) {
+      index++;
+    }
     return index;
   }
 
@@ -197,21 +199,4 @@ public class ConfigTunnelFile implements ConfigTunnel {
     return value.replace("\\", "\\\\").replace("\n", "\\n");
   }
 
-  private @NonNull String unescape(@NonNull String value) {
-    StringBuilder result = new StringBuilder(value.length());
-    for (int i = 0; i < value.length(); i++) {
-      char c = value.charAt(i);
-      if (c == '\\' && i + 1 < value.length()) {
-        char next = value.charAt(++i);
-        if (next == 'n') {
-          result.append('\n');
-        } else {
-          result.append(next);
-        }
-      } else {
-        result.append(c);
-      }
-    }
-    return result.toString();
-  }
 }
