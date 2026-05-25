@@ -131,6 +131,27 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
     }
   }
 
+  protected boolean columnExists(@NonNull ConnectionGet connectionGet, @NonNull String tableName, @NonNull String columnName) {
+    try (@NonNull Connection connection = connectionGet.getConnection()) {
+      DatabaseMetaData metaData = connection.getMetaData();
+      try (ResultSet rs = metaData.getColumns(null, null, "%", "%")) {
+        while (rs.next()) {
+          String currentTableName = rs.getString("TABLE_NAME");
+          String currentColumnName = rs.getString("COLUMN_NAME");
+          if (currentTableName != null
+              && currentColumnName != null
+              && currentTableName.equalsIgnoreCase(tableName)
+              && currentColumnName.equalsIgnoreCase(columnName)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    } catch (SQLException e) {
+      throw new RuntimeException("Ja7Kp2Qr4S :: Could not inspect configuration test column: " + tableName + "." + columnName, e);
+    }
+  }
+
   @SuppressWarnings("SqlWithoutWhere")
   protected void clearTable(@NonNull ConnectionGet connectionGet, @NonNull String tableName) {
     try (@NonNull Connection connection = connectionGet.getConnection()) {

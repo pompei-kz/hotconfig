@@ -184,42 +184,72 @@ public class ConfigTunnelJdbcBuilder {
     return this;
   }
 
+  /**
+   * Returns the configured comment column name.
+   */
   public @NonNull String colComment() {
     return colComment;
   }
 
+  /**
+   * Returns the configured configuration-name column name.
+   */
   public @NonNull String colConfigName() {
     return colConfigName;
   }
 
+  /**
+   * Returns the configured creation timestamp column name.
+   */
   public @NonNull String colCreatedAt() {
     return colCreatedAt;
   }
 
+  /**
+   * Returns the configured parameter error column name.
+   */
   public @NonNull String colError() {
     return colError;
   }
 
+  /**
+   * Returns the configured folder column name.
+   */
   public @NonNull String colFolder() {
     return colFolder;
   }
 
+  /**
+   * Returns the configured last-modified timestamp column name.
+   */
   public @NonNull String colLastModified() {
     return colLastModified;
   }
 
+  /**
+   * Returns the configured notice column name.
+   */
   public @NonNull String colNotice() {
     return colNotice;
   }
 
+  /**
+   * Returns the configured parameter-name column name.
+   */
   public @NonNull String colParamName() {
     return colParamName;
   }
 
+  /**
+   * Returns the configured parameter value column name.
+   */
   public @NonNull String colParamValueStr() {
     return colParamValueStr;
   }
 
+  /**
+   * Returns the configured storage table name.
+   */
   public @NonNull String tableName() {
     return tableName;
   }

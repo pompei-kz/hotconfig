@@ -350,6 +350,185 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
   }
 
   @Test(dataProvider = "databaseType")
+  public void writeAndRead_differentTableNamesAreIsolated(@NonNull DatabaseType databaseType) {
+
+    String nameOfThisMethod = "differentTableNames";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder firstBuilder = ConfigTunnelJdbc.builder();
+    firstBuilder.tableName(nameOfThisMethod + "_first_" + RND.str(8));
+
+    ConfigTunnelJdbcBuilder secondBuilder = ConfigTunnelJdbc.builder();
+    secondBuilder.tableName(nameOfThisMethod + "_second_" + RND.str(8));
+
+    ConfigTunnelJdbc firstTunnel  = firstBuilder.connectionGet(connectionGet).build();
+    ConfigTunnelJdbc secondTunnel = secondBuilder.connectionGet(connectionGet).build();
+
+    Conf firstConf = new Conf();
+    firstConf.confComments.add("first table config");
+    ConfParam firstParam = new ConfParam();
+    firstParam.name     = "param";
+    firstParam.valueStr = "first-value";
+    firstConf.params.add(firstParam);
+
+    Conf secondConf = new Conf();
+    secondConf.confComments.add("second table config");
+    ConfParam secondParam = new ConfParam();
+    secondParam.name     = "param";
+    secondParam.valueStr = "second-value";
+    secondConf.params.add(secondParam);
+
+    String localPath = "same/folder/test-config.hotconf";
+
+    firstTunnel.write(localPath, firstConf);
+    secondTunnel.write(localPath, secondConf);
+
+    Conf readFirstConf  = firstTunnel.read(localPath);
+    Conf readSecondConf = secondTunnel.read(localPath);
+
+    assertThat(tableExists(connectionGet, firstBuilder.tableName())).isTrue();
+    assertThat(tableExists(connectionGet, secondBuilder.tableName())).isTrue();
+
+    assertThat(readFirstConf).isNotNull();
+    assertThat(readSecondConf).isNotNull();
+    assertThat(readFirstConf.confComments).isEqualTo(List.of("first table config"));
+    assertThat(readSecondConf.confComments).isEqualTo(List.of("second table config"));
+    assertThat(readFirstConf.params.get(0).valueStr).isEqualTo("first-value");
+    assertThat(readSecondConf.params.get(0).valueStr).isEqualTo("second-value");
+  }
+
+  @Test(dataProvider = "databaseType")
+  public void writeAndRead_customTableAndColumnNames(@NonNull DatabaseType databaseType) throws SQLException {
+
+    String nameOfThisMethod = "customTableAndColumns";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder()
+                                                      .tableName(nameOfThisMethod + "_" + RND.str(8))
+                                                      .colFolder("cfg_folder")
+                                                      .colConfigName("cfg_name")
+                                                      .colParamName("cfg_param")
+                                                      .colParamValueStr("cfg_value")
+                                                      .colComment("cfg_comment")
+                                                      .colError("cfg_error")
+                                                      .colNotice("cfg_notice")
+                                                      .colCreatedAt("cfg_created")
+                                                      .colLastModified("cfg_modified");
+
+    Conf conf = new Conf();
+    conf.confComments.add("custom columns config comment");
+
+    ConfParam param = new ConfParam();
+    param.name     = "custom_param";
+    param.valueStr = "custom value";
+    param.error    = "custom error";
+    param.comments.add("custom param comment");
+    conf.params.add(param);
+
+    ConfigTunnelJdbc confTunnelJdbc = builder.connectionGet(connectionGet).build();
+    confTunnelJdbc.write("custom/folder/custom-config.hotconf", conf);
+    confTunnelJdbc.writeNoticeLines("custom/folder/custom-config.hotconf", List.of("custom notice"));
+
+    Conf readConf = confTunnelJdbc.read("custom/folder/custom-config.hotconf");
+
+    assertThat(readConf).isNotNull();
+    assertThat(readConf.confComments).isEqualTo(List.of("custom columns config comment"));
+    assertThat(readConf.params).hasSize(1);
+    assertThat(readConf.params.get(0).name).isEqualTo("custom_param");
+    assertThat(readConf.params.get(0).valueStr).isEqualTo("custom value");
+    assertThat(readConf.params.get(0).error).isEqualTo("custom error");
+    assertThat(readConf.params.get(0).comments).isEqualTo(List.of("custom param comment"));
+    assertThat(confTunnelJdbc.readNoticeLines("custom/folder/custom-config.hotconf")).isEqualTo(List.of("custom notice"));
+
+    try (@NonNull Connection connection = connectionGet.getConnection()) {
+      String sql = """
+        SELECT {colParamName}, {colParamValueStr}, {colComment}, {colError}, {colNotice}
+        FROM {tableName}
+        WHERE {colFolder} = ? AND {colConfigName} = ?
+        ORDER BY {colParamName}
+        """
+        .replace("{colParamName}", builder.colParamName())
+        .replace("{colParamValueStr}", builder.colParamValueStr())
+        .replace("{colComment}", builder.colComment())
+        .replace("{colError}", builder.colError())
+        .replace("{colNotice}", builder.colNotice())
+        .replace("{tableName}", builder.tableName())
+        .replace("{colFolder}", builder.colFolder())
+        .replace("{colConfigName}", builder.colConfigName());
+
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        ps.setString(1, "custom/folder");
+        ps.setString(2, "custom-config.hotconf");
+        try (ResultSet rs = ps.executeQuery()) {
+          assertThat(rs.next()).isTrue();
+          assertThat(rs.getString(builder.colParamName())).isEqualTo("");
+          assertThat(rs.getString(builder.colComment())).isEqualTo("custom columns config comment");
+          assertThat(rs.getString(builder.colNotice())).isEqualTo("custom notice");
+          assertThat(rs.next()).isTrue();
+          assertThat(rs.getString(builder.colParamName())).isEqualTo("custom_param");
+          assertThat(rs.getString(builder.colParamValueStr())).isEqualTo("custom value");
+          assertThat(rs.getString(builder.colComment())).isEqualTo("custom param comment");
+          assertThat(rs.getString(builder.colError())).isEqualTo("custom error");
+          assertThat(rs.getString(builder.colNotice())).isNull();
+          assertThat(rs.next()).isFalse();
+        }
+      }
+    }
+  }
+
+  @Test(dataProvider = "databaseType")
+  public void createTable_usesEveryConfiguredColumnName(@NonNull DatabaseType databaseType) {
+
+    String nameOfThisMethod = "createTable_allCustomColumns";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder()
+                                                      .tableName(nameOfThisMethod + "_" + RND.str(8))
+                                                      .colComment("comment_text_custom")
+                                                      .colConfigName("config_name_custom")
+                                                      .colCreatedAt("created_at_custom")
+                                                      .colError("error_text_custom")
+                                                      .colFolder("folder_path_custom")
+                                                      .colLastModified("modified_at_custom")
+                                                      .colNotice("notice_text_custom")
+                                                      .colParamName("param_name_custom")
+                                                      .colParamValueStr("param_value_custom");
+
+    ConfigTunnelJdbc confTunnelJdbc = builder.connectionGet(connectionGet).build();
+
+    //
+    //
+    confTunnelJdbc.createTableIfNotExists();
+    //
+    //
+
+    assertThat(tableExists(connectionGet, builder.tableName())).isTrue();
+
+    assertThat(columnExists(connectionGet, builder.tableName(), builder.colComment())).isTrue();
+    assertThat(columnExists(connectionGet, builder.tableName(), builder.colConfigName())).isTrue();
+    assertThat(columnExists(connectionGet, builder.tableName(), builder.colCreatedAt())).isTrue();
+    assertThat(columnExists(connectionGet, builder.tableName(), builder.colError())).isTrue();
+    assertThat(columnExists(connectionGet, builder.tableName(), builder.colFolder())).isTrue();
+    assertThat(columnExists(connectionGet, builder.tableName(), builder.colLastModified())).isTrue();
+    assertThat(columnExists(connectionGet, builder.tableName(), builder.colNotice())).isTrue();
+    assertThat(columnExists(connectionGet, builder.tableName(), builder.colParamName())).isTrue();
+    assertThat(columnExists(connectionGet, builder.tableName(), builder.colParamValueStr())).isTrue();
+
+    assertThat(columnExists(connectionGet, builder.tableName(), "cmt")).isFalse();
+    assertThat(columnExists(connectionGet, builder.tableName(), "class_name")).isFalse();
+    assertThat(columnExists(connectionGet, builder.tableName(), "created_at")).isFalse();
+    assertThat(columnExists(connectionGet, builder.tableName(), "error")).isFalse();
+    assertThat(columnExists(connectionGet, builder.tableName(), "folder")).isFalse();
+    assertThat(columnExists(connectionGet, builder.tableName(), "last_modified_at")).isFalse();
+    assertThat(columnExists(connectionGet, builder.tableName(), "notice")).isFalse();
+    assertThat(columnExists(connectionGet, builder.tableName(), "name")).isFalse();
+    assertThat(columnExists(connectionGet, builder.tableName(), "value_str")).isFalse();
+  }
+
+  @Test(dataProvider = "databaseType")
   public void writeAndRead_paramError(@NonNull DatabaseType databaseType) throws SQLException {
 
     String nameOfThisMethod = "writeAndRead_paramError";
