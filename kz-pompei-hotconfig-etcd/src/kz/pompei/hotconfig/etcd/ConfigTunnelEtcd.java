@@ -56,8 +56,6 @@ import org.jetbrains.annotations.Nullable;
  * }</pre>
  */
 public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
-  private static final String ERROR_PREFIX = "#ERROR ";
-
   @NonNull private final Def def;
   @NonNull private final KV  kvClient;
 
@@ -80,6 +78,7 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
     final @NonNull Client client;
     final @NonNull String keyPrefix;
     final @NonNull String noticeExtension;
+    final @NonNull String errorPrefix;
   }
 
   @Override public @Nullable Conf read(@NonNull String localPath) {
@@ -123,6 +122,10 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
 
   private @NonNull String noticeKey(@NonNull String localPath) {
     return key(localPath + def.noticeExtension);
+  }
+
+  private @NonNull String errorLinePrefix() {
+    return "#" + def.errorPrefix;
   }
 
   private @Nullable String get(@NonNull String key) {
@@ -194,7 +197,7 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
       for (String comment : param.comments) lines.add(writeComment(comment));
       lines.add(param.name + "=" + escape(param.valueStr));
       if (param.error != null) {
-        for (String errorLine : param.error.split("\n", -1)) lines.add(ERROR_PREFIX + errorLine);
+        for (String errorLine : param.error.split("\n", -1)) lines.add(errorLinePrefix() + errorLine);
       }
       if (i < conf.params.size() - 1) lines.add("");
     }
@@ -237,12 +240,13 @@ public class ConfigTunnelEtcd implements ConfigTunnel, AutoCloseable {
       param.valueStr = ParseUtil.unescape(line.substring(split + 1));
       index++;
 
-      StringBuilder error    = new StringBuilder();
+      String        errorLinePrefix = errorLinePrefix();
+      StringBuilder error           = new StringBuilder();
       boolean       hasError = false;
-      while (index < lines.size() && lines.get(index).startsWith(ERROR_PREFIX)) {
+      while (index < lines.size() && lines.get(index).startsWith(errorLinePrefix)) {
         hasError = true;
         if (!error.isEmpty()) error.append('\n');
-        error.append(lines.get(index).substring(ERROR_PREFIX.length()));
+        error.append(lines.get(index).substring(errorLinePrefix.length()));
         index++;
       }
       if (hasError) param.error = error.toString();

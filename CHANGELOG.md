@@ -10,12 +10,14 @@ This project keeps short release summaries in this file and detailed notes in
 ### Added
 
 - Added `ConfigTunnelEtcdBuilder` and `ConfigTunnelEtcd.builder()` as the public etcd tunnel construction API.
+- Added `ConfigTunnelEtcdBuilder.errorPrefix(...)` for configuring the etcd tunnel parameter error marker text.
 - Added `ConfigTunnelFileBuilder.errorPrefix(...)` for configuring the file tunnel parameter error marker text.
 - Added `ConfigTunnelMem` tests covering read/write behavior, modification markers, notices, copy isolation, and path isolation.
 
 ### Changed
 
 - File tunnel parameter error prefix configuration now lives in `ConfigTunnelFile.Def.errorPrefix`, defaulting to `ERROR `.
+- Etcd tunnel parameter error prefix configuration now lives in `ConfigTunnelEtcd.Def.errorPrefix`, defaulting to `ERROR `.
 - File and etcd tunnels now write multiline parameter errors as several consecutive prefixed lines instead of escaping newlines into one line.
 - File and etcd parameter error text is stored raw per line; backslashes are no longer escaped or unescaped for error text.
 - File and etcd `writeNoticeLines` now delete notice storage when passed an empty list.

@@ -448,7 +448,7 @@ For file and etcd tunnels, writing an empty notice list deletes the existing not
 ### Parameter Errors
 
 `ConfParam.error` stores validation or parsing error text associated with a parameter.
-File and etcd tunnels write it immediately after the `name=value` line using the `#ERROR ` prefix:
+File and etcd tunnels write it immediately after the `name=value` line using the `#ERROR ` prefix by default:
 
 ```text
 port=bad value
@@ -457,6 +457,7 @@ port=bad value
 ```
 
 File and etcd tunnels write multiline errors as consecutive prefixed lines and join them back with newline characters when read.
+The configurable error prefix is the text after the mandatory leading `#`; for example, `ERROR ` is stored as `#ERROR `.
 Backslashes in file and etcd error text are stored as-is. If `error` is null, the `#ERROR ` line is absent.
 JDBC stores the same error text in the configurable `colError` text column.
 

@@ -11,7 +11,7 @@ import lombok.NonNull;
 
 public abstract class EtcdTestParent {
 
-  protected static final String ENDPOINT = "http://localhost:17403";
+  protected static final String ENDPOINT   = "http://localhost:17403";
   protected static final String KEY_PREFIX = "/kz-pompei-conf-etcd/";
 
   protected @NonNull ConfigTunnelEtcdBuilder createBuilder(@NonNull String testName) {
@@ -27,12 +27,10 @@ public abstract class EtcdTestParent {
     try {
       GetResponse response = client.getKVClient().get(byteSequence(key)).get();
       return !response.getKvs().isEmpty();
-    }
-    catch (InterruptedException e) {
+    } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("X1y2Z3a4B5 :: Could not check etcd key existence: " + key, e);
-    }
-    catch (ExecutionException e) {
+    } catch (ExecutionException e) {
       throw new RuntimeException("C6d7E8f9G0 :: Could not check etcd key existence: " + key, e);
     }
   }
@@ -40,12 +38,10 @@ public abstract class EtcdTestParent {
   protected void deleteKey(@NonNull Client client, @NonNull String key) {
     try {
       client.getKVClient().delete(byteSequence(key)).get();
-    }
-    catch (InterruptedException e) {
+    } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("H1i2J3k4L5 :: Could not delete etcd key: " + key, e);
-    }
-    catch (ExecutionException e) {
+    } catch (ExecutionException e) {
       throw new RuntimeException("M6n7O8p9Q0 :: Could not delete etcd key: " + key, e);
     }
   }

@@ -3,12 +3,14 @@ package kz.pompei.hotconfig.etcd;
 import io.etcd.jetcd.Client;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
 import kz.pompei.hotconfig.etcd.tst_utils.EtcdTestParent;
 import org.testng.annotations.Test;
 import utils.RND;
 
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ConfigTunnelEtcdTest extends EtcdTestParent {
@@ -238,6 +240,36 @@ public class ConfigTunnelEtcdTest extends EtcdTestParent {
       assertThat(keyExists(client, defaultKey)).isFalse();
 
       deleteKey(client, customKey);
+    }
+  }
+
+  @Test public void write_usesConfiguredErrorPrefix() throws Exception {
+    ConfigTunnelEtcdBuilder builder = createBuilder("write_usesConfiguredErrorPrefix")
+      .errorPrefix("ERR ");
+
+    String localPath = "some/folder/" + RND.str(10) + "/write_usesConfiguredErrorPrefix.hotconf";
+    String fullKey   = key(builder, localPath);
+
+    Conf conf = new Conf();
+    ConfParam param = new ConfParam();
+    param.name     = "param0";
+    param.valueStr = "value0";
+    param.error    = "failed";
+    conf.params.add(param);
+
+    try (Client client = createClient();
+         ConfigTunnelEtcd confTunnelEtcd = builder.client(client).build()) {
+      confTunnelEtcd.write(localPath, conf);
+
+      String stored = new String(
+        client.getKVClient().get(byteSequence(fullKey)).get().getKvs().get(0).getValue().getBytes(),
+        StandardCharsets.UTF_8
+      );
+
+      assertThat(stored).contains("\n#ERR failed");
+      assertThat(requireNonNull(confTunnelEtcd.read(localPath)).params.get(0).error).isEqualTo("failed");
+
+      deleteKey(client, fullKey);
     }
   }
 
