@@ -402,6 +402,7 @@ ConfigTunnelJdbc tunnel = ConfigTunnelJdbc.builder()
 ```
 
 The table and schema are created automatically when missing. Column names are configurable through `ConfigTunnelJdbcBuilder`.
+Parameter order is stored in `colOrder`, defaulting to the `order_index` integer column.
 Notice lines are stored in the `colNotice` text column on the configuration row only. If you already have a table from an older version,
 add this column manually before using notice storage.
 Parameter errors are stored in the `colError` text column on parameter rows. Existing JDBC tables must add this column manually before

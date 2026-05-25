@@ -33,31 +33,62 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
                            @Nullable String comment) {
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
-      String sql = """
-        INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment}, {colError}, {colNotice})
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        """
-        .replace("{tableName}", builder.tableName())
-        .replace("{colFolder}", builder.colFolder())
-        .replace("{colConfigName}", builder.colConfigName())
-        .replace("{colParamName}", builder.colParamName())
-        .replace("{colParamValueStr}", builder.colParamValueStr())
-        .replace("{colComment}", builder.colComment())
-        .replace("{colError}", builder.colError())
-        .replace("{colNotice}", builder.colNotice());
-
-      try (PreparedStatement ps = connection.prepareStatement(sql)) {
-        ps.setString(1, folder);
-        ps.setString(2, configName);
-        ps.setString(3, paramName);
-        ps.setString(4, paramValue);
-        ps.setString(5, comment);
-        ps.setString(6, null);
-        ps.setString(7, null);
-        ps.executeUpdate();
-      }
+      int order = nextOrder(connection, builder, folder, configName);
+      insertRow(connection, builder, folder, configName, paramName, paramValue, comment, order);
     } catch (SQLException e) {
       throw new RuntimeException("Y1z2A3b4C5 :: Could not insert configuration test row into table: " + builder.tableName(), e);
+    }
+  }
+
+  protected void insertRow(@NonNull ConnectionGet connectionGet,
+                           @NonNull ConfigTunnelJdbcBuilder builder,
+                           @NonNull String folder,
+                           @NonNull String configName,
+                           @NonNull String paramName,
+                           @NonNull String paramValue,
+                           @Nullable String comment,
+                           int order) {
+
+    try (@NonNull Connection connection = connectionGet.getConnection()) {
+      insertRow(connection, builder, folder, configName, paramName, paramValue, comment, order);
+    } catch (SQLException e) {
+      throw new RuntimeException("Y1z2A3b4C5 :: Could not insert configuration test row into table: " + builder.tableName(), e);
+    }
+  }
+
+  private void insertRow(@NonNull Connection connection,
+                         @NonNull ConfigTunnelJdbcBuilder builder,
+                         @NonNull String folder,
+                         @NonNull String configName,
+                         @NonNull String paramName,
+                         @NonNull String paramValue,
+                         @Nullable String comment,
+                         int order) throws SQLException {
+
+    String sql = """
+      INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment}, {colError}, {colNotice}, {colOrder})
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      """
+      .replace("{tableName}", builder.tableName())
+      .replace("{colFolder}", builder.colFolder())
+      .replace("{colConfigName}", builder.colConfigName())
+      .replace("{colParamName}", builder.colParamName())
+      .replace("{colParamValueStr}", builder.colParamValueStr())
+      .replace("{colComment}", builder.colComment())
+      .replace("{colError}", builder.colError())
+      .replace("{colNotice}", builder.colNotice())
+      .replace("{colOrder}", builder.colOrder());
+
+    try (PreparedStatement ps = connection.prepareStatement(sql)) {
+      ps.setString(1, folder);
+      ps.setString(2, configName);
+      ps.setString(3, paramName);
+      ps.setString(4, paramValue);
+      ps.setString(5, comment);
+      ps.setString(6, null);
+      ps.setString(7, null);
+      ps.setInt(8, order);
+      ps.executeUpdate();
     }
   }
 
@@ -114,6 +145,30 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
    */
   protected void createTable(@NonNull ConnectionGet connectionGet, @NonNull ConfigTunnelJdbcBuilder builder) {
     builder.connectionGet(connectionGet).build().createTableIfNotExists();
+  }
+
+  private int nextOrder(@NonNull Connection connection,
+                        @NonNull ConfigTunnelJdbcBuilder builder,
+                        @NonNull String folder,
+                        @NonNull String configName) throws SQLException {
+    String sql = """
+      SELECT COALESCE(MAX({colOrder}), -1) + 1
+      FROM {tableName}
+      WHERE {colFolder} = ? AND {colConfigName} = ?
+      """
+      .replace("{colOrder}", builder.colOrder())
+      .replace("{tableName}", builder.tableName())
+      .replace("{colFolder}", builder.colFolder())
+      .replace("{colConfigName}", builder.colConfigName());
+
+    try (PreparedStatement ps = connection.prepareStatement(sql)) {
+      ps.setString(1, folder);
+      ps.setString(2, configName);
+      try (ResultSet rs = ps.executeQuery()) {
+        if (!rs.next()) return 0;
+        return rs.getInt(1);
+      }
+    }
   }
 
   protected boolean tableExists(@NonNull ConnectionGet connectionGet, @NonNull String tableName) {

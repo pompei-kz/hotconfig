@@ -99,6 +99,13 @@ public class ConfigTunnelJdbcBuilder {
   private String colLastModified = "last_modified_at";
 
   /**
+   * The name of the column containing the row order inside one configuration.
+   * <p>
+   * The config-level row is stored with index 0. Parameters are stored with indexes matching their order in {@code Conf.params}.
+   */
+  private String colOrder = "order_index";
+
+  /**
    * Column containing configuration-level or parameter-level comments.
    */
   public @NonNull ConfigTunnelJdbcBuilder colComment(@NonNull String colComment) {
@@ -154,6 +161,14 @@ public class ConfigTunnelJdbcBuilder {
    */
   public @NonNull ConfigTunnelJdbcBuilder colNotice(@NonNull String colNotice) {
     this.colNotice = colNotice;
+    return this;
+  }
+
+  /**
+   * Column containing row order inside one configuration.
+   */
+  public @NonNull ConfigTunnelJdbcBuilder colOrder(@NonNull String colOrder) {
+    this.colOrder = colOrder;
     return this;
   }
 
@@ -234,6 +249,13 @@ public class ConfigTunnelJdbcBuilder {
   }
 
   /**
+   * Returns the configured row-order column name.
+   */
+  public @NonNull String colOrder() {
+    return colOrder;
+  }
+
+  /**
    * Returns the configured parameter-name column name.
    */
   public @NonNull String colParamName() {
@@ -269,7 +291,8 @@ public class ConfigTunnelJdbcBuilder {
                                                         colError,
                                                         colNotice,
                                                         colCreatedAt,
-                                                        colLastModified);
+                                                        colLastModified,
+                                                        colOrder);
 
     DatabaseType databaseType = detectDb(connectionGet);
 

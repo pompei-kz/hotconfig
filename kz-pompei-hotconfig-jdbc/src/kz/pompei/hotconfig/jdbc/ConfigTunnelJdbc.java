@@ -1,6 +1,7 @@
 package kz.pompei.hotconfig.jdbc;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -48,6 +49,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
     final String colNotice;
     final String colCreatedAt;
     final String colLastModified;
+    final String colOrder;
   }
 
   @Override public @Nullable Conf read(@NonNull String localPath) {
@@ -55,16 +57,19 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
     String configName = configName(localPath);
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
+      addOrderColumnIfMissing(connection);
+
       String sql = """
         SELECT {colParamName}, {colParamValueStr}, {colComment}, {colError}
         FROM {tableName}
         WHERE {colFolder} = ? AND {colConfigName} = ?
-        ORDER BY {colParamName}
+        ORDER BY {colOrder}, {colParamName}
         """
         .replace("{colParamName}", def.colParamName)
         .replace("{colParamValueStr}", def.colParamValueStr)
         .replace("{colComment}", def.colComment)
         .replace("{colError}", def.colError)
+        .replace("{colOrder}", def.colOrder)
         .replace("{tableName}", def.tableName)
         .replace("{colFolder}", def.colFolder)
         .replace("{colConfigName}", def.colConfigName);
@@ -121,9 +126,10 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         ps.executeUpdate();
       }
 
-      insertRow(connection, folder, configName, "", "", String.join("\n", conf.confComments), null, null);
-      for (ConfParam param : conf.params) {
-        insertRow(connection, folder, configName, param.name, param.valueStr, String.join("\n", param.comments), param.error, null);
+      insertRow(connection, folder, configName, "", "", String.join("\n", conf.confComments), null, null, 0);
+      for (int i = 0; i < conf.params.size(); i++) {
+        ConfParam param = conf.params.get(i);
+        insertRow(connection, folder, configName, param.name, param.valueStr, String.join("\n", param.comments), param.error, null, i + 1);
       }
     } catch (SQLException e) {
       throw new RuntimeException("E1f2G3h4I5 :: Could not write configuration to table: " + def.tableName, e);
@@ -188,7 +194,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         if (ps.executeUpdate() > 0) return;
       }
 
-      insertRow(connection, folder, configName, "", null, null, null, notice);
+      insertRow(connection, folder, configName, "", null, null, null, notice, 0);
     } catch (SQLException e) {
       throw new RuntimeException("A6b7C8d9E0 :: Could not write configuration notice to table: " + def.tableName, e);
     }
@@ -238,6 +244,21 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
     }
   }
 
+  protected void addOrderColumnIfMissing(@NonNull Connection connection) throws SQLException {
+    if (columnExists(connection, def.colOrder)) return;
+
+    String sql = """
+      ALTER TABLE {tableName}
+      ADD COLUMN {colOrder} INT NOT NULL DEFAULT 0
+      """
+      .replace("{tableName}", def.tableName)
+      .replace("{colOrder}", def.colOrder);
+
+    try (PreparedStatement ps = connection.prepareStatement(sql)) {
+      ps.executeUpdate();
+    }
+  }
+
   private @NonNull String folder(@NonNull String localPath) {
     int slashIndex = localPath.lastIndexOf('/');
     if (slashIndex < 0) return "";
@@ -278,6 +299,36 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
     return false;
   }
 
+  private boolean columnExists(@NonNull Connection connection, @NonNull String columnName) throws SQLException {
+    DatabaseMetaData metaData = connection.getMetaData();
+    String           schema   = null;
+    String           table    = def.tableName;
+
+    int dotIndex = def.tableName.indexOf('.');
+    if (dotIndex >= 0) {
+      schema = def.tableName.substring(0, dotIndex);
+      table  = def.tableName.substring(dotIndex + 1);
+    }
+
+    try (ResultSet rs = metaData.getColumns(null, schema, table, columnName)) {
+      if (rs.next()) return true;
+    }
+
+    try (ResultSet rs = metaData.getColumns(null, null, "%", "%")) {
+      while (rs.next()) {
+        String currentTableName  = rs.getString("TABLE_NAME");
+        String currentColumnName = rs.getString("COLUMN_NAME");
+        if (currentTableName != null
+            && currentColumnName != null
+            && currentTableName.equalsIgnoreCase(table)
+            && currentColumnName.equalsIgnoreCase(columnName)) {
+          return true;
+        }
+      }
+      return false;
+    }
+  }
+
   private void insertRow(@NonNull Connection connection,
                          @NonNull String folder,
                          @NonNull String configName,
@@ -285,11 +336,12 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
                          @Nullable String paramValue,
                          @Nullable String comment,
                          @Nullable String error,
-                         @Nullable String notice) throws SQLException {
+                         @Nullable String notice,
+                         int order) throws SQLException {
 
     String sql = """
-      INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment}, {colError}, {colNotice})
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment}, {colError}, {colNotice}, {colOrder})
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       """
       .replace("{tableName}", def.tableName)
       .replace("{colFolder}", def.colFolder)
@@ -298,7 +350,8 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
       .replace("{colParamValueStr}", def.colParamValueStr)
       .replace("{colComment}", def.colComment)
       .replace("{colError}", def.colError)
-      .replace("{colNotice}", def.colNotice);
+      .replace("{colNotice}", def.colNotice)
+      .replace("{colOrder}", def.colOrder);
 
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
       ps.setString(1, folder);
@@ -308,6 +361,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
       ps.setString(5, comment);
       ps.setString(6, error);
       ps.setString(7, notice);
+      ps.setInt(8, order);
       ps.executeUpdate();
     }
   }

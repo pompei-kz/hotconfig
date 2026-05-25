@@ -23,6 +23,7 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
           {colComment}         TEXT,
           {colError}           TEXT,
           {colNotice}          TEXT,
+          {colOrder}           INT NOT NULL DEFAULT 0,
           {colCreatedAt}       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           {colLastModified}    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY ({colFolder}, {colConfigName}, {colParamName})
@@ -36,12 +37,14 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
         .replace("{colComment}", def.colComment)
         .replace("{colError}", def.colError)
         .replace("{colNotice}", def.colNotice)
+        .replace("{colOrder}", def.colOrder)
         .replace("{colCreatedAt}", def.colCreatedAt)
         .replace("{colLastModified}", def.colLastModified);
 
       try (PreparedStatement ps = connection.prepareStatement(sql)) {
         ps.executeUpdate();
       }
+      addOrderColumnIfMissing(connection);
 
       String functionName = triggerFunctionName();
       String triggerName = triggerName();
