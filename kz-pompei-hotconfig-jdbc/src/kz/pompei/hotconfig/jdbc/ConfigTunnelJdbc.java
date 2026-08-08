@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import kz.pompei.hotconfig.core.ConfigTunnel;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
@@ -109,7 +110,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
     String folder     = folder(localPath);
     String configName = configName(localPath);
 
-    createTableIfNotExists();
+    createTableIfNotExistsOnce();
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
       String sql = """
@@ -172,7 +173,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
     String configName = configName(localPath);
     String notice     = String.join("\n", lines);
 
-    createTableIfNotExists();
+    createTableIfNotExistsOnce();
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
       String updateSql = """
@@ -204,7 +205,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
     String folder     = folder(localPath);
     String configName = configName(localPath);
 
-    createTableIfNotExists();
+    createTableIfNotExistsOnce();
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
       String sql = """
@@ -232,15 +233,41 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
     }
   }
 
+  private final AtomicBoolean tableCreated = new AtomicBoolean(false);
+
+  private void createTableIfNotExistsOnce() {
+
+    if (tableCreated.get()) return;
+
+    synchronized (tableCreated) {
+      if (tableCreated.get()) return;
+
+      createTableIfNotExists();
+
+      tableCreated.set(true);
+    }
+  }
+
   public abstract void createTableIfNotExists();
+
+  private final AtomicBoolean schemaCreated = new AtomicBoolean(false);
 
   protected void createSchemaIfNotExists(@NonNull Connection connection) throws SQLException {
     int dotIndex = def.tableName.indexOf('.');
     if (dotIndex < 0) return;
 
-    String schema = def.tableName.substring(0, dotIndex);
-    try (PreparedStatement ps = connection.prepareStatement("CREATE SCHEMA IF NOT EXISTS " + schema)) {
-      ps.executeUpdate();
+    if (schemaCreated.get()) return;
+
+    synchronized (schemaCreated) {
+
+      if (schemaCreated.get()) return;
+
+      String schema = def.tableName.substring(0, dotIndex);
+      try (PreparedStatement ps = connection.prepareStatement("CREATE SCHEMA IF NOT EXISTS " + schema)) {
+        ps.executeUpdate();
+      }
+
+      schemaCreated.set(true);
     }
   }
 
@@ -319,9 +346,9 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         String currentTableName  = rs.getString("TABLE_NAME");
         String currentColumnName = rs.getString("COLUMN_NAME");
         if (currentTableName != null
-            && currentColumnName != null
-            && currentTableName.equalsIgnoreCase(table)
-            && currentColumnName.equalsIgnoreCase(columnName)) {
+          && currentColumnName != null
+          && currentTableName.equalsIgnoreCase(table)
+          && currentColumnName.equalsIgnoreCase(columnName)) {
           return true;
         }
       }
