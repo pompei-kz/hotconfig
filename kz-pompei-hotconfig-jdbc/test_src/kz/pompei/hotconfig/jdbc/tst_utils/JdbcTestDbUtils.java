@@ -7,6 +7,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import kz.pompei.hotconfig.jdbc.ConfigTunnelJdbcBuilder;
 import kz.pompei.hotconfig.jdbc.ConnectionGet;
 import kz.pompei.hotconfig.jdbc.DatabaseType;
@@ -396,6 +401,71 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
     } catch (SQLException e) {
       throw new RuntimeException("N2o3P4q5R6 :: Could not clear configuration test table: " + tableName, e);
     }
+  }
+
+  /**
+   * Starts the specified action in several threads at the same moment, to imitate several instances of the application
+   * which start at once.
+   *
+   * @param instanceCount how many threads run the action
+   * @param action        what every thread does after all threads are ready
+   *
+   * @return the errors of all threads - an empty list means nobody fell
+   */
+  protected @NonNull List<Throwable> runAtTheSameMoment(int instanceCount, @NonNull Runnable action) throws InterruptedException {
+
+    CountDownLatch  startLatch = new CountDownLatch(1);
+    CountDownLatch  readyLatch = new CountDownLatch(instanceCount);
+    CountDownLatch  doneLatch  = new CountDownLatch(instanceCount);
+    List<Throwable> errors     = Collections.synchronizedList(new ArrayList<>());
+
+    for (int i = 0; i < instanceCount; i++) {
+      Thread thread = new Thread(() -> {
+        try {
+          readyLatch.countDown();
+          startLatch.await();
+          action.run();
+        } catch (Throwable e) {
+          errors.add(e);
+        } finally {
+          doneLatch.countDown();
+        }
+      });
+      thread.setName("instance-" + i);
+      thread.start();
+    }
+
+    if (!readyLatch.await(60, TimeUnit.SECONDS)) throw new RuntimeException("Hs4Bn7Wq1D :: Threads are not ready");
+
+    startLatch.countDown();
+
+    if (!doneLatch.await(60, TimeUnit.SECONDS)) throw new RuntimeException("Vp6Lm2Xk8T :: Threads have not finished");
+
+    return errors;
+  }
+
+  /**
+   * The whole chain of the error, so a failed test of a race tells at once what the database said.
+   */
+  public static @NonNull String describe(@NonNull Throwable e) {
+    StringBuilder sb      = new StringBuilder();
+    Throwable     current = e;
+    while (current != null) {
+      if (!sb.isEmpty()) sb.append("\n  caused by: ");
+      sb.append(current.getClass().getSimpleName()).append(": ").append(current.getMessage());
+      if (current instanceof SQLException sqlException) {
+        sb.append(" [sqlState=").append(sqlException.getSQLState()).append(", errorCode=").append(sqlException.getErrorCode()).append(']');
+      }
+      current = current.getCause();
+    }
+    return sb.toString();
+  }
+
+  /**
+   * The errors of all instances of a race as text, to be asserted empty.
+   */
+  protected @NonNull List<String> describeAll(@NonNull List<Throwable> errors) {
+    return errors.stream().map(JdbcTestDbUtils::describe).toList();
   }
 
   protected static void waitForChange(@NonNull DatabaseType databaseType) throws InterruptedException {

@@ -260,11 +260,67 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
    */
   protected abstract boolean tableExists(@NonNull Connection connection) throws SQLException;
 
+  /**
+   * Creates the table of the config, together with its schema. The table is known to be missing when this method is called.
+   */
+  protected abstract void createTable(@NonNull Connection connection) throws SQLException;
+
+  /**
+   * Creates the table of the config when there is no such table yet.
+   * <p>
+   * Two instances of the application may start at the very same moment: both ask {@link #tableExists(Connection)}, both see no
+   * table and both start creating it. The check and the creation cannot be made one atomic step, so the loser of this race gets
+   * an error instead of the table. The error is swallowed only when the table is there anyway - see
+   * {@link #isMadeByOther(SQLException, SqlCheck)} - and every other error goes up as it is.
+   */
+  protected void createTableIfMissing(@NonNull Connection connection) throws SQLException {
+    if (tableExists(connection)) return;
+
+    try {
+      createTable(connection);
+    } catch (SQLException e) {
+      if (!isMadeByOther(e, () -> tableExists(connection))) throw e;
+    }
+  }
+
+  /**
+   * A check of the database which may fail with an error of the database.
+   */
+  @FunctionalInterface
+  protected interface SqlCheck {
+    boolean check() throws SQLException;
+  }
+
+  /**
+   * Checks that the object which the failed statement wanted is there anyway, made by the instance which won the race.
+   * <p>
+   * The error of a lost race comes in more shapes than one: "such an object already exists", the unique index of the catalog of
+   * PostgreSQL, and, for two {@code CREATE OR REPLACE FUNCTION} at once, {@code tuple concurrently updated}. Instead of trying to
+   * know every one of them, the wanted object is asked for: when it is there, the work of this instance is already done by the
+   * other one, and only then the error is not a failure. A known error of a race - see {@link #isDuplicateObject(SQLException)} -
+   * is enough by itself, and a check which cannot be made means "not there", so the error goes up.
+   */
+  protected boolean isMadeByOther(@NonNull SQLException e, @NonNull SqlCheck check) {
+    if (isDuplicateObject(e)) return true;
+
+    try {
+      return check.check();
+    } catch (SQLException ignore) {
+      return false;
+    }
+  }
+
   private final AtomicBoolean schemaCreated = new AtomicBoolean(false);
 
+  /**
+   * Creates the schema of the configuration table when there is no such schema yet.
+   * <p>
+   * The schema has its own race of several instances which start at the same moment, and it is handled here, at the level of the
+   * schema itself: the error of a lost race is swallowed only when the schema is there anyway. Leaving this error to the caller
+   * would be wrong - the table of the config is created after the schema, so an error swallowed above would skip the table.
+   */
   protected void createSchemaIfNotExists(@NonNull Connection connection) throws SQLException {
-    String schema = schemaName();
-    if (schema == null) return;
+    if (schemaName() == null) return;
 
     if (schemaCreated.get()) return;
 
@@ -272,13 +328,26 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
 
       if (schemaCreated.get()) return;
 
-      try (PreparedStatement ps = connection.prepareStatement("CREATE SCHEMA IF NOT EXISTS " + schema)) {
-        ps.executeUpdate();
-      }
+      if (!schemaExists(connection)) createSchema(connection);
 
       schemaCreated.set(true);
     }
   }
+
+  private void createSchema(@NonNull Connection connection) throws SQLException {
+    try (PreparedStatement ps = connection.prepareStatement("CREATE SCHEMA " + schemaName())) {
+      ps.executeUpdate();
+    } catch (SQLException e) {
+      if (!isMadeByOther(e, () -> schemaExists(connection))) throw e;
+    }
+  }
+
+  /**
+   * Checks that the schema of the configuration table already exists.
+   * <p>
+   * Asked before the DDL of the schema is run, so a database user which may only use an existing schema is enough.
+   */
+  protected abstract boolean schemaExists(@NonNull Connection connection) throws SQLException;
 
   /**
    * The name of the schema the configuration table belongs to, or {@code null} when {@code def.tableName} has no schema part.
@@ -352,24 +421,61 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
   }
 
   /**
-   * Checks that the error means "such an object already exists".
+   * Checks that the error means "such an object already exists" - the plainest of the errors two instances of the application get
+   * from each other when both create the same table, schema, column, trigger or function at the very same moment.
    * <p>
-   * Two applications may create the trigger at the same time: both see no trigger and both create it. The loser of this race
-   * gets the error, and for it the trigger is created anyway, so the error is not a failure.
+   * The loser of such a race needs no more work: the object it wanted is already there, made by the winner. An error of another
+   * kind is judged by the state of the database - see {@link #isMadeByOther(SQLException, SqlCheck)}.
    */
   protected boolean isDuplicateObject(@NonNull SQLException e) {
     SQLException current = e;
     while (current != null) {
-      String sqlState  = current.getSQLState();
-      int    errorCode = current.getErrorCode();
-      String message   = current.getMessage();
-      if ("42710".equals(sqlState) || "42P07".equals(sqlState) || errorCode == 1359) return true;
-      if (message != null && message.contains("already exists")) return true;
+      if (isDuplicateObjectSingle(current)) return true;
       current = current.getNextException();
     }
     return false;
   }
 
+  private boolean isDuplicateObjectSingle(@NonNull SQLException e) {
+    String sqlState = e.getSQLState();
+
+    // PostgreSQL: duplicate_table, duplicate_schema, duplicate_column, duplicate_object, duplicate_function
+    if ("42P07".equals(sqlState)
+      || "42P06".equals(sqlState)
+      || "42701".equals(sqlState)
+      || "42710".equals(sqlState)
+      || "42723".equals(sqlState)) {
+      return true;
+    }
+
+    // MariaDB: table exists, database exists, column exists, trigger exists
+    int errorCode = e.getErrorCode();
+    if (errorCode == 1050 || errorCode == 1007 || errorCode == 1060 || errorCode == 1359) return true;
+
+    // PostgreSQL sees the collision of two CREATE statements as a unique violation inside its own catalog, for example
+    // "duplicate key value violates unique constraint pg_type_typname_nsp_index". A unique violation on the data of the
+    // application means something else, so only the indexes of the catalog count here.
+    if ("23505".equals(sqlState)) return isCatalogIndex(e.getMessage());
+
+    return false;
+  }
+
+  private boolean isCatalogIndex(@Nullable String message) {
+    if (message == null) return false;
+    return message.contains("pg_type_typname_nsp_index")
+      || message.contains("pg_class_relname_nsp_index")
+      || message.contains("pg_namespace_nspname_index")
+      || message.contains("pg_attribute_relid_attnam_index")
+      || message.contains("pg_proc_proname_args_nsp_index")
+      || message.contains("pg_trigger_tgrelid_tgname_index");
+  }
+
+  /**
+   * Adds the column of the row order to a table which was made by an older version of this library.
+   * <p>
+   * Just as with the table itself, two instances of the application may add the column at the same moment, and the loser of this
+   * race gets the error of the winner. The column is there, so only this error is swallowed.
+   */
   protected void addOrderColumnIfMissing(@NonNull Connection connection) throws SQLException {
     if (columnExists(connection, def.colOrder)) return;
 
@@ -382,6 +488,8 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
 
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
       ps.executeUpdate();
+    } catch (SQLException e) {
+      if (!isMadeByOther(e, () -> columnExists(connection, def.colOrder))) throw e;
     }
   }
 

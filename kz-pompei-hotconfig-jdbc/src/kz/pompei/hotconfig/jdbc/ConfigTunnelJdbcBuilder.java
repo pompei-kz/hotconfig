@@ -337,6 +337,21 @@ public class ConfigTunnelJdbcBuilder {
 
   public @NonNull ConfigTunnelJdbc build() {
 
+    ConfigTunnelJdbc.Def def = buildDef();
+
+    DatabaseType databaseType = detectDb(connectionGet);
+
+    return switch (databaseType) {
+      case PostgreSQL -> new ConfigTunnelJdbcPg(connectionGet, def);
+      case MariaDB -> new ConfigTunnelJdbcMariaDb(connectionGet, def);
+    };
+  }
+
+  /**
+   * The definition of the tunnel, without the database itself. Tests use it to build a tunnel with a changed behaviour.
+   */
+  @NonNull ConfigTunnelJdbc.Def buildDef() {
+
     if (connectionGet == null) {
       throw new IllegalArgumentException("u5W8jIn1ZH :: ConnectionGet cannot be null");
     }
@@ -346,26 +361,19 @@ public class ConfigTunnelJdbcBuilder {
     checkTriggerNameTemplate("triggerName", triggerName);
     checkTriggerNameTemplate("triggerFnName", triggerFnName);
 
-    ConfigTunnelJdbc.Def def = new ConfigTunnelJdbc.Def(colFolder,
-                                                        tableName,
-                                                        triggerName,
-                                                        triggerFnName,
-                                                        colConfigName,
-                                                        colParamName,
-                                                        colParamValueStr,
-                                                        colComment,
-                                                        colError,
-                                                        colNotice,
-                                                        colCreatedAt,
-                                                        colLastModified,
-                                                        colOrder);
-
-    DatabaseType databaseType = detectDb(connectionGet);
-
-    return switch (databaseType) {
-      case PostgreSQL -> new ConfigTunnelJdbcPg(connectionGet, def);
-      case MariaDB -> new ConfigTunnelJdbcMariaDb(connectionGet, def);
-    };
+    return new ConfigTunnelJdbc.Def(colFolder,
+                                    tableName,
+                                    triggerName,
+                                    triggerFnName,
+                                    colConfigName,
+                                    colParamName,
+                                    colParamValueStr,
+                                    colComment,
+                                    colError,
+                                    colNotice,
+                                    colCreatedAt,
+                                    colLastModified,
+                                    colOrder);
   }
 
   private static void checkTriggerNameTemplate(@NonNull String fieldName, @NonNull String template) {

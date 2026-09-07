@@ -15,7 +15,7 @@ public class ConfigTunnelJdbcMariaDb extends ConfigTunnelJdbc {
 
   @Override public void createTableIfNotExists() {
     try (@NonNull Connection connection = connectionGet.getConnection()) {
-      if (!tableExists(connection)) createTable(connection);
+      createTableIfMissing(connection);
 
       addOrderColumnIfMissing(connection);
 
@@ -41,10 +41,25 @@ public class ConfigTunnelJdbcMariaDb extends ConfigTunnelJdbc {
     }
   }
 
-  private void createTable(@NonNull Connection connection) throws SQLException {
+  @Override protected boolean schemaExists(@NonNull Connection connection) throws SQLException {
+    String sql = """
+      SELECT 1
+      FROM information_schema.schemata
+      WHERE schema_name = ?
+      """;
+
+    try (PreparedStatement ps = connection.prepareStatement(sql)) {
+      ps.setString(1, String.valueOf(schemaName()));
+      try (ResultSet rs = ps.executeQuery()) {
+        return rs.next();
+      }
+    }
+  }
+
+  @Override protected void createTable(@NonNull Connection connection) throws SQLException {
     createSchemaIfNotExists(connection);
     String sql = """
-      CREATE TABLE IF NOT EXISTS {tableName} (
+      CREATE TABLE {tableName} (
         {colFolder}           VARCHAR(255) NOT NULL,
         {colConfigName}       VARCHAR(255) NOT NULL,
         {colParamName}        VARCHAR(255) NOT NULL,
@@ -93,7 +108,7 @@ public class ConfigTunnelJdbcMariaDb extends ConfigTunnelJdbc {
   private void createTriggerIfNotExists(@NonNull Connection connection) throws SQLException {
 
     String triggerBody = triggerBody();
-    String storedBody  = triggerBodyStored(connection);
+    String storedBody  = triggerExists(connection) ? triggerBodyStored(connection) : null;
 
     if (storedBody != null && triggerBody.strip().equals(storedBody.strip())) return;
 
@@ -114,7 +129,11 @@ public class ConfigTunnelJdbcMariaDb extends ConfigTunnelJdbc {
         .replace("{tableName}", def.tableName)
         .replace("{triggerBody}", triggerBody);
 
-      statement.execute(triggerSql);
+      try {
+        statement.execute(triggerSql);
+      } catch (SQLException e) {
+        if (!isMadeByOther(e, () -> triggerExists(connection))) throw e;
+      }
     }
   }
 

@@ -16,6 +16,13 @@ This project keeps short release summaries in this file and detailed notes in
 - Added `ConfigTunnelJdbc.Def.triggerName` and `ConfigTunnelJdbc.Def.triggerFnName`.
 - Added `ConfigTunnelJdbc.tableExists(...)` and `ConfigTunnelJdbc.triggerExists(...)`, so the table, the trigger and the trigger
   function are checked one by one and created only when they are really missing.
+- Added `ConfigTunnelJdbc.schemaExists(...)`, so the schema is also created only when it is really missing, and its race is handled
+  at the level of the schema - an error swallowed above it would skip the creation of the table.
+- Added `ConfigTunnelJdbc.createTableIfMissing(...)`, `isDuplicateObject(...)` and `isMadeByOther(...)` for the race of several
+  instances which start at the same moment: the loser of the race swallows its error only when the wanted schema, table, column,
+  trigger or function is there anyway.
+- Added JDBC tests for the races of eight instances starting at once - for the table, the schema, the order column and the
+  trigger - and for the classification of the errors of a lost race.
 - Added a `BEFORE UPDATE` trigger to MariaDB table creation; before this version MariaDB relied on `ON UPDATE CURRENT_TIMESTAMP` only.
 - Added builder validation rejecting empty trigger templates and templates containing a period.
 - Added JDBC tests covering trigger behavior, custom trigger name templates and schema-qualified table names.

@@ -408,10 +408,15 @@ add this column manually before using notice storage.
 Parameter errors are stored in the `colError` text column on parameter rows. Existing JDBC tables must add this column manually before
 using version 0.0.7.
 
-The table, the trigger and, in PostgreSQL, the trigger function are checked separately, and every one of them is created only when
+The schema, the table, the trigger and, in PostgreSQL, the trigger function are checked separately, and every one of them is created only when
 it is really missing: an existing table may have no trigger, because the table could be created by an older version or by hand, and
 the trigger could be dropped later. When everything is in place no DDL is run at all, so a database user with rights to read and
 write the data of an existing table is enough.
+
+Several instances of an application may start at the same moment, and then they race for the same table: all of them see no table
+and all of them create it. The check and the creation cannot be made one atomic step, so the loser of the race gets an error
+instead of the table. Such an error is swallowed only when the wanted schema, table, column, trigger or function is there anyway,
+made by the winner of the race; every other error goes up as it is.
 
 The trigger refreshes `colLastModified` of the changed row, and in PostgreSQL it refreshes `colLastModified` of the configuration
 row as well - the row where `colParamName` is empty. Because of this, a change of a single parameter value made directly in the

@@ -15,7 +15,7 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
 
   @Override public void createTableIfNotExists() {
     try (@NonNull Connection connection = connectionGet.getConnection()) {
-      if (!tableExists(connection)) createTable(connection);
+      createTableIfMissing(connection);
 
       addOrderColumnIfMissing(connection);
 
@@ -34,10 +34,19 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
     }
   }
 
-  private void createTable(@NonNull Connection connection) throws SQLException {
+  @Override protected boolean schemaExists(@NonNull Connection connection) throws SQLException {
+    try (PreparedStatement ps = connection.prepareStatement("SELECT to_regnamespace(?) IS NOT NULL")) {
+      ps.setString(1, String.valueOf(schemaName()));
+      try (ResultSet rs = ps.executeQuery()) {
+        return rs.next() && rs.getBoolean(1);
+      }
+    }
+  }
+
+  @Override protected void createTable(@NonNull Connection connection) throws SQLException {
     createSchemaIfNotExists(connection);
     String sql = """
-      CREATE TABLE IF NOT EXISTS {tableName} (
+      CREATE TABLE {tableName} (
         {colFolder}          VARCHAR(1000) NOT NULL,
         {colConfigName}      VARCHAR(1000) NOT NULL,
         {colParamName}       VARCHAR(1000) NOT NULL,
@@ -82,6 +91,10 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
    * prepared needs no rights for DDL at all. An existing trigger is never dropped: the whole body of the trigger lives in the
    * function, so replacing the function is enough to bring an existing trigger up to date, and dropping the trigger would leave a
    * moment when changes of the table are not caught by anybody.
+   * <p>
+   * Two instances of the application may create the function and the trigger at the very same moment, and the loser of this race
+   * gets the error of the winner. Only this error is swallowed - the object is there, made by the winner from the very same
+   * version of this library.
    */
   private void createTriggerIfNotExists(@NonNull Connection connection) throws SQLException {
 
@@ -96,8 +109,14 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
     try (Statement statement = connection.createStatement()) {
 
       if (!functionReady) {
-        statement.execute("CREATE OR REPLACE FUNCTION " + functionName + "()\nRETURNS trigger AS $$\n"
-                            + functionBody + "$$ LANGUAGE plpgsql");
+        try {
+          statement.execute("CREATE OR REPLACE FUNCTION " + functionName + "()\nRETURNS trigger AS $$\n"
+                              + functionBody + "$$ LANGUAGE plpgsql");
+        } catch (SQLException e) {
+          // two instances of the application may create the same function at the very same moment; the function of the winner
+          // has the same body, because it comes from the same version of this library
+          if (!isMadeByOther(e, () -> sameSql(functionBody, functionSource(connection, functionName)))) throw e;
+        }
       }
 
       if (triggerReady) return;
@@ -115,7 +134,7 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
       try {
         statement.execute(triggerSql);
       } catch (SQLException e) {
-        if (!isDuplicateObject(e)) throw e;
+        if (!isMadeByOther(e, () -> triggerExists(connection))) throw e;
       }
     }
   }

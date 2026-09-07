@@ -4,7 +4,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
 import kz.pompei.hotconfig.jdbc.tst_utils.JdbcTestDbUtils;
@@ -1499,6 +1503,423 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
     assertThat(confLastModifiedBefore).isNotNull();
     assertThat(confLastModifiedAfter).isNotNull();
     assertThat(confLastModifiedAfter).isGreaterThan(confLastModifiedBefore);
+  }
+
+  /**
+   * Two instances of the application start at the same moment and both create the table of the config. Nobody may fall on this.
+   */
+  @Test(dataProvider = "databaseType")
+  public void createTable_raceOfManyInstances(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "createTable_race";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    String tableName = nameOfThisMethod + "_" + RND.str(8);
+
+    //
+    //
+    List<Throwable> errors = runAtTheSameMoment(INSTANCE_COUNT, () -> newTunnel(connectionGet, tableName).createTableIfNotExists());
+    //
+    //
+
+    assertThat(describeAll(errors)).isEmpty();
+
+    // the table of the race is a working table of the config, not a half-made one
+    assertThat(tableExists(connectionGet, tableName)).isTrue();
+    assertThat(triggerExists(connectionGet, tableName, tableName + "__trigger")).isTrue();
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(tableName);
+
+    Conf      conf  = new Conf();
+    ConfParam param = new ConfParam();
+    param.name     = "param0";
+    param.valueStr = "value0";
+    conf.params.add(param);
+
+    ConfigTunnelJdbc confTunnelJdbc = builder.connectionGet(connectionGet).build();
+    confTunnelJdbc.write("some/folder/test-config.hotconf", conf);
+
+    Conf readConf = confTunnelJdbc.read("some/folder/test-config.hotconf");
+    assertThat(readConf).isNotNull();
+    assertThat(readConf.params.get(0).valueStr).isEqualTo("value0");
+  }
+
+  /**
+   * The table is already there without a trigger, and several instances start at once: now they race for the trigger and,
+   * in PostgreSQL, for the function of the trigger.
+   */
+  @Test(dataProvider = "databaseType")
+  public void createTrigger_raceOfManyInstances(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "createTrigger_race";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+
+    String tableName   = builder.tableName();
+    String triggerName = tableName + "__trigger";
+
+    dropTrigger(connectionGet, databaseType, tableName, triggerName);
+    if (databaseType == DatabaseType.PostgreSQL) {
+      execSql(connectionGet, "DROP FUNCTION IF EXISTS " + tableName + "__trigger_fn()");
+    }
+    assertThat(triggerExists(connectionGet, tableName, triggerName)).isFalse();
+
+    //
+    //
+    List<Throwable> errors = runAtTheSameMoment(INSTANCE_COUNT, () -> newTunnel(connectionGet, tableName).createTableIfNotExists());
+    //
+    //
+
+    assertThat(describeAll(errors)).isEmpty();
+    assertThat(triggerExists(connectionGet, tableName, triggerName)).isTrue();
+  }
+
+  /**
+   * The table is already there from an older version, without the column of the row order, and several instances start at once:
+   * now they race for {@code ALTER TABLE ... ADD COLUMN}.
+   */
+  @Test(dataProvider = "databaseType")
+  public void addOrderColumn_raceOfManyInstances(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "addOrderColumn_race";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+
+    String tableName = builder.tableName();
+
+    execSql(connectionGet, "ALTER TABLE " + tableName + " DROP COLUMN " + builder.colOrder());
+    assertThat(columnExists(connectionGet, tableName, builder.colOrder())).isFalse();
+
+    //
+    //
+    List<Throwable> errors = runAtTheSameMoment(INSTANCE_COUNT, () -> newTunnel(connectionGet, tableName).createTableIfNotExists());
+    //
+    //
+
+    assertThat(describeAll(errors)).isEmpty();
+    assertThat(columnExists(connectionGet, tableName, builder.colOrder())).isTrue();
+  }
+
+  /**
+   * The schema of the table does not exist yet and several instances start at once: now they race for {@code CREATE SCHEMA}.
+   * <p>
+   * In MariaDB a schema is a separate database, and the test user has no rights to create one, so this is a PostgreSQL test.
+   */
+  @Test
+  public void createSchema_raceOfManyInstances() throws InterruptedException {
+
+    DatabaseType databaseType = DatabaseType.PostgreSQL;
+
+    String nameOfThisMethod = "createSchema_race";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    String simpleTableName = nameOfThisMethod + "_" + RND.str(8);
+    String schemaName      = "schema_" + RND.str(8);
+    String tableName       = schemaName + "." + simpleTableName;
+
+    //
+    //
+    List<Throwable> errors = runAtTheSameMoment(INSTANCE_COUNT, () -> newTunnel(connectionGet, tableName).createTableIfNotExists());
+    //
+    //
+
+    assertThat(describeAll(errors)).isEmpty();
+    assertThat(tableExists(connectionGet, simpleTableName)).isTrue();
+    assertThat(triggerExists(connectionGet, simpleTableName, simpleTableName + "__trigger")).isTrue();
+
+    execSql(connectionGet, "DROP SCHEMA " + schemaName + " CASCADE");
+  }
+
+  /**
+   * The loser of the race sees no table, tries to create it and gets the table of the winner. This is exactly the state of a
+   * tunnel whose check of the table says "no table" while the table is already there.
+   */
+  @Test(dataProvider = "databaseType")
+  public void createTable_lostRaceIsNotAFailure(@NonNull DatabaseType databaseType) {
+
+    String nameOfThisMethod = "createTable_lostRace";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+    builder.connectionGet(connectionGet);
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0", "This is comment for param0");
+
+    ConfigTunnelJdbc loserOfTheRace = tunnelWhichSeesNoTable(databaseType, connectionGet, builder.buildDef());
+
+    //
+    //
+    loserOfTheRace.createTableIfNotExists();
+    //
+    //
+
+    // the table of the winner is left as it is, with all its data
+    Conf conf = loserOfTheRace.read("some/folder/test-config.hotconf");
+    assertThat(conf).isNotNull();
+    assertThat(conf.params).hasSize(1);
+    assertThat(conf.params.get(0).valueStr).isEqualTo("value0");
+  }
+
+  /**
+   * The error of a lost race is swallowed, and only it: an error of any other kind must go up as it is.
+   */
+  @Test(dataProvider = "databaseType")
+  public void isDuplicateObject_onlyForRaceErrors(@NonNull DatabaseType databaseType) {
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, "isDuplicateObject");
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName("isDuplicateObject_" + RND.str(8));
+
+    ConfigTunnelJdbc confTunnelJdbc = builder.connectionGet(connectionGet).build();
+
+    // PostgreSQL: duplicate_table, duplicate_schema, duplicate_column, duplicate_object, duplicate_function
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("relation \"conf\" already exists", "42P07"))).isTrue();
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("schema \"conf\" already exists", "42P06"))).isTrue();
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("column \"order_index\" already exists", "42701"))).isTrue();
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("trigger \"conf__trigger\" already exists", "42710"))).isTrue();
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("function \"conf__trigger_fn\" already exists", "42723"))).isTrue();
+
+    // PostgreSQL shows the collision of two CREATE statements as a unique violation inside its own catalog
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException(
+      "ERROR: duplicate key value violates unique constraint \"pg_type_typname_nsp_index\"", "23505"))).isTrue();
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException(
+      "ERROR: duplicate key value violates unique constraint \"pg_class_relname_nsp_index\"", "23505"))).isTrue();
+
+    // MariaDB: table exists, database exists, column exists, trigger exists
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("Table 'conf' already exists", "42S01", 1050))).isTrue();
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("Can't create database 'conf'", "HY000", 1007))).isTrue();
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("Duplicate column name 'order_index'", "42S21", 1060))).isTrue();
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("Trigger already exists", "HY000", 1359))).isTrue();
+
+    // the same error hidden inside the chain of errors
+    SQLException chain = new SQLException("Could not create table", "HY000");
+    chain.setNextException(new SQLException("relation \"conf\" already exists", "42P07"));
+    assertThat(confTunnelJdbc.isDuplicateObject(chain)).isTrue();
+
+    // a unique violation on the data of the application is not a race of two CREATE statements
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException(
+      "ERROR: duplicate key value violates unique constraint \"conf_pkey\"", "23505"))).isFalse();
+
+    // and neither is anything else
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("permission denied for schema public", "42501"))).isFalse();
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("relation \"conf\" does not exist", "42P01"))).isFalse();
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("connection failure", "08006"))).isFalse();
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("Access denied for user", "28000", 1045))).isFalse();
+    assertThat(confTunnelJdbc.isDuplicateObject(new SQLException("something went wrong"))).isFalse();
+  }
+
+  /**
+   * The loser of the race sees no trigger, tries to create it and gets the trigger of the winner. In PostgreSQL the function of
+   * the trigger is created the same way, so this covers both.
+   */
+  @Test(dataProvider = "databaseType")
+  public void createTrigger_lostRaceIsNotAFailure(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "createTrigger_lostRace";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+    builder.connectionGet(connectionGet);
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "", "", "This is comment for conf");
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0", "This is comment for param0");
+
+    ConfigTunnelJdbc loserOfTheRace = tunnelWhichSeesNothing(databaseType, connectionGet, builder.buildDef());
+
+    //
+    //
+    loserOfTheRace.createTableIfNotExists();
+    //
+    //
+
+    // the trigger of the winner is left in place and works
+    assertThat(triggerExists(connectionGet, builder.tableName(), builder.tableName() + "__trigger")).isTrue();
+
+    Long lastModifiedBefore = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "param0");
+
+    waitForChange(databaseType);
+    updateRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0-changed", "This is comment for param0");
+
+    Long lastModifiedAfter = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "param0");
+
+    assertThat(lastModifiedBefore).isNotNull();
+    assertThat(lastModifiedAfter).isNotNull();
+    assertThat(lastModifiedAfter).isGreaterThan(lastModifiedBefore);
+  }
+
+  /**
+   * The loser of the race for the schema sees no schema, tries to create it and gets the schema of the winner. The table of the
+   * config is created after the schema, so this error may not stop the work: the table must still be created.
+   * <p>
+   * In MariaDB a schema is a separate database, and the test user has no rights to create one, so this is a PostgreSQL test.
+   */
+  @Test
+  public void createSchema_lostRaceIsNotAFailure() {
+
+    DatabaseType databaseType = DatabaseType.PostgreSQL;
+
+    String nameOfThisMethod = "createSchema_lostRace";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    String schemaName      = "schema_" + RND.str(8);
+    String simpleTableName = nameOfThisMethod + "_" + RND.str(8);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(schemaName + "." + simpleTableName);
+    builder.connectionGet(connectionGet);
+
+    // the winner of the race has already made the schema
+    execSql(connectionGet, "CREATE SCHEMA " + schemaName);
+
+    ConfigTunnelJdbc loserOfTheRace = tunnelWhichSeesNothing(databaseType, connectionGet, builder.buildDef());
+
+    //
+    //
+    loserOfTheRace.createTableIfNotExists();
+    //
+    //
+
+    // the schema of the winner is left as it is, and the table of the config is made in it
+    assertThat(tableExists(connectionGet, simpleTableName)).isTrue();
+    assertThat(triggerExists(connectionGet, simpleTableName, simpleTableName + "__trigger")).isTrue();
+
+    Conf      conf  = new Conf();
+    ConfParam param = new ConfParam();
+    param.name     = "param0";
+    param.valueStr = "value0";
+    conf.params.add(param);
+
+    ConfigTunnelJdbc confTunnelJdbc = builder.build();
+    confTunnelJdbc.write("some/folder/test-config.hotconf", conf);
+
+    Conf readConf = confTunnelJdbc.read("some/folder/test-config.hotconf");
+    assertThat(readConf).isNotNull();
+    assertThat(readConf.params.get(0).valueStr).isEqualTo("value0");
+
+    execSql(connectionGet, "DROP SCHEMA " + schemaName + " CASCADE");
+  }
+
+  /**
+   * The error of a lost race is swallowed only when the wanted object is there anyway. This covers the errors which cannot be
+   * known by their code - as {@code tuple concurrently updated} of two {@code CREATE OR REPLACE FUNCTION} at once.
+   */
+  @Test(dataProvider = "databaseType")
+  public void isMadeByOther_looksAtTheObjectNotOnlyAtTheError(@NonNull DatabaseType databaseType) {
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, "isMadeByOther");
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName("isMadeByOther_" + RND.str(8));
+
+    ConfigTunnelJdbc confTunnelJdbc = builder.connectionGet(connectionGet).build();
+
+    SQLException tupleConcurrentlyUpdated = new SQLException("ERROR: tuple concurrently updated", "XX000");
+
+    // an error of an unknown kind, but the object is there - the winner of the race has already done this work
+    assertThat(confTunnelJdbc.isMadeByOther(tupleConcurrentlyUpdated, () -> true)).isTrue();
+
+    // the same error and no object - something really went wrong
+    assertThat(confTunnelJdbc.isMadeByOther(tupleConcurrentlyUpdated, () -> false)).isFalse();
+
+    // a known error of a race is enough by itself
+    assertThat(confTunnelJdbc.isMadeByOther(new SQLException("relation already exists", "42P07"), () -> false)).isTrue();
+
+    // a check which cannot be made means "not there"
+    assertThat(confTunnelJdbc.isMadeByOther(tupleConcurrentlyUpdated, () -> {
+      throw new SQLException("current transaction is aborted", "25P02");
+    })).isFalse();
+  }
+
+  /**
+   * How many instances of the application start at the same moment in the tests of the races.
+   */
+  private static final int INSTANCE_COUNT = 8;
+
+  private @NonNull ConfigTunnelJdbc newTunnel(@NonNull ConnectionGet connectionGet, @NonNull String tableName) {
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(tableName);
+    builder.connectionGet(connectionGet);
+    return builder.build();
+  }
+
+  /**
+   * A tunnel whose check of the table always says "there is no table" - the state of an instance which lost the race of creation.
+   */
+  private @NonNull ConfigTunnelJdbc tunnelWhichSeesNoTable(@NonNull DatabaseType databaseType,
+                                                           @NonNull ConnectionGet connectionGet,
+                                                           @NonNull ConfigTunnelJdbc.Def def) {
+    return switch (databaseType) {
+      case PostgreSQL -> new ConfigTunnelJdbcPg(connectionGet, def) {
+        @Override protected boolean tableExists(@NonNull Connection connection) {
+          return false;
+        }
+      };
+      case MariaDB -> new ConfigTunnelJdbcMariaDb(connectionGet, def) {
+        @Override protected boolean tableExists(@NonNull Connection connection) {
+          return false;
+        }
+      };
+    };
+  }
+
+  /**
+   * A tunnel whose checks always say "there is no such object" - the state of an instance which lost every race of creation.
+   */
+  private @NonNull ConfigTunnelJdbc tunnelWhichSeesNothing(@NonNull DatabaseType databaseType,
+                                                           @NonNull ConnectionGet connectionGet,
+                                                           @NonNull ConfigTunnelJdbc.Def def) {
+    return switch (databaseType) {
+      case PostgreSQL -> new ConfigTunnelJdbcPg(connectionGet, def) {
+        @Override protected boolean schemaExists(@NonNull Connection connection) {
+          return false;
+        }
+
+        @Override protected boolean tableExists(@NonNull Connection connection) {
+          return false;
+        }
+
+        @Override protected boolean triggerExists(@NonNull Connection connection) {
+          return false;
+        }
+      };
+      case MariaDB -> new ConfigTunnelJdbcMariaDb(connectionGet, def) {
+        @Override protected boolean schemaExists(@NonNull Connection connection) {
+          return false;
+        }
+
+        @Override protected boolean tableExists(@NonNull Connection connection) {
+          return false;
+        }
+
+        @Override protected boolean triggerExists(@NonNull Connection connection) {
+          return false;
+        }
+      };
+    };
   }
 
 }
