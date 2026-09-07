@@ -5,7 +5,7 @@
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](#requirements)
 [![Gradle](https://img.shields.io/badge/build-Gradle-green.svg)](#build-and-test)
 [![TestNG](https://img.shields.io/badge/tests-TestNG-orange.svg)](#build-and-test)
-[![Version](https://img.shields.io/badge/version-0.0.7-lightgrey.svg)](versions/version.txt)
+[![Version](https://img.shields.io/badge/version-0.0.9-lightgrey.svg)](versions/version.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 `kz-pompei-hotconfig` turns a plain Java interface into a live configuration object.
@@ -42,7 +42,7 @@ This example mirrors the configuration pattern tested in `HotConfigFactoryTest`,
 Add this to build.gradle / dependencies
 
 ```groovy
-implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.7"
+implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.9"
 ```
 
 ### 2. Define A Configuration Interface
@@ -168,16 +168,16 @@ repositories {
 }
 
 dependencies {
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.7"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.9"
   // If you store configs in files, no extra modules are needed
 
   // Optional storage backends
 
   // Add this if you want to store configs in SQL database
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.7"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.9"
   
   // Add this if you want to store configs in etcd database
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.7"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.9"
 }
 ```
 
@@ -188,7 +188,7 @@ dependencies {
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-core</artifactId>
-    <version>0.0.7</version>
+    <version>0.0.9</version>
   </dependency>
 
   <!-- If you store configs in files, no extra modules are needed -->
@@ -199,14 +199,14 @@ dependencies {
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-jdbc</artifactId>
-    <version>0.0.7</version>
+    <version>0.0.9</version>
   </dependency>
 
   <!-- Add this if you want to store configs in etcd database -->
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-etcd</artifactId>
-    <version>0.0.7</version>
+    <version>0.0.9</version>
   </dependency>
 </dependencies>
 ```
@@ -408,10 +408,10 @@ add this column manually before using notice storage.
 Parameter errors are stored in the `colError` text column on parameter rows. Existing JDBC tables must add this column manually before
 using version 0.0.7.
 
-The schema, the table, the trigger and, in PostgreSQL, the trigger function are checked separately, and every one of them is created only when
-it is really missing: an existing table may have no trigger, because the table could be created by an older version or by hand, and
-the trigger could be dropped later. When everything is in place no DDL is run at all, so a database user with rights to read and
-write the data of an existing table is enough.
+The schema, the table, the trigger and, in PostgreSQL, the trigger function are checked separately, and every one of them is
+created only when it is really missing: an existing table may have no trigger, because the table could be created by an older
+version or by hand, and the trigger could be dropped later. When everything is in place no DDL is run at all, so a database user
+with rights to read and write the data of an existing table is enough.
 
 Several instances of an application may start at the same moment, and then they race for the same table: all of them see no table
 and all of them create it. The check and the creation cannot be made one atomic step, so the loser of the race gets an error
@@ -494,7 +494,7 @@ JDBC stores the same error text in the configurable `colError` text column.
 ## Changelog
 
 Release notes are kept in [CHANGELOG.md](CHANGELOG.md). Detailed notes for this release are in
-[versions/0.0.7.md](versions/0.0.7.md).
+[versions/0.0.9.md](versions/0.0.9.md).
 
 ## Build And Test
 
