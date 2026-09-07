@@ -445,16 +445,22 @@ of the whole configuration is seen through the maximum of `colLastModified` over
 import io.etcd.jetcd.Client;
 import kz.pompei.hotconfig.etcd.ConfigTunnelEtcd;
 
-try (Client client = Client.builder().endpoints("http://localhost:17403").build();
+void someFunc() {
+  // ...
 
-     ConfigTunnelEtcd tunnel = ConfigTunnelEtcd.builder()
-                                               .client(client)
-                                               .keyPrefix("/kz-pompei-conf-etcd/")
-                                               .build()) {
+  try (Client client = Client.builder().endpoints("http://localhost:17403").build();
 
-  HotConfigFactory factory = HotConfigFactory.builder()
-                                             .tunnel(tunnel)
-                                             .build();
+       ConfigTunnelEtcd tunnel = ConfigTunnelEtcd.builder()
+                                                 .client(client)
+                                                 .keyPrefix("/kz-pompei-conf-etcd/")
+                                                 .build()) {
+
+    HotConfigFactory factory = HotConfigFactory.builder()
+                                               .tunnel(tunnel)
+                                               .build();
+  }
+  
+  //...
 }
 ```
 
@@ -468,8 +474,12 @@ Notice lines are stored under a separate key at `localPath + noticeExtension`.
 ```java
 import java.util.List;
 
-tunnel.writeNoticeLines("app/AppConf.hotconf", List.of("invalid port", "fallback was used"));
-List<String> notices = tunnel.readNoticeLines("app/AppConf.hotconf");
+void someFunc() {
+  // ...
+  tunnel.writeNoticeLines("app/AppConf.hotconf", List.of("invalid port", "fallback was used"));
+  List<String> notices = tunnel.readNoticeLines("app/AppConf.hotconf");
+  // ...
+}
 ```
 
 Notice lines are separate from `@ConfDoc` comments and are not attached to individual parameters.
