@@ -13,6 +13,7 @@ import org.testng.annotations.Test;
 import utils.RND;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
 
@@ -1091,6 +1092,413 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
         }
       }
     }
+  }
+
+  @Test(dataProvider = "databaseType")
+  public void trigger_updatesLastModifiedOfChangedRow(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "trigger_changedRow";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "", "", "This is comment for conf");
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0", "This is comment for param0");
+
+    Long paramLastModifiedBefore = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "param0");
+
+    waitForChange(databaseType);
+
+    //
+    //
+    updateRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0-changed", "This is comment for param0");
+    //
+    //
+
+    Long paramLastModifiedAfter = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "param0");
+
+    assertThat(paramLastModifiedBefore).isNotNull();
+    assertThat(paramLastModifiedAfter).isNotNull();
+    assertThat(paramLastModifiedAfter).isGreaterThan(paramLastModifiedBefore);
+  }
+
+  @Test(dataProvider = "databaseType")
+  public void trigger_updatesLastModifiedOfConfigRow_whenParamChanged(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "trigger_configRow";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "", "", "This is comment for conf");
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0", "This is comment for param0");
+
+    Long confLastModifiedBefore = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "");
+
+    waitForChange(databaseType);
+
+    //
+    //
+    updateRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0-changed", "This is comment for param0");
+    //
+    //
+
+    Long confLastModifiedAfter = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "");
+
+    assertThat(confLastModifiedBefore).isNotNull();
+    assertThat(confLastModifiedAfter).isNotNull();
+
+    if (databaseType == DatabaseType.MariaDB) {
+      // MariaDB forbids a trigger to change the table it is attached to (error 1442),
+      // so the row of the whole config cannot be touched from the trigger
+      assertThat(confLastModifiedAfter).isEqualTo(confLastModifiedBefore);
+      return;
+    }
+
+    assertThat(confLastModifiedAfter).isGreaterThan(confLastModifiedBefore);
+  }
+
+  @Test(dataProvider = "databaseType")
+  public void trigger_keepsConfigRowOfOtherConfigsUntouched(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "trigger_otherConfigs";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    insertRow(connectionGet, builder, "some/folder", "first-config.hotconf", "", "", "first conf comment");
+    insertRow(connectionGet, builder, "some/folder", "first-config.hotconf", "param0", "value0", "first param comment");
+    insertRow(connectionGet, builder, "some/folder", "second-config.hotconf", "", "", "second conf comment");
+    insertRow(connectionGet, builder, "some/folder", "second-config.hotconf", "param0", "value0", "second param comment");
+
+    Long secondConfLastModifiedBefore = lastModified(connectionGet, builder, "some/folder", "second-config.hotconf", "");
+
+    waitForChange(databaseType);
+
+    //
+    //
+    updateRow(connectionGet, builder, "some/folder", "first-config.hotconf", "param0", "value0-changed", "first param comment");
+    //
+    //
+
+    Long secondConfLastModifiedAfter = lastModified(connectionGet, builder, "some/folder", "second-config.hotconf", "");
+
+    assertThat(secondConfLastModifiedBefore).isNotNull();
+    assertThat(secondConfLastModifiedAfter).isNotNull();
+    assertThat(secondConfLastModifiedAfter).isEqualTo(secondConfLastModifiedBefore);
+  }
+
+  @Test(dataProvider = "databaseType")
+  public void trigger_customTriggerNames(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "trigger_customNames";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+    builder.triggerName("my_own_%_trg");
+    builder.triggerFnName("my_own_%_trg_fn");
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "", "", "This is comment for conf");
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0", "This is comment for param0");
+
+    Long confLastModifiedBefore = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "");
+
+    waitForChange(databaseType);
+
+    //
+    //
+    updateRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0-changed", "This is comment for param0");
+    //
+    //
+
+    Long confLastModifiedAfter = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "");
+
+    assertThat(triggerExists(connectionGet, builder.tableName(), "my_own_" + builder.tableName() + "_trg")).isTrue();
+
+    assertThat(confLastModifiedBefore).isNotNull();
+    assertThat(confLastModifiedAfter).isNotNull();
+
+    if (databaseType == DatabaseType.MariaDB) {
+      assertThat(confLastModifiedAfter).isEqualTo(confLastModifiedBefore);
+      return;
+    }
+
+    assertThat(confLastModifiedAfter).isGreaterThan(confLastModifiedBefore);
+  }
+
+  @Test
+  public void build_emptyTriggerName() {
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.connectionGet(createConnectionGet(DatabaseType.PostgreSQL, "build_emptyTriggerName"));
+    builder.triggerName("");
+
+    assertThatThrownBy(builder::build).isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  public void build_triggerNameWithSchema() {
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.connectionGet(createConnectionGet(DatabaseType.PostgreSQL, "build_triggerNameWithSchema"));
+    builder.triggerFnName("some_schema.%_trg_fn");
+
+    assertThatThrownBy(builder::build).isInstanceOf(IllegalArgumentException.class);
+  }
+
+  /**
+   * In MariaDB a schema is a separate database, and the test user has no rights to create one,
+   * so a schema-qualified table name is checked in PostgreSQL only.
+   */
+  @Test
+  public void trigger_tableInSchema() throws InterruptedException {
+
+    DatabaseType databaseType = DatabaseType.PostgreSQL;
+
+    String nameOfThisMethod = "trigger_tableInSchema";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    String simpleTableName = nameOfThisMethod + "_" + RND.str(8);
+    builder.tableName("trigger_schema." + simpleTableName);
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "", "", "This is comment for conf");
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0", "This is comment for param0");
+
+    Long confLastModifiedBefore = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "");
+
+    waitForChange(databaseType);
+
+    //
+    //
+    updateRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0-changed", "This is comment for param0");
+    //
+    //
+
+    Long confLastModifiedAfter = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "");
+
+    assertThat(triggerExists(connectionGet, simpleTableName, simpleTableName + "__trigger")).isTrue();
+
+    assertThat(confLastModifiedBefore).isNotNull();
+    assertThat(confLastModifiedAfter).isNotNull();
+    assertThat(confLastModifiedAfter).isGreaterThan(confLastModifiedBefore);
+  }
+
+  @Test(dataProvider = "databaseType")
+  public void trigger_createdWhenTableExistsWithoutTrigger(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "trigger_tableWithoutTrigger";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "", "", "This is comment for conf");
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0", "This is comment for param0");
+
+    String triggerName = builder.tableName() + "__trigger";
+
+    // the table stays, the trigger goes away - as it happens with a table created by an older version or by hand
+    dropTrigger(connectionGet, databaseType, builder.tableName(), triggerName);
+    assertThat(triggerExists(connectionGet, builder.tableName(), triggerName)).isFalse();
+
+    //
+    //
+    ConfigTunnelJdbc confTunnelJdbc = builder.connectionGet(connectionGet).build();
+    confTunnelJdbc.modificationMarker("some/folder/test-config.hotconf");
+    //
+    //
+
+    assertThat(triggerExists(connectionGet, builder.tableName(), triggerName)).isTrue();
+
+    Long confLastModifiedBefore = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "");
+
+    waitForChange(databaseType);
+    updateRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0-changed", "This is comment for param0");
+
+    Long paramLastModifiedAfter = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "param0");
+    Long confLastModifiedAfter  = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "");
+
+    assertThat(confLastModifiedBefore).isNotNull();
+    assertThat(paramLastModifiedAfter).isNotNull();
+    assertThat(confLastModifiedAfter).isNotNull();
+    assertThat(paramLastModifiedAfter).isGreaterThan(confLastModifiedBefore);
+
+    if (databaseType == DatabaseType.MariaDB) {
+      assertThat(confLastModifiedAfter).isEqualTo(confLastModifiedBefore);
+      return;
+    }
+
+    assertThat(confLastModifiedAfter).isGreaterThan(confLastModifiedBefore);
+  }
+
+  /**
+   * An existing trigger must stay the very same object: dropping and creating it again would leave a moment
+   * when changes of the table are not caught by anybody.
+   * <p>
+   * The identity of the trigger is visible in PostgreSQL only, so this is a PostgreSQL test.
+   */
+  @Test
+  public void trigger_notRecreatedWhenItAlreadyExists() {
+
+    DatabaseType databaseType = DatabaseType.PostgreSQL;
+
+    String nameOfThisMethod = "trigger_notRecreated";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+
+    String triggerName = builder.tableName() + "__trigger";
+
+    Long triggerOidBefore = triggerOidPg(connectionGet, builder.tableName(), triggerName);
+
+    //
+    //
+    createTable(connectionGet, builder);
+    //
+    //
+
+    Long triggerOidAfter = triggerOidPg(connectionGet, builder.tableName(), triggerName);
+
+    assertThat(triggerOidBefore).isNotNull();
+    assertThat(triggerOidAfter).isEqualTo(triggerOidBefore);
+  }
+
+  /**
+   * The trigger of an older version of the library keeps the name but does something else. Such a trigger must be brought
+   * up to date, otherwise a change of a parameter stays unnoticed.
+   */
+  @Test
+  public void trigger_staleFunctionBodyIsReplaced_pg() throws InterruptedException {
+
+    DatabaseType databaseType = DatabaseType.PostgreSQL;
+
+    String nameOfThisMethod = "trigger_staleFunctionBody";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "", "", "This is comment for conf");
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0", "This is comment for param0");
+
+    // the trigger stays, but its function does nothing - as it would be after an upgrade of the library
+    execSql(connectionGet, """
+      CREATE OR REPLACE FUNCTION {functionName}() RETURNS trigger AS $$
+      BEGIN
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql
+      """.replace("{functionName}", builder.tableName() + "__trigger_fn"));
+
+    //
+    //
+    ConfigTunnelJdbc confTunnelJdbc = builder.connectionGet(connectionGet).build();
+    confTunnelJdbc.modificationMarker("some/folder/test-config.hotconf");
+    //
+    //
+
+    Long confLastModifiedBefore = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "");
+
+    waitForChange(databaseType);
+    updateRow(connectionGet, builder, "some/folder", "test-config.hotconf", "param0", "value0-changed", "This is comment for param0");
+
+    Long confLastModifiedAfter = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "");
+
+    assertThat(confLastModifiedBefore).isNotNull();
+    assertThat(confLastModifiedAfter).isNotNull();
+    assertThat(confLastModifiedAfter).isGreaterThan(confLastModifiedBefore);
+  }
+
+  /**
+   * The same as {@link #trigger_staleFunctionBodyIsReplaced_pg()}, but MariaDB keeps the body inside the trigger itself.
+   */
+  @Test
+  public void trigger_staleTriggerBodyIsReplaced_mariaDb() throws InterruptedException {
+
+    DatabaseType databaseType = DatabaseType.MariaDB;
+
+    String nameOfThisMethod = "trigger_staleTriggerBody";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    insertRow(connectionGet, builder, "some/folder", "test-config.hotconf", "", "", "This is comment for conf");
+
+    String triggerName = builder.tableName() + "__trigger";
+
+    // the trigger stays, but its body does something else - as it would be after an upgrade of the library
+    execSql(connectionGet, """
+      CREATE OR REPLACE TRIGGER {triggerName}
+      BEFORE UPDATE ON {tableName}
+      FOR EACH ROW
+      SET NEW.{colComment} = 'body of an older version'
+      """
+      .replace("{triggerName}", triggerName)
+      .replace("{tableName}", builder.tableName())
+      .replace("{colComment}", builder.colComment()));
+
+    //
+    //
+    ConfigTunnelJdbc confTunnelJdbc = builder.connectionGet(connectionGet).build();
+    confTunnelJdbc.modificationMarker("some/folder/test-config.hotconf");
+    //
+    //
+
+    assertThat(triggerBody(connectionGet, builder.tableName(), triggerName))
+      .isEqualTo("SET NEW." + builder.colLastModified() + " = CURRENT_TIMESTAMP");
+
+    Long confLastModifiedBefore = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "");
+
+    waitForChange(databaseType);
+    updateRow(connectionGet, builder, "some/folder", "test-config.hotconf", "", "changed", "This is comment for conf");
+
+    Long confLastModifiedAfter = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "");
+
+    assertThat(confLastModifiedBefore).isNotNull();
+    assertThat(confLastModifiedAfter).isNotNull();
+    assertThat(confLastModifiedAfter).isGreaterThan(confLastModifiedBefore);
   }
 
 }

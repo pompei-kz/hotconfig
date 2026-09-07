@@ -408,6 +408,30 @@ add this column manually before using notice storage.
 Parameter errors are stored in the `colError` text column on parameter rows. Existing JDBC tables must add this column manually before
 using version 0.0.7.
 
+The table, the trigger and, in PostgreSQL, the trigger function are checked separately, and every one of them is created only when
+it is really missing: an existing table may have no trigger, because the table could be created by an older version or by hand, and
+the trigger could be dropped later. When everything is in place no DDL is run at all, so a database user with rights to read and
+write the data of an existing table is enough.
+
+The trigger refreshes `colLastModified` of the changed row, and in PostgreSQL it refreshes `colLastModified` of the configuration
+row as well - the row where `colParamName` is empty. Because of this, a change of a single parameter value made directly in the
+database is seen as a change of the whole configuration file. Trigger names are configurable through `triggerName(...)` and
+`triggerFnName(...)`; the percent sign (`%`) in these templates is replaced with the table name:
+
+```java
+ConfigTunnelJdbc tunnel = ConfigTunnelJdbc.builder()
+                                          .connectionGet(() -> dataSource.getConnection())
+                                          .tableName("hotconfig")
+                                          .triggerName("%__trigger")
+                                          .triggerFnName("%__trigger_fn")
+                                          .build();
+```
+
+`triggerFnName` is used by PostgreSQL only - MariaDB creates the trigger without a separate function. In MariaDB the trigger also does
+not touch the configuration row, because MariaDB forbids a trigger to change the table it is attached to (error 1442); there the change
+of the whole configuration is seen through the maximum of `colLastModified` over all rows of the configuration, which is what
+`modificationMarker` reads.
+
 ### etcd
 
 `kz-pompei-hotconfig-etcd` stores each configuration under one etcd key.

@@ -44,6 +44,33 @@ public class ConfigTunnelJdbcBuilder {
 
 
   /**
+   * Template of the name of the trigger which is attached to the configuration table.
+   * <p>
+   * The percent sign (%) in the template is replaced with the name of the table the trigger is attached to
+   * (without the schema part).
+   * <p>
+   * The trigger refreshes {@link #colLastModified} of the changed row and, when a parameter row is changed,
+   * of the row of the whole config as well - the row where {@link #colParamName} is empty.
+   * <p>
+   * This field can never be empty and cannot contain a period (.) - the schema is taken from {@link #tableName}.
+   */
+  private String triggerName = "%__trigger";
+
+  /**
+   * Template of the name of the function which is called by the trigger {@link #triggerName}.
+   * <p>
+   * The percent sign (%) in the template is replaced with the name of the table the trigger is attached to
+   * (without the schema part).
+   * <p>
+   * This name is used only by PostgreSQL: in MariaDB the trigger body is created inside the trigger itself,
+   * so no separate function is needed there and this field is ignored.
+   * <p>
+   * This field can never be empty and cannot contain a period (.) - the schema is taken from {@link #tableName}.
+   */
+  private String triggerFnName = "%__trigger_fn";
+
+
+  /**
    * The name of the column in which the config name is stored.
    */
   private String colConfigName = "class_name";
@@ -200,6 +227,24 @@ public class ConfigTunnelJdbcBuilder {
   }
 
   /**
+   * Template of the name of the trigger attached to the configuration table. The percent sign (%) means the table name.
+   */
+  public @NonNull ConfigTunnelJdbcBuilder triggerName(@NonNull String triggerName) {
+    this.triggerName = triggerName;
+    return this;
+  }
+
+  /**
+   * Template of the name of the function called by the trigger. The percent sign (%) means the table name.
+   * <p>
+   * Used by PostgreSQL only.
+   */
+  public @NonNull ConfigTunnelJdbcBuilder triggerFnName(@NonNull String triggerFnName) {
+    this.triggerFnName = triggerFnName;
+    return this;
+  }
+
+  /**
    * Returns the configured comment column name.
    */
   public @NonNull String colComment() {
@@ -276,14 +321,35 @@ public class ConfigTunnelJdbcBuilder {
     return tableName;
   }
 
+  /**
+   * Returns the configured trigger name template.
+   */
+  public @NonNull String triggerName() {
+    return triggerName;
+  }
+
+  /**
+   * Returns the configured trigger function name template.
+   */
+  public @NonNull String triggerFnName() {
+    return triggerFnName;
+  }
+
   public @NonNull ConfigTunnelJdbc build() {
 
     if (connectionGet == null) {
       throw new IllegalArgumentException("u5W8jIn1ZH :: ConnectionGet cannot be null");
     }
+    if (tableName.isEmpty()) {
+      throw new IllegalArgumentException("mQ4tR7vX2c :: tableName cannot be empty");
+    }
+    checkTriggerNameTemplate("triggerName", triggerName);
+    checkTriggerNameTemplate("triggerFnName", triggerFnName);
 
     ConfigTunnelJdbc.Def def = new ConfigTunnelJdbc.Def(colFolder,
                                                         tableName,
+                                                        triggerName,
+                                                        triggerFnName,
                                                         colConfigName,
                                                         colParamName,
                                                         colParamValueStr,
@@ -300,6 +366,15 @@ public class ConfigTunnelJdbcBuilder {
       case PostgreSQL -> new ConfigTunnelJdbcPg(connectionGet, def);
       case MariaDB -> new ConfigTunnelJdbcMariaDb(connectionGet, def);
     };
+  }
+
+  private static void checkTriggerNameTemplate(@NonNull String fieldName, @NonNull String template) {
+    if (template.isEmpty()) {
+      throw new IllegalArgumentException("wZ3nK8pL5t :: " + fieldName + " cannot be empty");
+    }
+    if (template.indexOf('.') >= 0) {
+      throw new IllegalArgumentException("hB6yD1sF9m :: " + fieldName + " cannot contain a period (.): " + template);
+    }
   }
 
   private static @NonNull DatabaseType detectDb(@NonNull ConnectionGet connectionGet) throws UnknownDb {

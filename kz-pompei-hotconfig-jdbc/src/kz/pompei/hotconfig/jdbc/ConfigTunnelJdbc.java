@@ -42,6 +42,8 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
   static class Def {
     final String colFolder;
     final String tableName;
+    final String triggerName;
+    final String triggerFnName;
     final String colConfigName;
     final String colParamName;
     final String colParamValueStr;
@@ -250,11 +252,19 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
 
   public abstract void createTableIfNotExists();
 
+  /**
+   * Checks that the table of the config already exists.
+   * <p>
+   * The check is asked before any DDL of the table is run, so a database user which may only read and write the data of an
+   * existing table is enough for the work of the tunnel.
+   */
+  protected abstract boolean tableExists(@NonNull Connection connection) throws SQLException;
+
   private final AtomicBoolean schemaCreated = new AtomicBoolean(false);
 
   protected void createSchemaIfNotExists(@NonNull Connection connection) throws SQLException {
-    int dotIndex = def.tableName.indexOf('.');
-    if (dotIndex < 0) return;
+    String schema = schemaName();
+    if (schema == null) return;
 
     if (schemaCreated.get()) return;
 
@@ -262,13 +272,102 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
 
       if (schemaCreated.get()) return;
 
-      String schema = def.tableName.substring(0, dotIndex);
       try (PreparedStatement ps = connection.prepareStatement("CREATE SCHEMA IF NOT EXISTS " + schema)) {
         ps.executeUpdate();
       }
 
       schemaCreated.set(true);
     }
+  }
+
+  /**
+   * The name of the schema the configuration table belongs to, or {@code null} when {@code def.tableName} has no schema part.
+   */
+  protected @Nullable String schemaName() {
+    int dotIndex = def.tableName.indexOf('.');
+    if (dotIndex < 0) return null;
+    return def.tableName.substring(0, dotIndex);
+  }
+
+  /**
+   * The name of the configuration table without the schema part.
+   */
+  protected @NonNull String simpleTableName() {
+    int dotIndex = def.tableName.indexOf('.');
+    if (dotIndex < 0) return def.tableName;
+    return def.tableName.substring(dotIndex + 1);
+  }
+
+  /**
+   * The name of the trigger: the percent sign (%) of the template is replaced with the table name.
+   * <p>
+   * The name is not qualified with the schema.
+   */
+  protected @NonNull String triggerName() {
+    return def.triggerName.replace("%", simpleTableName());
+  }
+
+  /**
+   * The name of the trigger function: the percent sign (%) of the template is replaced with the table name.
+   * <p>
+   * The name is qualified with the schema of the table when the table has one.
+   */
+  protected @NonNull String triggerFnName() {
+    return withSchema(def.triggerFnName.replace("%", simpleTableName()));
+  }
+
+  /**
+   * Qualifies the name with the schema of the configuration table, when the table has a schema.
+   */
+  protected @NonNull String withSchema(@NonNull String name) {
+    String schema = schemaName();
+    return schema == null ? name : schema + "." + name;
+  }
+
+  /**
+   * Checks that the trigger {@link #triggerName()} is already attached to the configuration table.
+   * <p>
+   * The table of the config may exist without the trigger: the table could be created by an older version of this library,
+   * by hand, or the trigger could be dropped later. Because of this the trigger is never taken for granted - it is checked
+   * every time the table is checked.
+   */
+  protected boolean triggerExists(@NonNull Connection connection) throws SQLException {
+    String schema = schemaName();
+
+    String sql = """
+      SELECT 1
+      FROM information_schema.triggers
+      WHERE LOWER(trigger_name) = LOWER(?) AND LOWER(event_object_table) = LOWER(?)
+      """;
+    if (schema != null) sql = sql + "  AND LOWER(event_object_schema) = LOWER(?)\n";
+
+    try (PreparedStatement ps = connection.prepareStatement(sql)) {
+      ps.setString(1, triggerName());
+      ps.setString(2, simpleTableName());
+      if (schema != null) ps.setString(3, schema);
+      try (ResultSet rs = ps.executeQuery()) {
+        return rs.next();
+      }
+    }
+  }
+
+  /**
+   * Checks that the error means "such an object already exists".
+   * <p>
+   * Two applications may create the trigger at the same time: both see no trigger and both create it. The loser of this race
+   * gets the error, and for it the trigger is created anyway, so the error is not a failure.
+   */
+  protected boolean isDuplicateObject(@NonNull SQLException e) {
+    SQLException current = e;
+    while (current != null) {
+      String sqlState  = current.getSQLState();
+      int    errorCode = current.getErrorCode();
+      String message   = current.getMessage();
+      if ("42710".equals(sqlState) || "42P07".equals(sqlState) || errorCode == 1359) return true;
+      if (message != null && message.contains("already exists")) return true;
+      current = current.getNextException();
+    }
+    return false;
   }
 
   protected void addOrderColumnIfMissing(@NonNull Connection connection) throws SQLException {
@@ -328,14 +427,8 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
 
   private boolean columnExists(@NonNull Connection connection, @NonNull String columnName) throws SQLException {
     DatabaseMetaData metaData = connection.getMetaData();
-    String           schema   = null;
-    String           table    = def.tableName;
-
-    int dotIndex = def.tableName.indexOf('.');
-    if (dotIndex >= 0) {
-      schema = def.tableName.substring(0, dotIndex);
-      table  = def.tableName.substring(dotIndex + 1);
-    }
+    String           schema   = schemaName();
+    String           table    = simpleTableName();
 
     try (ResultSet rs = metaData.getColumns(null, schema, table, columnName)) {
       if (rs.next()) return true;
