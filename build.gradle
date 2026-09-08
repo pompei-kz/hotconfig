@@ -9,6 +9,7 @@ allprojects {
 
   version = rootProject.file('versions/version.txt').text.trim()
 
+  // когда поменяется здесь версия Java нужно не забыть её поменять в ./gradlew в строке `if [[ "$JAVA_HOME_21" != "" ]] ; then ... ; fi`
   java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
   group = "kz.pompei.hotconfig"

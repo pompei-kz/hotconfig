@@ -64,6 +64,10 @@
 
 # Attempt to set APP_HOME
 
+if [[ "$JAVA_HOME_21" != "" ]] ; then
+    export JAVA_HOME="$JAVA_HOME_21"
+fi
+
 # Resolve links: $0 may be a link
 app_path=$0
 
