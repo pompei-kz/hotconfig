@@ -5,6 +5,38 @@ All notable changes to this project are documented here.
 This project keeps short release summaries in this file and detailed notes in
 `versions/<version>.md`.
 
+## [0.0.10] - 2026-09-08
+
+### Added
+
+- Added the change of the type of the PostgreSQL timestamp columns to `TIMESTAMPTZ`: the types of `colCreatedAt` and
+  `colLastModified` are checked every time the table is checked - just as the column of the row order and the trigger are - and a
+  column which keeps a timestamp without a time zone is brought to `timestamp with time zone`, with the values of the rows kept as
+  they were.
+- Added the check of the type of a column through `information_schema.columns.data_type`. Only a column of the type
+  `timestamp without time zone` is changed, and nothing is changed when both columns already keep the time zone, so a database which
+  is already prepared needs no rights for DDL at all.
+- Added the handling of the race of several instances which change the type at the same moment: the loser of the race swallows its
+  error only when the column is of the wanted type anyway.
+- Added JDBC tests: a fresh table keeps the time zone; a table of an older version is brought to `TIMESTAMPTZ` with the values of the
+  rows kept - the same wall clock and the same moment read by `modificationMarker`; the same for a schema-qualified table name; and
+  eight instances racing for `ALTER COLUMN ... TYPE TIMESTAMPTZ`.
+- Added test helpers `JdbcTestDbUtils.columnDataType(...)` and `timestampAsText(...)`.
+
+### Changed
+
+- The PostgreSQL `CREATE TABLE` now creates `colCreatedAt` and `colLastModified` as `TIMESTAMPTZ` instead of `TIMESTAMP`, so a plain
+  wall clock without a time zone is never stored again.
+- MariaDB keeps the path it had before: its own `TIMESTAMP` is stored in UTC and shown in the time zone of the session, so it already
+  keeps the moment itself.
+
+### Migration Notes
+
+- Nothing has to be done by hand - the type is changed when the table is checked, once per tunnel instance.
+- The database user needs the right to `ALTER` the table only until the columns are changed; after that no DDL is run at all.
+- `ALTER COLUMN ... TYPE` rewrites the table under an `ACCESS EXCLUSIVE` lock. The configuration table is small, but this happens on
+  the first start of an application of this version.
+
 ## [0.0.9] - 2026-09-07
 
 ### Added
@@ -139,6 +171,7 @@ This project keeps short release summaries in this file and detailed notes in
 - `ConfigTunnelFile` should be created through `ConfigTunnelFile.builder()` with both
   `baseDir` and `noticeExtension` set.
 
+[0.0.10]: versions/0.0.10.md
 [0.0.9]: versions/0.0.9.md
 [0.0.8]: versions/0.0.8.md
 [0.0.7]: versions/0.0.7.md

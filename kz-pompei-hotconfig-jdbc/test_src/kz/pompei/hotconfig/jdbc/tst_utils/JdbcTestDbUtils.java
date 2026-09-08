@@ -371,6 +371,88 @@ public abstract class JdbcTestDbUtils extends JdbcTestParent {
     }
   }
 
+  /**
+   * The type of the specified column as the database itself names it - {@code timestamp without time zone},
+   * {@code timestamp with time zone} and so on.
+   *
+   * @param connectionGet connection source
+   * @param tableName     table name - without the schema part
+   * @param columnName    column name
+   *
+   * @return the type of the column, or {@code null} when there is no such column
+   */
+  protected @Nullable String columnDataType(@NonNull ConnectionGet connectionGet,
+                                            @NonNull String tableName,
+                                            @NonNull String columnName) {
+    try (@NonNull Connection connection = connectionGet.getConnection()) {
+      String sql = """
+        SELECT data_type
+        FROM information_schema.columns
+        WHERE LOWER(table_name) = LOWER(?) AND LOWER(column_name) = LOWER(?)
+        """;
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        ps.setString(1, tableName);
+        ps.setString(2, columnName);
+        try (ResultSet rs = ps.executeQuery()) {
+          if (!rs.next()) return null;
+          return rs.getString(1);
+        }
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException("Bq4Ln7Ws2E :: Could not read configuration test column type: " + tableName + "." + columnName, e);
+    }
+  }
+
+  /**
+   * The value of the specified column of one row as the wall clock which the database shows in the time zone of the session.
+   * <p>
+   * A timestamp without a time zone is shown as it is stored, and a timestamp with the time zone is shown in the time zone of
+   * the session. Because of this the very same text before and after the change of the type means the moment of the row
+   * has not moved anywhere.
+   *
+   * @param connectionGet connection source
+   * @param builder       table config builder
+   * @param columnName    column of the timestamp
+   * @param folder        folder of config
+   * @param configName    config name
+   * @param paramName     param name - an empty string means the row of the whole config
+   *
+   * @return the wall clock as text, or {@code null} when there is no such row
+   */
+  protected @Nullable String timestampAsText(@NonNull ConnectionGet connectionGet,
+                                             @NonNull ConfigTunnelJdbcBuilder builder,
+                                             @NonNull String columnName,
+                                             @NonNull String folder,
+                                             @NonNull String configName,
+                                             @NonNull String paramName) {
+
+    try (@NonNull Connection connection = connectionGet.getConnection()) {
+      String sql = """
+        SELECT TO_CHAR({columnName}, 'YYYY-MM-DD HH24:MI:SS.US')
+        FROM {tableName}
+        WHERE {colFolder} = ? AND {colConfigName} = ? AND {colParamName} = ?
+        """
+        .replace("{columnName}", columnName)
+        .replace("{tableName}", builder.tableName())
+        .replace("{colFolder}", builder.colFolder())
+        .replace("{colConfigName}", builder.colConfigName())
+        .replace("{colParamName}", builder.colParamName());
+
+      try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        ps.setString(1, folder);
+        ps.setString(2, configName);
+        ps.setString(3, paramName);
+        try (ResultSet rs = ps.executeQuery()) {
+          if (!rs.next()) return null;
+          return rs.getString(1);
+        }
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException("Yd3Gm8Pk5X :: Could not read configuration test timestamp: "
+                                   + builder.tableName() + "." + columnName, e);
+    }
+  }
+
   protected boolean columnExists(@NonNull ConnectionGet connectionGet, @NonNull String tableName, @NonNull String columnName) {
     try (@NonNull Connection connection = connectionGet.getConnection()) {
       DatabaseMetaData metaData = connection.getMetaData();

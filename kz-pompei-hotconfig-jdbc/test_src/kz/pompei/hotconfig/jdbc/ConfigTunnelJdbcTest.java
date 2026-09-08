@@ -1506,6 +1506,188 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
   }
 
   /**
+   * A fresh table keeps the timestamps with the time zone, so the moment of every row is known without any guessing about
+   * the time zone of the one who wrote it.
+   * <p>
+   * MariaDB has no {@code TIMESTAMPTZ}: its own {@code TIMESTAMP} is stored in UTC and already keeps the moment itself,
+   * so this is a PostgreSQL test.
+   */
+  @Test
+  public void createTable_timestampColumnsKeepTimeZone_pg() {
+
+    DatabaseType databaseType = DatabaseType.PostgreSQL;
+
+    String nameOfThisMethod = "createTable_timestampTz";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    //
+    //
+    createTable(connectionGet, builder);
+    //
+    //
+
+    assertThat(columnDataType(connectionGet, builder.tableName(), builder.colCreatedAt())).isEqualTo("timestamp with time zone");
+    assertThat(columnDataType(connectionGet, builder.tableName(), builder.colLastModified())).isEqualTo("timestamp with time zone");
+  }
+
+  /**
+   * The table of an older version of the library keeps the timestamps as a plain {@code TIMESTAMP} - a wall clock without any
+   * time zone, which two applications in two time zones read as two different moments. Such a table must be brought to
+   * {@code TIMESTAMPTZ} when the table is checked, and the values of the rows must stay where they were.
+   * <p>
+   * MariaDB has no {@code TIMESTAMPTZ}: its own {@code TIMESTAMP} is stored in UTC and already keeps the moment itself,
+   * so this is a PostgreSQL test.
+   */
+  @Test
+  public void timestampColumns_broughtToTimestampTz_withValuesKept_pg() {
+
+    DatabaseType databaseType = DatabaseType.PostgreSQL;
+
+    String nameOfThisMethod = "timestamps_toTimestampTz";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    String tableName = builder.tableName();
+
+    // the table of an older version of the library: the timestamps have no time zone
+    execSql(connectionGet, "ALTER TABLE " + tableName
+                             + " ALTER COLUMN " + builder.colCreatedAt() + " TYPE TIMESTAMP"
+                             + ", ALTER COLUMN " + builder.colLastModified() + " TYPE TIMESTAMP");
+
+    assertThat(columnDataType(connectionGet, tableName, builder.colCreatedAt())).isEqualTo("timestamp without time zone");
+    assertThat(columnDataType(connectionGet, tableName, builder.colLastModified())).isEqualTo("timestamp without time zone");
+
+    String createdAt    = "2020-01-02 03:04:05.123456";
+    String lastModified = "2021-02-03 04:05:06.654321";
+
+    // the row of the old table, with the timestamps of the old type; the trigger of the table changes the last modification
+    // timestamp of a row which is updated, so the values are given to the row at once, by the INSERT itself
+    execSql(connectionGet, "INSERT INTO " + tableName
+                             + " (" + builder.colFolder()
+                             + ", " + builder.colConfigName()
+                             + ", " + builder.colParamName()
+                             + ", " + builder.colParamValueStr()
+                             + ", " + builder.colOrder()
+                             + ", " + builder.colCreatedAt()
+                             + ", " + builder.colLastModified() + ")"
+                             + " VALUES ('some/folder', 'test-config.hotconf', 'param0', 'value0', 1"
+                             + ", '" + createdAt + "', '" + lastModified + "')");
+
+    Long lastModifiedBefore = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "param0");
+
+    //
+    //
+    newTunnel(connectionGet, tableName).createTableIfNotExists();
+    //
+    //
+
+    assertThat(columnDataType(connectionGet, tableName, builder.colCreatedAt())).isEqualTo("timestamp with time zone");
+    assertThat(columnDataType(connectionGet, tableName, builder.colLastModified())).isEqualTo("timestamp with time zone");
+
+    // the values of the columns stay where they were - the very same wall clock in the very same time zone
+    assertThat(timestampAsText(connectionGet, builder, builder.colCreatedAt(), "some/folder", "test-config.hotconf", "param0"))
+      .isEqualTo(createdAt);
+    assertThat(timestampAsText(connectionGet, builder, builder.colLastModified(), "some/folder", "test-config.hotconf", "param0"))
+      .isEqualTo(lastModified);
+
+    // and the tunnel reads the very same moment as before the change
+    assertThat(lastModifiedBefore).isNotNull();
+    assertThat(lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "param0")).isEqualTo(lastModifiedBefore);
+
+    // the second run has nothing left to do, and it breaks nothing
+    newTunnel(connectionGet, tableName).createTableIfNotExists();
+
+    assertThat(columnDataType(connectionGet, tableName, builder.colLastModified())).isEqualTo("timestamp with time zone");
+    assertThat(timestampAsText(connectionGet, builder, builder.colLastModified(), "some/folder", "test-config.hotconf", "param0"))
+      .isEqualTo(lastModified);
+  }
+
+  /**
+   * The old table lives in its own schema. The check of the type must find such a column too, otherwise the timestamps of a
+   * table with a schema would stay without a time zone forever.
+   */
+  @Test
+  public void timestampColumns_broughtToTimestampTz_tableInSchema_pg() {
+
+    DatabaseType databaseType = DatabaseType.PostgreSQL;
+
+    String nameOfThisMethod = "timestamps_toTimestampTz_schema";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    String simpleTableName = nameOfThisMethod + "_" + RND.str(8);
+    String schemaName      = "schema_" + RND.str(8);
+    String tableName       = schemaName + "." + simpleTableName;
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(tableName);
+
+    createTable(connectionGet, builder);
+
+    execSql(connectionGet, "ALTER TABLE " + tableName
+                             + " ALTER COLUMN " + builder.colCreatedAt() + " TYPE TIMESTAMP"
+                             + ", ALTER COLUMN " + builder.colLastModified() + " TYPE TIMESTAMP");
+
+    assertThat(columnDataType(connectionGet, simpleTableName, builder.colLastModified())).isEqualTo("timestamp without time zone");
+
+    //
+    //
+    newTunnel(connectionGet, tableName).createTableIfNotExists();
+    //
+    //
+
+    assertThat(columnDataType(connectionGet, simpleTableName, builder.colCreatedAt())).isEqualTo("timestamp with time zone");
+    assertThat(columnDataType(connectionGet, simpleTableName, builder.colLastModified())).isEqualTo("timestamp with time zone");
+
+    execSql(connectionGet, "DROP SCHEMA " + schemaName + " CASCADE");
+  }
+
+  /**
+   * The timestamps of the table have no time zone yet and several instances start at once: now they race for
+   * {@code ALTER COLUMN ... TYPE TIMESTAMPTZ}. Nobody may fall on this.
+   */
+  @Test
+  public void alterTimestampColumns_raceOfManyInstances_pg() throws InterruptedException {
+
+    DatabaseType databaseType = DatabaseType.PostgreSQL;
+
+    String nameOfThisMethod = "timestamps_toTimestampTz_race";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+
+    String tableName = builder.tableName();
+
+    execSql(connectionGet, "ALTER TABLE " + tableName
+                             + " ALTER COLUMN " + builder.colCreatedAt() + " TYPE TIMESTAMP"
+                             + ", ALTER COLUMN " + builder.colLastModified() + " TYPE TIMESTAMP");
+
+    //
+    //
+    List<Throwable> errors = runAtTheSameMoment(INSTANCE_COUNT, () -> newTunnel(connectionGet, tableName).createTableIfNotExists());
+    //
+    //
+
+    assertThat(describeAll(errors)).isEmpty();
+    assertThat(columnDataType(connectionGet, tableName, builder.colCreatedAt())).isEqualTo("timestamp with time zone");
+    assertThat(columnDataType(connectionGet, tableName, builder.colLastModified())).isEqualTo("timestamp with time zone");
+  }
+
+  /**
    * Two instances of the application start at the same moment and both create the table of the config. Nobody may fall on this.
    */
   @Test(dataProvider = "databaseType")

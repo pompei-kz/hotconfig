@@ -56,6 +56,15 @@ public class ConfigTunnelJdbcMariaDb extends ConfigTunnelJdbc {
     }
   }
 
+  /**
+   * Creates the table of the config. The table is known to be missing when this method is called.
+   * <p>
+   * The columns of the timestamps are of the type {@code TIMESTAMP}, and this type already keeps the moment itself: MariaDB
+   * stores such a value in UTC and shows it in the time zone of the session. Because of this MariaDB needs no counterpart of the
+   * change of the type which PostgreSQL needs - see {@code ConfigTunnelJdbcPg}, where the plain {@code TIMESTAMP} of an older
+   * version of this library is brought to {@code TIMESTAMPTZ}; the type without the time zone in MariaDB is
+   * {@code DATETIME}, and this library has never used it.
+   */
   @Override protected void createTable(@NonNull Connection connection) throws SQLException {
     createSchemaIfNotExists(connection);
     String sql = """

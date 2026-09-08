@@ -19,6 +19,8 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
 
       addOrderColumnIfMissing(connection);
 
+      alterTimestampColumnsToTimestampTz(connection);
+
       createTriggerIfNotExists(connection);
     } catch (SQLException e) {
       throw new RuntimeException("T6u7V8w9X0 :: Could not create configuration table: " + def.tableName, e);
@@ -55,8 +57,8 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
         {colError}           TEXT,
         {colNotice}          TEXT,
         {colOrder}           INT NOT NULL DEFAULT 0,
-        {colCreatedAt}       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        {colLastModified}    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        {colCreatedAt}       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        {colLastModified}    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY ({colFolder}, {colConfigName}, {colParamName})
       )
       """
@@ -74,6 +76,82 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
 
     try (PreparedStatement ps = connection.prepareStatement(sql)) {
       ps.executeUpdate();
+    }
+  }
+
+  /**
+   * Brings the columns of the timestamps of the config table to {@code TIMESTAMPTZ} - {@code timestamp with time zone}.
+   * <p>
+   * A table made by an older version of this library keeps these columns as a plain {@code TIMESTAMP} - a wall clock without
+   * any time zone. Such a value says nothing about the moment it means: the same text is read as another moment by an
+   * application whose time zone differs from the one which wrote it, and the comparison of the last modification timestamp
+   * with the clock of the application starts to lie. {@code TIMESTAMPTZ} keeps the moment itself, so every reader sees the
+   * very same moment.
+   * <p>
+   * The type is checked every time the table is checked - just as the column of the row order and the trigger are - because the
+   * table may come from an older version of this library or be made by hand. Nothing is changed when both columns already keep
+   * the time zone, so a database which is already prepared needs no rights for DDL at all.
+   * <p>
+   * The values of the columns survive the change: PostgreSQL reads the old wall clock in the time zone of the session, which is
+   * exactly how the old value was written and how this library used to read it back, so the moment of every row stays the same.
+   */
+  private void alterTimestampColumnsToTimestampTz(@NonNull Connection connection) throws SQLException {
+    alterColumnToTimestampTzIfWithoutTimeZone(connection, def.colCreatedAt);
+    alterColumnToTimestampTzIfWithoutTimeZone(connection, def.colLastModified);
+  }
+
+  /**
+   * Changes the type of the specified column to {@code TIMESTAMPTZ}, when the column keeps a timestamp without a time zone.
+   * <p>
+   * Just as with the table itself, two instances of the application may change the type at the same moment, and the loser of
+   * this race gets the error of the winner. The column is of the wanted type anyway, so only this error is swallowed.
+   * <p>
+   * The default of the column is not touched: PostgreSQL brings the default expression to the new type by itself, so
+   * {@code CURRENT_TIMESTAMP} stays {@code CURRENT_TIMESTAMP}, and a column made by hand keeps the default it was given.
+   */
+  private void alterColumnToTimestampTzIfWithoutTimeZone(@NonNull Connection connection,
+                                                         @NonNull String columnName) throws SQLException {
+
+    if (!isTimestampWithoutTimeZone(connection, columnName)) return;
+
+    String sql = """
+      ALTER TABLE {tableName}
+      ALTER COLUMN {columnName} TYPE TIMESTAMPTZ
+      """
+      .replace("{tableName}", def.tableName)
+      .replace("{columnName}", columnName);
+
+    try (PreparedStatement ps = connection.prepareStatement(sql)) {
+      ps.executeUpdate();
+    } catch (SQLException e) {
+      if (!isMadeByOther(e, () -> !isTimestampWithoutTimeZone(connection, columnName))) throw e;
+    }
+  }
+
+  /**
+   * Checks that the specified column of the config table keeps a timestamp without a time zone - the type this library used
+   * before and the only type which is to be changed.
+   * <p>
+   * A column of another type - a timestamp with the time zone, a date, or anything else a hand-made table may keep - is left
+   * alone: the owner of such a table knows better what belongs there.
+   */
+  private boolean isTimestampWithoutTimeZone(@NonNull Connection connection, @NonNull String columnName) throws SQLException {
+    String sql = """
+      SELECT 1
+      FROM information_schema.columns
+      WHERE LOWER(table_schema) = LOWER(COALESCE(?, CURRENT_SCHEMA()))
+        AND LOWER(table_name) = LOWER(?)
+        AND LOWER(column_name) = LOWER(?)
+        AND data_type = 'timestamp without time zone'
+      """;
+
+    try (PreparedStatement ps = connection.prepareStatement(sql)) {
+      ps.setString(1, schemaName());
+      ps.setString(2, simpleTableName());
+      ps.setString(3, columnName);
+      try (ResultSet rs = ps.executeQuery()) {
+        return rs.next();
+      }
     }
   }
 

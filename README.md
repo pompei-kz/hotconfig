@@ -5,7 +5,7 @@
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](#requirements)
 [![Gradle](https://img.shields.io/badge/build-Gradle-green.svg)](#build-and-test)
 [![TestNG](https://img.shields.io/badge/tests-TestNG-orange.svg)](#build-and-test)
-[![Version](https://img.shields.io/badge/version-0.0.9-lightgrey.svg)](versions/version.txt)
+[![Version](https://img.shields.io/badge/version-0.0.10-lightgrey.svg)](versions/version.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 `kz-pompei-hotconfig` turns a plain Java interface into a live configuration object.
@@ -42,7 +42,7 @@ This example mirrors the configuration pattern tested in `HotConfigFactoryTest`,
 Add this to build.gradle / dependencies
 
 ```groovy
-implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.9"
+implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.10"
 ```
 
 ### 2. Define A Configuration Interface
@@ -168,16 +168,16 @@ repositories {
 }
 
 dependencies {
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.9"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.10"
   // If you store configs in files, no extra modules are needed
 
   // Optional storage backends
 
   // Add this if you want to store configs in SQL database
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.9"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.10"
   
   // Add this if you want to store configs in etcd database
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.9"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.10"
 }
 ```
 
@@ -188,7 +188,7 @@ dependencies {
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-core</artifactId>
-    <version>0.0.9</version>
+    <version>0.0.10</version>
   </dependency>
 
   <!-- If you store configs in files, no extra modules are needed -->
@@ -199,14 +199,14 @@ dependencies {
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-jdbc</artifactId>
-    <version>0.0.9</version>
+    <version>0.0.10</version>
   </dependency>
 
   <!-- Add this if you want to store configs in etcd database -->
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-etcd</artifactId>
-    <version>0.0.9</version>
+    <version>0.0.10</version>
   </dependency>
 </dependencies>
 ```
@@ -418,6 +418,15 @@ and all of them create it. The check and the creation cannot be made one atomic 
 instead of the table. Such an error is swallowed only when the wanted schema, table, column, trigger or function is there anyway,
 made by the winner of the race; every other error goes up as it is.
 
+In PostgreSQL `colCreatedAt` and `colLastModified` are of the type `TIMESTAMPTZ` - `timestamp with time zone` - so the value keeps the
+moment itself and is read as the very same moment by an application in any time zone. A table made by an older version of this library
+keeps these columns as a plain `TIMESTAMP` - a wall clock without any time zone, which two applications in two time zones read as two
+different moments. The type of both columns is checked every time the table is checked, and such a column is brought to `TIMESTAMPTZ`
+automatically, with the values of the rows kept as they were. A column of any other type is left alone, and when both columns already
+keep the time zone no DDL is run at all. In MariaDB these columns stay `TIMESTAMP`: MariaDB stores such a value in UTC and shows it in
+the time zone of the session, so it already keeps the moment itself - the type without a time zone there is `DATETIME`, and this
+library has never used it.
+
 The trigger refreshes `colLastModified` of the changed row, and in PostgreSQL it refreshes `colLastModified` of the configuration
 row as well - the row where `colParamName` is empty. Because of this, a change of a single parameter value made directly in the
 database is seen as a change of the whole configuration file. Trigger names are configurable through `triggerName(...)` and
@@ -504,7 +513,7 @@ JDBC stores the same error text in the configurable `colError` text column.
 ## Changelog
 
 Release notes are kept in [CHANGELOG.md](CHANGELOG.md). Detailed notes for this release are in
-[versions/0.0.9.md](versions/0.0.9.md).
+[versions/0.0.10.md](versions/0.0.10.md).
 
 ## Build And Test
 
