@@ -5,6 +5,42 @@ All notable changes to this project are documented here.
 This project keeps short release summaries in this file and detailed notes in
 `versions/<version>.md`.
 
+## [0.0.11] - 2026-09-15
+
+### Changed
+
+- The JDBC tunnel no longer deletes the rows of a configuration before writing it, and no longer changes a row which is already
+  there: `write(...)` only brings the rows which are not in the table yet. The rule of the tunnel is now **the value in the
+  database is the value that counts** - code brings the values the database does not have yet and never argues with the ones it
+  has. A parameter removed from the code keeps its row, a comment changed in the code does not reach a row which is already
+  there, and an error found in a value is not written into the row of that value.
+- The insert of a row carries `ON CONFLICT DO NOTHING` in PostgreSQL and a no-op `ON DUPLICATE KEY UPDATE` in MariaDB.
+
+### Fixed
+
+- `ConfigTunnelJdbc.write(...)` no longer fails with a violation of the primary key when two instances of an application write
+  the same configuration at the same moment. This is the race of a first start on a new database: a value which is not in the
+  table yet is written back with its default, so every instance writes the same configuration into the same empty table, and the
+  loser of the race got `duplicate key value violates unique constraint` instead of a written row.
+- Two instances writing **different** values at the same moment no longer leave a configuration mixed of both - the comment of
+  one instance next to the parameter value of another one - and no longer leave the table empty when the last delete comes after
+  all the inserts. The delete which caused this is gone.
+- `ConfigTunnelJdbc.writeNoticeLines(...)` had the same race of the first write; the loser now writes its notice into the row
+  which the winner has just made, so the notice is never lost.
+
+### Added
+
+- `ConfigTunnelJdbc.onConflictDoNothing()` as the dialect-specific tail of the `INSERT`.
+- JDBC tests of the race: the same configuration written by eight instances into an empty table at once, the same over rows
+  which are already there, different values of one parameter written at once, the notice of a configuration, and a check of the
+  statement itself.
+
+### Migration Notes
+
+- Nothing has to be done with the database: no change of the table, of its columns or of its trigger.
+- `write(...)` no longer changes anything that is already in the table - see `versions/0.0.11.md` for what this means for
+  comments, errors and parameters removed from the code.
+
 ## [0.0.10] - 2026-09-08
 
 ### Added
@@ -171,6 +207,7 @@ This project keeps short release summaries in this file and detailed notes in
 - `ConfigTunnelFile` should be created through `ConfigTunnelFile.builder()` with both
   `baseDir` and `noticeExtension` set.
 
+[0.0.11]: versions/0.0.11.md
 [0.0.10]: versions/0.0.10.md
 [0.0.9]: versions/0.0.9.md
 [0.0.8]: versions/0.0.8.md

@@ -100,6 +100,18 @@ public class ConfigTunnelJdbcMariaDb extends ConfigTunnelJdbc {
   }
 
   /**
+   * The answer of MariaDB to {@code ON CONFLICT DO NOTHING}: the row which is already there is assigned to itself, which
+   * changes nothing in it.
+   * <p>
+   * {@code INSERT IGNORE} would say the same in fewer words, but it turns every error of the statement into a warning - a value
+   * too long for its column would be swallowed together with the duplicate key, and a row of the config would quietly go
+   * missing. The no-op update swallows the duplicate key only.
+   */
+  @Override protected @NonNull String onConflictDoNothing() {
+    return "ON DUPLICATE KEY UPDATE " + def.colFolder + " = " + def.colFolder;
+  }
+
+  /**
    * Creates the trigger which refreshes the last modification timestamp of the changed row, when the table has no such trigger yet.
    * <p>
    * The table of the config may exist without the trigger: the table could be created by an older version of this library or by

@@ -115,20 +115,6 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
     createTableIfNotExistsOnce();
 
     try (@NonNull Connection connection = connectionGet.getConnection()) {
-      String sql = """
-        DELETE FROM {tableName}
-        WHERE {colFolder} = ? AND {colConfigName} = ?
-        """
-        .replace("{tableName}", def.tableName)
-        .replace("{colFolder}", def.colFolder)
-        .replace("{colConfigName}", def.colConfigName);
-
-      try (PreparedStatement ps = connection.prepareStatement(sql)) {
-        ps.setString(1, folder);
-        ps.setString(2, configName);
-        ps.executeUpdate();
-      }
-
       insertRow(connection, folder, configName, "", "", String.join("\n", conf.confComments), null, null, 0);
       for (int i = 0; i < conf.params.size(); i++) {
         ConfParam param = conf.params.get(i);
@@ -189,17 +175,35 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
         .replace("{colConfigName}", def.colConfigName)
         .replace("{colParamName}", def.colParamName);
 
-      try (PreparedStatement ps = connection.prepareStatement(updateSql)) {
-        ps.setString(1, notice);
-        ps.setString(2, folder);
-        ps.setString(3, configName);
-        ps.setString(4, "");
-        if (ps.executeUpdate() > 0) return;
-      }
+      if (updateNotice(connection, updateSql, notice, folder, configName)) return;
 
-      insertRow(connection, folder, configName, "", null, null, null, notice, 0);
+      // the row of the whole config is not there yet - the insert brings it with the notice inside
+      if (insertRow(connection, folder, configName, "", null, null, null, notice, 0)) return;
+
+      // another instance made the row at the very same moment, and its row carries no notice of ours: the row is there now,
+      // so the update which found nothing a moment ago finds it
+      updateNotice(connection, updateSql, notice, folder, configName);
     } catch (SQLException e) {
       throw new RuntimeException("A6b7C8d9E0 :: Could not write configuration notice to table: " + def.tableName, e);
+    }
+  }
+
+  /**
+   * Writes the notice into the row of the whole config.
+   *
+   * @return {@code true} when there was such a row and it took the notice
+   */
+  private boolean updateNotice(@NonNull Connection connection,
+                               @NonNull String updateSql,
+                               @NonNull String notice,
+                               @NonNull String folder,
+                               @NonNull String configName) throws SQLException {
+    try (PreparedStatement ps = connection.prepareStatement(updateSql)) {
+      ps.setString(1, notice);
+      ps.setString(2, folder);
+      ps.setString(3, configName);
+      ps.setString(4, "");
+      return ps.executeUpdate() > 0;
     }
   }
 
@@ -471,6 +475,26 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
   }
 
   /**
+   * The tail of the {@code INSERT} which makes a row that is already there leave the statement alone, instead of breaking it
+   * with a violation of the primary key.
+   * <p>
+   * Two instances of the application may write the very same configuration at the very same moment. This is exactly what
+   * happens on the first start on a new database: a value which is not in the table yet is written back with its default, so
+   * every instance writes the same configuration into the same empty table at once. The check "is the row there" and the
+   * insert of the row cannot be made one atomic step, so the loser of this race used to get a violation of the primary key
+   * instead of a written row.
+   * <p>
+   * The row of the winner is left as it is, and not brought to the values of the loser. Refreshing it would mean an
+   * {@code UPDATE}, an {@code UPDATE} wakes the trigger of the table, and the trigger of PostgreSQL updates a second row - the
+   * row of the whole config - inside the very same statement. Two instances which hold one of these two rows each and want the
+   * other one deadlock, and PostgreSQL kills one of them. A row which is already there holds the same values anyway: the
+   * instances of this race write the same defaults.
+   *
+   * @see #insertRow(Connection, String, String, String, String, String, String, String, int)
+   */
+  protected abstract @NonNull String onConflictDoNothing();
+
+  /**
    * Adds the column of the row order to a table which was made by an older version of this library.
    * <p>
    * Just as with the table itself, two instances of the application may add the column at the same moment, and the loser of this
@@ -557,7 +581,15 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
     }
   }
 
-  private void insertRow(@NonNull Connection connection,
+  /**
+   * Inserts one row of the configuration, and leaves the row which is already there as it is - see
+   * {@link #onConflictDoNothing()}.
+   *
+   * @return {@code true} when the row was really inserted, {@code false} when the row was already there. Both dialects answer
+   *         an insert of one row with one changed row, and a row which was left alone with something else: PostgreSQL with
+   *         zero, MariaDB with zero or two - two when the trigger of the table refreshed the timestamp of the row it left.
+   */
+  private boolean insertRow(@NonNull Connection connection,
                          @NonNull String folder,
                          @NonNull String configName,
                          @NonNull String paramName,
@@ -570,7 +602,9 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
     String sql = """
       INSERT INTO {tableName} ({colFolder}, {colConfigName}, {colParamName}, {colParamValueStr}, {colComment}, {colError}, {colNotice}, {colOrder})
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      {onConflictDoNothing}
       """
+      .replace("{onConflictDoNothing}", onConflictDoNothing())
       .replace("{tableName}", def.tableName)
       .replace("{colFolder}", def.colFolder)
       .replace("{colConfigName}", def.colConfigName)
@@ -590,7 +624,7 @@ public abstract class ConfigTunnelJdbc implements ConfigTunnel {
       ps.setString(6, error);
       ps.setString(7, notice);
       ps.setInt(8, order);
-      ps.executeUpdate();
+      return ps.executeUpdate() == 1;
     }
   }
 }

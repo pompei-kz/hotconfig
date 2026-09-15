@@ -4,11 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import kz.pompei.hotconfig.core.model.Conf;
 import kz.pompei.hotconfig.core.model.ConfParam;
 import kz.pompei.hotconfig.jdbc.tst_utils.JdbcTestDbUtils;
@@ -1050,7 +1047,7 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
     ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
     builder.tableName(nameOfThisMethod + "_" + RND.str(8));
 
-    Conf conf = new Conf();
+    Conf      conf  = new Conf();
     ConfParam param = new ConfParam();
     param.name     = "param0";
     param.valueStr = "value0";
@@ -1283,8 +1280,8 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
 
     ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
 
-    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
-    String simpleTableName = nameOfThisMethod + "_" + RND.str(8);
+    ConfigTunnelJdbcBuilder builder         = ConfigTunnelJdbc.builder();
+    String                  simpleTableName = nameOfThisMethod + "_" + RND.str(8);
     builder.tableName("trigger_schema." + simpleTableName);
 
     createTable(connectionGet, builder);
@@ -1561,8 +1558,8 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
 
     // the table of an older version of the library: the timestamps have no time zone
     execSql(connectionGet, "ALTER TABLE " + tableName
-                             + " ALTER COLUMN " + builder.colCreatedAt() + " TYPE TIMESTAMP"
-                             + ", ALTER COLUMN " + builder.colLastModified() + " TYPE TIMESTAMP");
+      + " ALTER COLUMN " + builder.colCreatedAt() + " TYPE TIMESTAMP"
+      + ", ALTER COLUMN " + builder.colLastModified() + " TYPE TIMESTAMP");
 
     assertThat(columnDataType(connectionGet, tableName, builder.colCreatedAt())).isEqualTo("timestamp without time zone");
     assertThat(columnDataType(connectionGet, tableName, builder.colLastModified())).isEqualTo("timestamp without time zone");
@@ -1573,15 +1570,15 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
     // the row of the old table, with the timestamps of the old type; the trigger of the table changes the last modification
     // timestamp of a row which is updated, so the values are given to the row at once, by the INSERT itself
     execSql(connectionGet, "INSERT INTO " + tableName
-                             + " (" + builder.colFolder()
-                             + ", " + builder.colConfigName()
-                             + ", " + builder.colParamName()
-                             + ", " + builder.colParamValueStr()
-                             + ", " + builder.colOrder()
-                             + ", " + builder.colCreatedAt()
-                             + ", " + builder.colLastModified() + ")"
-                             + " VALUES ('some/folder', 'test-config.hotconf', 'param0', 'value0', 1"
-                             + ", '" + createdAt + "', '" + lastModified + "')");
+      + " (" + builder.colFolder()
+      + ", " + builder.colConfigName()
+      + ", " + builder.colParamName()
+      + ", " + builder.colParamValueStr()
+      + ", " + builder.colOrder()
+      + ", " + builder.colCreatedAt()
+      + ", " + builder.colLastModified() + ")"
+      + " VALUES ('some/folder', 'test-config.hotconf', 'param0', 'value0', 1"
+      + ", '" + createdAt + "', '" + lastModified + "')");
 
     Long lastModifiedBefore = lastModified(connectionGet, builder, "some/folder", "test-config.hotconf", "param0");
 
@@ -1635,8 +1632,8 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
     createTable(connectionGet, builder);
 
     execSql(connectionGet, "ALTER TABLE " + tableName
-                             + " ALTER COLUMN " + builder.colCreatedAt() + " TYPE TIMESTAMP"
-                             + ", ALTER COLUMN " + builder.colLastModified() + " TYPE TIMESTAMP");
+      + " ALTER COLUMN " + builder.colCreatedAt() + " TYPE TIMESTAMP"
+      + ", ALTER COLUMN " + builder.colLastModified() + " TYPE TIMESTAMP");
 
     assertThat(columnDataType(connectionGet, simpleTableName, builder.colLastModified())).isEqualTo("timestamp without time zone");
 
@@ -1673,8 +1670,8 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
     String tableName = builder.tableName();
 
     execSql(connectionGet, "ALTER TABLE " + tableName
-                             + " ALTER COLUMN " + builder.colCreatedAt() + " TYPE TIMESTAMP"
-                             + ", ALTER COLUMN " + builder.colLastModified() + " TYPE TIMESTAMP");
+      + " ALTER COLUMN " + builder.colCreatedAt() + " TYPE TIMESTAMP"
+      + ", ALTER COLUMN " + builder.colLastModified() + " TYPE TIMESTAMP");
 
     //
     //
@@ -1792,6 +1789,216 @@ public class ConfigTunnelJdbcTest extends JdbcTestDbUtils {
 
     assertThat(describeAll(errors)).isEmpty();
     assertThat(columnExists(connectionGet, tableName, builder.colOrder())).isTrue();
+  }
+
+  /**
+   * Two instances of the application start at the same moment on a new database, and both ask the very same configuration for
+   * the first time. A value which is not in the table yet is written back with its default, so both of them write the same
+   * configuration into the same empty table. Nobody may fall on this.
+   * <p>
+   * This is the race of a first start only: on the second start the rows are already there, and nothing is written at all.
+   */
+  @Test(dataProvider = "databaseType")
+  public void write_raceOfManyInstances(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "write_race";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+
+    // the table of a new database: the configuration has no rows at all
+    clearTable(connectionGet, builder.tableName());
+
+    String tableName = builder.tableName();
+    String localPath = "map/MapServiceConf.hotconf";
+
+    Conf conf = new Conf();
+    conf.confComments.add("comment of the whole config");
+
+    ConfParam enabled = new ConfParam();
+    enabled.name     = "enabled";
+    enabled.valueStr = "true";
+    conf.params.add(enabled);
+
+    ConfParam timeout = new ConfParam();
+    timeout.name     = "timeout";
+    timeout.valueStr = "30";
+    conf.params.add(timeout);
+
+    //
+    //
+    List<Throwable> errors = runAtTheSameMoment(INSTANCE_COUNT, () -> newTunnel(connectionGet, tableName).write(localPath, conf));
+    //
+    //
+
+    assertThat(describeAll(errors)).isEmpty();
+
+    Conf read = newTunnel(connectionGet, tableName).read(localPath);
+
+    assertThat(read).isNotNull();
+    assertThat(read.confComments).isEqualTo(List.of("comment of the whole config"));
+    assertThat(read.params).extracting(param -> param.name).containsExactly("enabled", "timeout");
+    assertThat(read.params).extracting(param -> param.valueStr).containsExactly("true", "30");
+  }
+
+  /**
+   * The same race, but the configuration is already in the table: every instance writes another value over it at the same
+   * moment, so the instances fight for rows which are really there and not only for empty space.
+   * <p>
+   * Nobody may fall on this - and nothing may change either. The value which is in the database is the one that counts, and
+   * {@code write(...)} never takes it away: it only brings the rows which are not there yet.
+   */
+  @Test(dataProvider = "databaseType")
+  public void write_raceOfManyInstances_overExistingRows(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "write_race_over_rows";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    String tableName = builder.tableName();
+    String localPath = "map/MapServiceConf.hotconf";
+
+    Conf oldConf = new Conf();
+    oldConf.confComments.add("the old comment");
+    ConfParam oldParam = new ConfParam();
+    oldParam.name     = "enabled";
+    oldParam.valueStr = "false";
+    oldConf.params.add(oldParam);
+
+    newTunnel(connectionGet, tableName).write(localPath, oldConf);
+
+    Conf newConf = new Conf();
+    newConf.confComments.add("the new comment");
+    ConfParam newParam = new ConfParam();
+    newParam.name     = "enabled";
+    newParam.valueStr = "true";
+    newConf.params.add(newParam);
+
+    //
+    //
+    List<Throwable> errors = runAtTheSameMoment(INSTANCE_COUNT, () -> newTunnel(connectionGet, tableName).write(localPath, newConf));
+    //
+    //
+
+    assertThat(describeAll(errors)).isEmpty();
+
+    Conf read = newTunnel(connectionGet, tableName).read(localPath);
+
+    assertThat(read).isNotNull();
+    assertThat(read.confComments).isEqualTo(List.of("the old comment"));
+    assertThat(read.params).extracting(param -> param.name).containsExactly("enabled");
+    assertThat(read.params).extracting(param -> param.valueStr).containsExactly("false");
+  }
+
+  /**
+   * Several instances write different values of the same parameter at the very same moment.
+   * <p>
+   * The value which is already in the database is the one that counts, so the instance which comes first writes its value and
+   * the ones which come after it leave that value alone. Which of them is first is not known and does not matter - what matters
+   * is that the table holds one of the written values, whole and unchanged, and not a value nobody wrote and not nothing at all.
+   */
+  @Test(dataProvider = "databaseType")
+  public void write_raceOfDifferentValues_keepsOneOfThem(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "write_race_diff";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    String tableName = builder.tableName();
+    String localPath = "map/MapServiceConf.hotconf";
+
+    // one half of the instances writes one value, the other half writes another one
+    AtomicInteger instanceIndex = new AtomicInteger();
+
+    //
+    //
+    List<Throwable> errors = runAtTheSameMoment(INSTANCE_COUNT, () -> {
+      String value = instanceIndex.getAndIncrement() % 2 == 0 ? "AAA" : "BBB";
+      newTunnel(connectionGet, tableName).write(localPath, confOfOneParam("enabled", value));
+    });
+    //
+    //
+
+    assertThat(describeAll(errors)).isEmpty();
+
+    Conf read = newTunnel(connectionGet, tableName).read(localPath);
+
+    assertThat(read).as("the configuration must not disappear from the table").isNotNull();
+    assertThat(read.params).extracting(param -> param.name).containsExactly("enabled");
+    assertThat(read.params.get(0).valueStr).as("one of the written values, whole and unchanged").isIn("AAA", "BBB");
+
+    // and the value stays where it is: the one which is in the table wins over everything written after it
+    newTunnel(connectionGet, tableName).write(localPath, confOfOneParam("enabled", "CCC"));
+
+    Conf readAgain = newTunnel(connectionGet, tableName).read(localPath);
+
+    assertThat(readAgain).isNotNull();
+    assertThat(readAgain.params.get(0).valueStr).isEqualTo(read.params.get(0).valueStr);
+  }
+
+  /**
+   * A configuration of a single parameter with the specified value.
+   */
+  @SuppressWarnings("SameParameterValue")
+  private @NonNull Conf confOfOneParam(@NonNull String paramName, @NonNull String value) {
+    Conf conf = new Conf();
+    conf.confComments.add("comment of the config");
+
+    ConfParam param = new ConfParam();
+    param.name     = paramName;
+    param.valueStr = value;
+    conf.params.add(param);
+
+    return conf;
+  }
+
+  /**
+   * The same race for the notice of the configuration: the row of the whole config is not there yet, so every instance sees
+   * nothing to update and goes on to insert the row.
+   */
+  @Test(dataProvider = "databaseType")
+  public void writeNoticeLines_raceOfManyInstances(@NonNull DatabaseType databaseType) throws InterruptedException {
+
+    String nameOfThisMethod = "writeNotice_race";
+
+    ConnectionGet connectionGet = createConnectionGet(databaseType, nameOfThisMethod);
+
+    ConfigTunnelJdbcBuilder builder = ConfigTunnelJdbc.builder();
+    builder.tableName(nameOfThisMethod + "_" + RND.str(8));
+
+    createTable(connectionGet, builder);
+    clearTable(connectionGet, builder.tableName());
+
+    String tableName = builder.tableName();
+    String localPath = "map/MapServiceConf.hotconf";
+
+    List<String> noticeLines = List.of("notice line 1", "notice line 2");
+
+    //
+    //
+    List<Throwable> errors = runAtTheSameMoment(INSTANCE_COUNT,
+                                                () -> newTunnel(connectionGet, tableName).writeNoticeLines(localPath, noticeLines));
+    //
+    //
+
+    assertThat(describeAll(errors)).isEmpty();
+    assertThat(newTunnel(connectionGet, tableName).readNoticeLines(localPath)).isEqualTo(noticeLines);
   }
 
   /**

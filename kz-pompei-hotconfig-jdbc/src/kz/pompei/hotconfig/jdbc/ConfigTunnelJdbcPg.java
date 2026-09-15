@@ -80,6 +80,17 @@ public class ConfigTunnelJdbcPg extends ConfigTunnelJdbc {
   }
 
   /**
+   * {@code ON CONFLICT DO NOTHING} - the row which is already there stays as it is.
+   * <p>
+   * No columns of the conflict are named: without them PostgreSQL takes any unique index of the table, so a table made by hand
+   * with another primary key works just as well. Naming the columns would be possible only for {@code DO UPDATE}, which this
+   * library does not use - see {@link ConfigTunnelJdbc#onConflictDoNothing()}.
+   */
+  @Override protected @NonNull String onConflictDoNothing() {
+    return "ON CONFLICT DO NOTHING";
+  }
+
+  /**
    * Brings the columns of the timestamps of the config table to {@code TIMESTAMPTZ} - {@code timestamp with time zone}.
    * <p>
    * A table made by an older version of this library keeps these columns as a plain {@code TIMESTAMP} - a wall clock without
