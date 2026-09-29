@@ -5,6 +5,24 @@ All notable changes to this project are documented here.
 This project keeps short release summaries in this file and detailed notes in
 `versions/<version>.md`.
 
+## [0.0.12] - 2026-09-29
+
+### Fixed
+
+- `HotConfigFactory` no longer lets the revision check of one configuration postpone the check of another one. The moment of
+  the last check was one for the whole factory, so a configuration read on every request kept taking the check for itself, and
+  a configuration read rarely could wait for its check for as long as the requests kept coming - a change of its value was then
+  seen only after a restart of the application. Every configuration now keeps the moment of its own last check.
+
+### Added
+
+- Core test: a configuration read right after the timeout must not hide a change of another configuration whose own check is
+  due.
+
+### Migration Notes
+
+- Nothing has to be done: no change of the API, of the database or of the storage.
+
 ## [0.0.11] - 2026-09-15
 
 ### Changed

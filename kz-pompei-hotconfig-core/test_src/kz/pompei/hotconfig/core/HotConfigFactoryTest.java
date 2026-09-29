@@ -477,6 +477,73 @@ public class HotConfigFactoryTest {
     assertThat(tunnel.modificationMarkerCount(confPath2)).describedAs("rMFGcMExaL :: must be read").isZero();
   }
 
+  /**
+   * The revision check of one configuration must not postpone the check of another one.
+   * <p>
+   * TestConf2 is read right after the timeout and takes its check; TestConf1 is read a little later - less than the timeout after
+   * the check of TestConf2, but more than the timeout after its own last check. It has changed in the storage in the meantime, and
+   * the change must be seen: with one moment of the last check shared by all configurations it was not.
+   */
+  @Test
+  public void getDot__revisionCheckOfOneConfDoesNotPostponeCheckOfAnother() {
+
+    ConfigTunnelFake tunnel                 = new ConfigTunnelFake();
+    ClockFake        clock                  = new ClockFake(13);
+    int              revisionCheckTimeoutMs = 500;
+
+    HotConfigFactory factory = createFactory(tunnel, clock, revisionCheckTimeoutMs);
+
+    TestConf1 conf1 = factory.createConf(TestConf1.class);
+    TestConf2 conf2 = factory.createConf(TestConf2.class);
+
+    String confPath1 = "cool/folder/TestConf1.tst";
+    String confPath2 = "TestConf2.tst";
+
+    assertThat(conf1.param1()).isEqualTo("def value 1");
+    assertThat(conf2.status1()).isEqualTo("DEF VALUE 1");
+
+    { // the value of TestConf1 changes in the storage
+      ConfigTunnelFake.Dot dot  = tunnel.storage.get(confPath1);
+      Conf                 conf = dot.conf().copy();
+      conf.params.get(0).valueStr = "new value 1";
+      tunnel.storage.put(confPath1, new ConfigTunnelFake.Dot(conf, dot.revision() + 1));
+    }
+
+    /*
+     * The timeout has passed: TestConf2 is read and takes its revision check
+     */
+    clock.inc(revisionCheckTimeoutMs + 10);
+    tunnel.clearCounts();
+
+    assertThat(conf2.status1()).isEqualTo("DEF VALUE 1");
+    assertThat(tunnel.modificationMarkerCount(confPath2)).isGreaterThanOrEqualTo(1);
+
+    /*
+     * Less than the timeout after the check of TestConf2, but more than the timeout after the last check of TestConf1
+     */
+    clock.inc(100);
+    tunnel.clearCounts();
+
+    //
+    //
+    String param1 = conf1.param1();
+    //
+    //
+
+    assertThat(param1).describedAs("Xn4qTz8vLk :: TestConf1 must see its change: its own check is due").isEqualTo("new value 1");
+    assertThat(tunnel.modificationMarkerCount(confPath1)).describedAs("Hs2wRb6mQe :: must check its own revision").isGreaterThanOrEqualTo(1);
+    assertThat(tunnel.readCount(confPath1)).isEqualTo(1);
+
+    /*
+     * And right after its own check TestConf1 is throttled again
+     */
+    clock.inc(revisionCheckTimeoutMs - 100);
+    tunnel.clearCounts();
+
+    assertThat(conf1.param1()).isEqualTo("new value 1");
+    assertThat(tunnel.modificationMarkerCount(confPath1)).describedAs("Vp7cNd3jYa :: too early for the next check").isZero();
+  }
+
   @Test
   public void useDefaultConstructor() {
     ConfigTunnelFake tunnel = new ConfigTunnelFake();

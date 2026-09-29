@@ -5,7 +5,7 @@
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](#requirements)
 [![Gradle](https://img.shields.io/badge/build-Gradle-green.svg)](#build-and-test)
 [![TestNG](https://img.shields.io/badge/tests-TestNG-orange.svg)](#build-and-test)
-[![Version](https://img.shields.io/badge/version-0.0.11-lightgrey.svg)](versions/version.txt)
+[![Version](https://img.shields.io/badge/version-0.0.12-lightgrey.svg)](versions/version.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 `kz-pompei-hotconfig` turns a plain Java interface into a live configuration object.
@@ -42,7 +42,7 @@ This example mirrors the configuration pattern tested in `HotConfigFactoryTest`,
 Add this to build.gradle / dependencies
 
 ```groovy
-implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.11"
+implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.12"
 ```
 
 ### 2. Define A Configuration Interface
@@ -168,16 +168,16 @@ repositories {
 }
 
 dependencies {
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.11"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-core:0.0.12"
   // If you store configs in files, no extra modules are needed
 
   // Optional storage backends
 
   // Add this if you want to store configs in SQL database
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.11"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-jdbc:0.0.12"
   
   // Add this if you want to store configs in etcd database
-  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.11"
+  implementation "kz.pompei.hotconfig:kz-pompei-hotconfig-etcd:0.0.12"
 }
 ```
 
@@ -188,7 +188,7 @@ dependencies {
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-core</artifactId>
-    <version>0.0.11</version>
+    <version>0.0.12</version>
   </dependency>
 
   <!-- If you store configs in files, no extra modules are needed -->
@@ -199,14 +199,14 @@ dependencies {
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-jdbc</artifactId>
-    <version>0.0.11</version>
+    <version>0.0.12</version>
   </dependency>
 
   <!-- Add this if you want to store configs in etcd database -->
   <dependency>
     <groupId>kz.pompei.hotconfig</groupId>
     <artifactId>kz-pompei-hotconfig-etcd</artifactId>
-    <version>0.0.11</version>
+    <version>0.0.12</version>
   </dependency>
 </dependencies>
 ```
@@ -526,7 +526,7 @@ JDBC stores the same error text in the configurable `colError` text column.
 ## Changelog
 
 Release notes are kept in [CHANGELOG.md](CHANGELOG.md). Detailed notes for this release are in
-[versions/0.0.11.md](versions/0.0.11.md).
+[versions/0.0.12.md](versions/0.0.12.md).
 
 ## Build And Test
 

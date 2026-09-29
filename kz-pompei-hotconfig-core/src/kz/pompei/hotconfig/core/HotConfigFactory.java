@@ -30,7 +30,6 @@ import org.jetbrains.annotations.Nullable;
  */
 public class HotConfigFactory {
   private final @NonNull Def           def;
-  private final @NonNull AtomicLong    lastReadMs  = new AtomicLong(0);
   private final @NonNull AtomicBoolean refreshable = new AtomicBoolean(false);
 
   HotConfigFactory(@NonNull Def def) {
@@ -55,11 +54,25 @@ public class HotConfigFactory {
     return new HotConfigFactoryBuilder();
   }
 
-  @RequiredArgsConstructor
+  /**
+   * A cached configuration.
+   * <p>
+   * Every configuration keeps the moment of its own last revision check: the check of one configuration must not postpone the check of
+   * another one. With one moment shared by all of them, a configuration which is read on every request keeps taking the check for
+   * itself, and a configuration which is read rarely may wait for its check forever - a change of its value is then seen only after a
+   * restart.
+   */
   private static class Dot {
     final long          modificationMarker;
     final ParsedConf    parsedConf;
     final AtomicBoolean touched = new AtomicBoolean(true);
+    final AtomicLong    lastCheckMs;
+
+    Dot(long modificationMarker, @NonNull ParsedConf parsedConf, long nowMs) {
+      this.modificationMarker = modificationMarker;
+      this.parsedConf         = parsedConf;
+      this.lastCheckMs        = new AtomicLong(nowMs);
+    }
   }
 
   private final ConcurrentHashMap<String, Dot>       localPath_to_dot = new ConcurrentHashMap<>();
@@ -157,17 +170,17 @@ public class HotConfigFactory {
           return dot;
         }
 
-        long lastReadMs = this.lastReadMs.longValue();
-        long now        = def.clock.nowMs();
+        long lastCheckMs = dot.lastCheckMs.longValue();
+        long now         = def.clock.nowMs();
 
-        if (now < lastReadMs + def.revisionCheckTimeoutMs) {
+        if (now < lastCheckMs + def.revisionCheckTimeoutMs) {
           return dot;
         }
 
         {
           Long modificationMarker = def.tunnel.modificationMarker(localPath);
           if (modificationMarker != null) {
-            this.lastReadMs.set(def.clock.nowMs());
+            dot.lastCheckMs.set(def.clock.nowMs());
             if (dot.modificationMarker == modificationMarker) {
               return dot;
             }
@@ -201,7 +214,7 @@ public class HotConfigFactory {
             conf = compareOrSupplementAndWriteConf(conf, confClass, localPath);
           }
 
-          Dot dot = new Dot(modificationMarker, parseConf(conf, confClass));
+          Dot dot = new Dot(modificationMarker, parseConf(conf, confClass), def.clock.nowMs());
 
           {
             Conf copy = conf.copy();
@@ -212,7 +225,6 @@ public class HotConfigFactory {
           }
 
           localPath_to_dot.put(localPath, dot);
-          lastReadMs.set(def.clock.nowMs());
           return dot;
         }
       }
@@ -232,9 +244,7 @@ public class HotConfigFactory {
                                      " just after def.tunnel.write(...). def.tunnel.class = " + def.tunnel.getClass());
       }
 
-      lastReadMs.set(def.clock.nowMs());
-
-      Dot dot = new Dot(modificationMarker, parsedConf);
+      Dot dot = new Dot(modificationMarker, parsedConf, def.clock.nowMs());
       localPath_to_dot.put(localPath, dot);
       return dot;
     }
@@ -370,7 +380,7 @@ public class HotConfigFactory {
           if (modificationMarker == null) {
             continue;
           }
-          localPath_to_dot.put(localPath, new Dot(modificationMarker, parseConf(conf2, confClass)));
+          localPath_to_dot.put(localPath, new Dot(modificationMarker, parseConf(conf2, confClass), def.clock.nowMs()));
           continue;
         }
       }
@@ -382,7 +392,7 @@ public class HotConfigFactory {
         if (modificationMarker == null) {
           continue;
         }
-        localPath_to_dot.put(localPath, new Dot(modificationMarker, parseConf(conf, confClass)));
+        localPath_to_dot.put(localPath, new Dot(modificationMarker, parseConf(conf, confClass), def.clock.nowMs()));
       }
     }
   }
